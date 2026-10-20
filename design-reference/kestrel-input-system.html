@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kestrel input system: base to E-Rx</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+ --page:#F6F2EA;--surface:#FFFDF9;--warm:#F0EAE0;--line:#E2DACB;--ink:#1B211E;--ink-2:#585F58;--ink-3:#6E746C;
+ --bf:#8A8F87;--bs:#585F58;--ring:#356F51;--ring-soft:rgba(53,111,81,.18);--warn:#9C6A15;--warn-soft:#F8EDD6;
+ --ok:#356F51;--ok-soft:#DFEBE2;--brand:#2B6C76;--brand-soft:#DEEBEA;
+ --sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;--mono:'IBM Plex Mono','SF Mono',monospace;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#141917;--surface:#1C2321;--warm:#252D2A;--line:#2F3834;--ink:#EDE9DF;--ink-2:#B9BEB6;--ink-3:#A3AAA3;--bf:#7C857F;--bs:#B9BEB6;--ring:#7BC49B;--ring-soft:rgba(123,196,155,.2);--warn:#E3B565;--warn-soft:#3A2F17;--ok:#7BC49B;--ok-soft:#1F3629;--brand:#7FB8C1;--brand-soft:#1F3A3F}}
+:root[data-theme="dark"]{--page:#141917;--surface:#1C2321;--warm:#252D2A;--line:#2F3834;--ink:#EDE9DF;--ink-2:#B9BEB6;--ink-3:#A3AAA3;--bf:#7C857F;--bs:#B9BEB6;--ring:#7BC49B;--ring-soft:rgba(123,196,155,.2);--warn:#E3B565;--warn-soft:#3A2F17;--ok:#7BC49B;--ok-soft:#1F3629;--brand:#7FB8C1;--brand-soft:#1F3A3F}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:6px}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.001ms!important;animation-duration:.001ms!important;scroll-behavior:auto!important}}
+h1,h2,h3,p{margin:0}.mono{font-family:var(--mono)}
+.top{position:sticky;top:0;z-index:5;background:var(--page);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.top h1{font-size:16px;font-weight:600;margin-right:6px}
+.top nav{display:flex;gap:2px;flex-wrap:wrap;flex:1}.top nav a{color:var(--ink-2);text-decoration:none;font-size:13px;padding:6px 10px;border-radius:999px}.top nav a:hover{background:var(--warm)}
+.sw{display:flex;align-items:center;gap:6px;font-size:13px}.sw input{accent-color:var(--ring);width:18px;height:18px}
+.tg{border:1px solid var(--bf);background:none;border-radius:999px;min-height:36px;padding:0 14px}
+.page{max-width:1040px;margin:0 auto;padding:24px 20px 64px}
+section{margin-bottom:36px}
+.sh{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}.sh h2{font-size:18px;font-weight:600}.sh span{font:12px var(--mono);color:var(--ink-3)}
+.lede{color:var(--ink-2);max-width:68ch;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.row{display:flex;gap:20px;flex-wrap:wrap}.col{flex:1 1 280px;min-width:0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.ctrls{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line);font-size:13px}
+.ctrls label{display:flex;gap:6px;align-items:center}.ctrls select{min-height:34px;border:1px solid var(--bf);border-radius:8px;background:var(--surface);padding:0 8px}
+.ctrls input[type=checkbox]{accent-color:var(--ring);width:16px;height:16px}
+.cap{font-size:12px;color:var(--ink-3);margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--ink-3);font-weight:500;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line)}td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border:0}
+.chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:500;background:var(--warm);color:var(--ink-2)}.chip.ok{background:var(--ok-soft);color:var(--ok)}.chip.no{background:var(--warn-soft);color:var(--warn)}
+.sw-c{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid var(--line);vertical-align:-2px;margin-right:6px}
+
+/* ---- .input-base ---- */
+.ib{display:flex;flex-direction:column;gap:4px;min-width:0}
+.lb{font-size:12.5px;font-weight:500;color:var(--ink-2)}.req{color:var(--ink-3)}
+.ctl{display:flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--bf);border-radius:8px;padding:0 12px;min-height:40px;font-size:14px;transition:border-color .12s,box-shadow .12s}
+.ib[data-size=sm] .ctl{min-height:32px;padding:0 8px;font-size:12px}.ib[data-size=lg] .ctl{min-height:48px;padding:0 16px;font-size:16px}
+.ctl input,.ctl select,.ctl textarea{flex:1;min-width:0;border:0;background:transparent;outline:none;font:inherit;font-weight:500;color:var(--ink);padding:0}
+.ctl input::placeholder,.ctl textarea::placeholder{color:var(--ink-3);font-weight:400}
+.ctl select{cursor:pointer}.ctl textarea{resize:vertical;min-height:72px;padding:10px 0;line-height:1.45}.ctl.ta{align-items:flex-start}
+.ctl .ic{width:16px;height:16px;flex:none;color:var(--ink-2)}
+.s-default:hover{border-color:var(--bs)}.s-hover{border-color:var(--bs)}
+.s-default:focus-within,.s-focus{border-color:var(--ring);box-shadow:inset 0 0 0 .5px var(--ring),0 0 0 3px var(--ring-soft)}
+.s-error{border-color:var(--warn);box-shadow:inset 0 0 0 .5px var(--warn)}
+.s-disabled{background:var(--warm);border-color:var(--line)}.s-disabled input,.s-disabled select{color:var(--ink-3);cursor:not-allowed}
+.s-read-only{background:var(--warm);border-color:var(--bf)}
+.sfx{color:var(--ink-3);font-size:.85em}.tr{display:flex;align-items:center;gap:6px}
+kbd{font:500 11.5px var(--mono);background:var(--warm);border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--ink-2)}
+.clr{border:0;background:none;width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--ink-2)}.clr:hover{background:var(--warm)}
+.spin{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--ring);border-radius:50%;animation:sp .7s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+/* Form Message + Form Field */
+.fm{display:flex;gap:6px;align-items:flex-start;font-size:12.5px;color:var(--ink-2)}.fm.error{color:var(--warn);font-weight:500}.fm .ic{width:14px;height:14px;margin-top:2px;flex:none}
+.ff{display:flex;flex-direction:column;gap:6px}
+/* results panel */
+.pw{position:relative}.pnl{list-style:none;margin:6px 0 0;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(28,33,30,.12);max-height:340px;overflow:auto}
+.pnl.static{box-shadow:none}.gh{font-size:12px;font-weight:600;color:var(--ink-3);padding:8px 10px 4px;list-style:none}
+.rr{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;min-height:44px;cursor:pointer;list-style:none}.rr:hover,.rr.hl{background:var(--brand-soft)}
+.rr b{font-weight:600;display:block;font-size:13.5px}.rr small{color:var(--ink-2);font-size:12px;display:block}.rr mark{background:none;color:var(--brand);font-weight:700}
+.rr .tag{margin-left:auto;font-size:12px;color:var(--ink-2);background:var(--warm);border-radius:999px;padding:1px 9px;white-space:nowrap}
+.av{width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font:500 11px var(--mono);flex:none}.av.o{border-radius:8px;background:var(--warm);color:var(--ink-2)}
+.msgrow{padding:14px 12px;font-size:13px;color:var(--ink-2);list-style:none}.msgrow.err{color:var(--warn)}
+.sk{height:44px;border-radius:8px;background:linear-gradient(90deg,var(--warm),var(--line),var(--warm));background-size:200% 100%;animation:sk 1.2s linear infinite;margin:4px;list-style:none}@keyframes sk{to{background-position:-200% 0}}
+.scope{display:flex;gap:8px;margin-bottom:10px}.scope button{border:1px solid var(--bf);background:none;border-radius:999px;min-height:34px;padding:0 14px;font-size:13px;color:var(--ink-2)}.scope button[aria-pressed=true]{background:var(--brand-soft);border-color:var(--brand);color:var(--ink);font-weight:500}
+.picked{margin-top:10px;font-size:13px;color:var(--ok);min-height:20px}
+.btn{min-height:40px;border-radius:999px;border:1px solid var(--bf);background:var(--surface);padding:0 16px;font-weight:500}.btn.dark{background:var(--ink);color:var(--page);border-color:var(--ink)}
+.erx{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}.erx .wide{grid-column:1/-1}
+</style>
+</head>
+<body>
+<header class="top">
+ <h1>Kestrel input system</h1>
+ <nav aria-label="Sections"><a href="#s0">Tokens</a><a href="#s1">Base</a><a href="#s2">Message</a><a href="#s3">Field</a><a href="#s4">Search</a><a href="#s5">Fields</a><a href="#s6">Results</a><a href="#s7">E-Rx</a><a href="#s8">Docs</a></nav>
+ <label class="sw"><input type="checkbox" id="mask" checked> Privacy mode</label>
+ <button class="tg" id="theme" type="button">Toggle dark</button>
+</header>
+<div class="page">
+
+<section id="s0"><div class="sh"><h2>0. Tokens</h2><span>checked before building</span></div>
+<p class="lede">New tokens close the contrast gaps found in review. Ratios are computed live against the cream field fill (light theme).</p>
+<div class="card"><table><thead><tr><th>Token</th><th>Value</th><th>Use</th><th>Ratio</th></tr></thead><tbody id="tok"></tbody></table></div></section>
+
+<section id="s1"><div class="sh"><h2>1. .input-base</h2><span>State × Size × Value = 36</span></div>
+<p class="lede">Structure only: label row, control with slots, no message. Every property below is a real component property or variant.</p>
+<div class="card"><div class="ctrls" id="pgc"></div><div id="pg" style="max-width:420px"></div><p class="cap" id="pgcap"></p></div></section>
+
+<section id="s2"><div class="sh"><h2>2. Form Message</h2><span>Type = Helper | Error</span></div>
+<p class="lede">Standalone, so it also works under checkboxes, radios, textareas and attestations. Error uses icon, text and amber, never red.</p>
+<div class="card g2" id="fmx"></div></section>
+
+<section id="s3"><div class="sh"><h2>3. Form Field</h2><span>.input-base + Form Message</span></div>
+<p class="lede">A pre-composed wrapper. Setting the base to Error always brings its message, so a field never shows an unexplained border. Type a non-number in the box.</p>
+<div class="card g2"><div id="ffA"></div><div id="ffB"></div></div></section>
+
+<section id="s4"><div class="sh"><h2>4. Search</h2><span>base + search icon + shortcut / clear / spinner</span></div>
+<p class="lede">Press <kbd id="kb"></kbd> or <kbd>/</kbd> to focus. Try "alpha", "0047", "lo", or tick Offline. Arrow keys and Enter work.</p>
+<div class="card"><div class="scope" id="scope" role="group" aria-label="Scope"></div>
+<div class="pw"><div id="srchF"></div><div id="srchM"></div><div id="pnl" aria-live="polite"></div></div>
+<label class="sw" style="margin-top:12px"><input type="checkbox" id="off"> Simulate offline</label><div class="picked" id="picked"></div></div></section>
+
+<section id="s5"><div class="sh"><h2>5. Derived fields</h2><span>all built from the same base</span></div>
+<div class="card erx" id="derived"></div></section>
+
+<section id="s6"><div class="sh"><h2>6. Result Row and Results Panel</h2><span>Patient · Order · Recent × Highlighted · Masked</span></div>
+<p class="lede">Static panel states. Toggle Privacy mode in the header to see masked rows.</p>
+<div class="g2" id="gal"></div></section>
+
+<section id="s7"><div class="sh"><h2>7. In context: Directions and supply</h2><span>E-Rx screen, built only from the components above</span></div>
+<div class="card erx" id="erx"></div></section>
+
+<section id="s8"><div class="sh"><h2>8. Handoff notes</h2><span>accessibility and usage</span></div>
+<div class="card"><table><thead><tr><th>Component</th><th>Behavior</th><th>Implementation</th></tr></thead><tbody>
+<tr><td>.input-base</td><td>Label always visible, even when Disabled. Read-only stays dark and shows a lock.</td><td>Real <span class="mono">&lt;label for&gt;</span>; <span class="mono">readonly</span> vs <span class="mono">disabled</span>; <span class="mono">aria-required</span></td></tr>
+<tr><td>Form Message</td><td>Error uses icon plus text, not color alone.</td><td><span class="mono">aria-describedby</span> on the input; <span class="mono">role="alert"</span> for errors</td></tr>
+<tr><td>Empty read-only</td><td>Shows an em dash meaning "no value".</td><td>Add visually hidden text "No value"</td></tr>
+<tr><td>Search</td><td>Shortcut label is Ctrl K by default, Cmd K on Mac. Clear returns focus to the field.</td><td><span class="mono">role="combobox"</span>, <span class="mono">aria-activedescendant</span>, <span class="mono">listbox</span> + <span class="mono">option</span></td></tr>
+<tr><td>Results Panel</td><td>Loading, no results and offline are announced.</td><td><span class="mono">aria-live="polite"</span> on the panel</td></tr>
+<tr><td>Privacy mode</td><td>Names and DOB masked until a row is selected. MRN shows last 4.</td><td>Mask in the view layer, never in the data</td></tr>
+<tr><td>Colors</td><td>Red is reserved for safety-critical resolution. Errors here are amber.</td><td>Use <span class="mono">border/field</span> and <span class="mono">warning/border-strong</span></td></tr>
+</tbody></table></div></section>
+</div>
+
+<script>
+(function(){
+var $=function(s,r){return (r||document).querySelector(s)};
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+var MAC=/Mac|iPhone|iPad/.test(navigator.platform||'');var SHORT=MAC?'\u2318 K':'Ctrl K';$('#kb').textContent=SHORT;
+var I=function(p){return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'};
+var IC={search:I('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'),lock:I('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),x:I('<path d="M6 6l12 12M18 6L6 18"/>'),
+ alert:I('<path d="M12 3l9 16H3l9-16z"/><path d="M12 10v4M12 17.5h.01"/>'),chev:I('<path d="M6 9l6 6 6-6"/>'),cal:I('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>'),clock:I('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'),pill:I('<path d="M10.5 20.5l-7-7a4.9 4.9 0 0 1 7-7l7 7a4.9 4.9 0 0 1-7 7zM8.5 8.5l7 7"/>')};
+
+/* ---------- components ---------- */
+function ib(o){
+ var st=o.state||'default',ro=st==='read-only',dis=st==='disabled',v=o.value||'',ph=o.ph||'Placeholder';if(ro&&!v)ph='\u2014';
+ var tr='';if(o.loading)tr='<span class="spin" role="status" aria-label="Loading"></span>';else if(ro)tr=IC.lock;
+ else if(o.clear&&v)tr='<button type="button" class="clr" aria-label="Clear" data-clear>'+IC.x+'</button>';else if(o.short)tr='<kbd>'+SHORT+'</kbd>';
+ if(o.chev&&!tr)tr=IC.chev;
+ var a=(dis?' disabled':'')+(ro?' readonly':'')+(o.req?' aria-required="true"':'')+(st==='error'?' aria-invalid="true"':'')+(o.desc?' aria-describedby="'+o.desc+'"':'')+(o.extra||'');
+ var core;
+ if(o.options)core='<select id="'+o.id+'"'+a+'>'+o.options.map(function(x){return '<option'+(x===o.value?' selected':'')+'>'+x+'</option>'}).join('')+'</select>';
+ else if(o.area)core='<textarea id="'+o.id+'" placeholder="'+esc(ph)+'"'+a+'>'+esc(v)+'</textarea>';
+ else core='<input id="'+o.id+'" type="'+(o.type||'text')+'" value="'+esc(v)+'" placeholder="'+esc(ph)+'"'+a+'>';
+ return '<div class="ib" data-size="'+(o.size||'md')+'">'+(o.label===false?'':'<label class="lb" for="'+o.id+'">'+esc(o.label||'Label')+(o.req?'<span class="req" aria-hidden="true"> *</span>':'')+'</label>')+
+  '<div class="ctl s-'+st+(o.area?' ta':'')+'">'+(o.lead?IC[o.lead]:'')+core+(o.suffix?'<span class="sfx">'+o.suffix+'</span>':'')+'<span class="tr">'+tr+'</span></div></div>';
+}
+function fm(type,text,id){return '<div class="fm '+type+'" id="'+id+'"'+(type==='error'?' role="alert"':'')+'>'+(type==='error'?IC.alert:'')+'<span>'+esc(text)+'</span></div>'}
+function ff(o,type,text){if(o.state==='error')type='error';if(text)o.desc=o.id+'-m';return '<div class="ff">'+ib(o)+(text?fm(type,text,o.id+'-m'):'')+'</div>'}
+
+/* ---------- 0 tokens ---------- */
+function lum(h){var c=[1,3,5].map(function(i){var v=parseInt(h.substr(i,2),16)/255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*c[0]+.7152*c[1]+.0722*c[2]}
+function cr(a,b){var x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+var FILL='#FFFDF9';
+var toks=[['border/default','#D2C8B4','Decorative: cards, dividers',3,'ui'],['border/field','#8A8F87','NEW. Input boundary',3,'ui'],['border/strong','#585F58','Hover',3,'ui'],['focus/ring','#356F51','Focus',3,'ui'],
+ ['warning/default','#C98A2A','Old error stroke',3,'ui'],['warning/border-strong','#9C6A15','NEW. Error stroke and text',3,'ui'],['text/secondary (old)','#8A8F87','Fails for text',4.5,'text'],['text/placeholder','#6E746C','NEW. Placeholder',4.5,'text'],['text/primary','#1B211E','Value',4.5,'text']];
+$('#tok').innerHTML=toks.map(function(t){var r=cr(t[1],FILL),ok=r>=t[3];return '<tr><td class="mono">'+t[0]+'</td><td><span class="sw-c" style="background:'+t[1]+'"></span><span class="mono">'+t[1]+'</span></td><td>'+t[2]+'</td><td><span class="chip '+(ok?'ok':'no')+'">'+r.toFixed(1)+':1 '+(ok?'pass':'needs '+t[3])+'</span></td></tr>'}).join('');
+
+/* ---------- 1 playground ---------- */
+var P={state:'Default',size:'MD',value:'Empty',label:true,req:false,lead:false,clear:false,short:false,loading:false};
+function sel(k,opts){return '<label>'+k+' <select data-k="'+k.toLowerCase()+'">'+opts.map(function(o){return '<option'+(P[k.toLowerCase()]===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select></label>'}
+function chk(k,l){return '<label><input type="checkbox" data-b="'+k+'"'+(P[k]?' checked':'')+'> '+l+'</label>'}
+$('#pgc').innerHTML=sel('State',['Default','Hover','Focus','Disabled','Error','Read-only'])+sel('Size',['SM','MD','LG'])+sel('Value',['Empty','Filled'])+chk('label','Show label')+chk('req','Required')+chk('lead','Show leading')+chk('clear','Show clear')+chk('short','Show shortcut')+chk('loading','Loading');
+function pg(){
+ var st=P.state.toLowerCase(),filled=P.value==='Filled';
+ $('#pg').innerHTML=ib({id:'pg1',label:P.label?'Label':false,req:P.req,ph:'Placeholder',value:filled?'Value text':'',state:st,size:P.size.toLowerCase(),lead:P.lead?'search':'',clear:P.clear,short:P.short,loading:P.loading});
+ $('#pgcap').textContent=P.state+' / '+P.size+' / '+P.value+(st==='read-only'&&!filled?'  (empty read-only shows an em dash)':'')+(st==='error'?'  (message lives in Form Message, below)':'');
+}
+$('#pgc').addEventListener('change',function(e){var t=e.target;if(t.dataset.k)P[t.dataset.k]=t.value;if(t.dataset.b)P[t.dataset.b]=t.checked;pg()});pg();
+
+/* ---------- 2 message ---------- */
+$('#fmx').innerHTML='<div>'+fm('helper','Pharmacy may dispense an AB-rated equivalent.','m1')+'<p class="cap">Type = Helper</p></div><div>'+fm('error','Search unavailable. Check your connection.','m2')+'<p class="cap">Type = Error</p></div>';
+
+/* ---------- 3 form field ---------- */
+$('#ffA').innerHTML=ff({id:'f1',label:'Quantity',req:true,ph:'30',value:'30',type:'text',suffix:'tablets'},'helper','Enter the number of tablets to dispense.');
+$('#ffB').innerHTML=ff({id:'f2',label:'Notes to pharmacy',ph:'Add a note',value:'',state:'error'},'error','A note is required when you continue both therapies.');
+$('#f1').addEventListener('input',function(){var bad=!/^\d+$/.test(this.value)||+this.value<1;$('#ffA').innerHTML=ff({id:'f1',label:'Quantity',req:true,ph:'30',value:this.value,suffix:'tablets',state:bad?'error':'default'},'helper',bad?'Enter a whole number of 1 or more.':'Enter the number of tablets to dispense.');var n=$('#f1');n.addEventListener('input',arguments.callee);n.focus();n.setSelectionRange(n.value.length,n.value.length)});
+
+/* ---------- panel renderer ---------- */
+var PT=[{n:'Patient Alpha',i:'PA',dob:'04/16/1959',m:'84276190'},{n:'Patient Beta',i:'PB',dob:'09/02/1981',m:'00477201'},{n:'Patient Gamma',i:'PG',dob:'11/23/1991',m:'00491185'}];
+var OR=[{n:'Losartan 25 mg',d:'E-Rx order, 10/01/2026'},{n:'Metformin ER 1000 mg',d:'Renewal, pending'},{n:'Potassium + creatinine panel',d:'Lab order'}];
+var RC=['Patient Alpha','00477201','Losartan'];
+var MASK=true;
+function hl(t,q){if(!q)return esc(t);var i=t.toLowerCase().indexOf(q.toLowerCase());if(i<0)return esc(t);return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length))}
+function find(q,scope){q=q.toLowerCase();var out=[];
+ if(scope!=='orders')PT.forEach(function(p){if(p.n.toLowerCase().indexOf(q)>-1||p.m.indexOf(q)>-1)out.push({t:'p',d:p})});
+ if(scope!=='patients')OR.forEach(function(o){if(o.n.toLowerCase().indexOf(q)>-1)out.push({t:'o',d:o})});return out}
+function row(it,q,i,idx){var c=i===idx?' hl':'',a=' role="option" id="opt'+i+'" aria-selected="'+(i===idx)+'" data-i="'+i+'"';
+ if(it.t==='p'){var p=it.d,nm=MASK?p.n.replace(/([A-Za-z])[A-Za-z]+/g,'$1\u2022\u2022\u2022'):hl(p.n,q);
+  return '<li class="rr'+c+'"'+a+'><span class="av">'+p.i+'</span><div><b>'+nm+'</b><small>'+(MASK?'\u2022\u2022/\u2022\u2022/\u2022\u2022\u2022\u2022 \u00B7 MRN \u2022\u2022\u2022\u2022'+p.m.slice(-4):p.dob+' \u00B7 MRN '+hl(p.m,q))+'</small></div><span class="tag">Patient</span></li>'}
+ return '<li class="rr'+c+'"'+a+'><span class="av o">'+IC.pill+'</span><div><b>'+hl(it.d.n,q)+'</b><small>'+it.d.d+'</small></div><span class="tag">Order</span></li>'}
+function panel(o){var q=o.q||'',cls='pnl'+(o.st?' static':'');
+ if(o.mode==='loading')return '<ul class="'+cls+'" aria-busy="true"><li class="sk"></li><li class="sk"></li><li class="sk"></li></ul>';
+ if(o.mode==='error')return '<ul class="'+cls+'"><li class="msgrow err" role="alert">'+IC.alert+' Search unavailable. Check your connection.</li></ul>';
+ if(o.mode==='recent')return '<ul class="'+cls+'" role="listbox" id="lb"><li class="gh">Recent</li>'+RC.map(function(r,i){return '<li class="rr" role="option" data-r="'+esc(r)+'"><span class="av o">'+IC.clock+'</span><div><b>'+esc(r)+'</b></div></li>'}).join('')+'</ul>';
+ var list=find(q,o.scope||'all');if(!list.length)return '<ul class="'+cls+'"><li class="msgrow" role="status">No matches for \u201C'+esc(q)+'\u201D. Try an MRN or a different spelling.</li></ul>';
+ var h='<ul class="'+cls+'" role="listbox" id="lb">',lp=false,lo=false;list.forEach(function(it,i){if(it.t==='p'&&!lp){h+='<li class="gh">Patients</li>';lp=true}if(it.t==='o'&&!lo){h+='<li class="gh">Orders</li>';lo=true}h+=row(it,q,i,o.idx)});return h+'</ul>'}
+
+/* ---------- 4 live search ---------- */
+var S={q:'',scope:'all',open:false,load:false,off:false,idx:-1,list:[]},tm;
+$('#srchF').innerHTML=ib({id:'q',label:false,ph:'Search patients, MRN, or orders',lead:'search',short:true,size:'md',extra:' role="combobox" aria-expanded="false" aria-controls="lb" autocomplete="off" aria-label="Search patients, MRN, or orders"'});
+$('#scope').innerHTML=['All','Patients','Orders'].map(function(s,i){return '<button type="button" data-s="'+s.toLowerCase()+'" aria-pressed="'+(i===0)+'">'+s+'</button>'}).join('');
+function upd(){var ctl=$('#srchF .ctl'),inp=$('#q');
+ ctl.className='ctl '+(S.off?'s-error':'s-default');
+ $('.tr',ctl).innerHTML=S.load?'<span class="spin" role="status" aria-label="Searching"></span>':(S.q?'<button type="button" class="clr" aria-label="Clear search" data-clear>'+IC.x+'</button>':'<kbd>'+SHORT+'</kbd>');
+ $('#srchM').innerHTML=S.off?'<div style="margin-top:6px">'+fm('error','Search unavailable. Check your connection.','qm')+'</div>':'';
+ inp.setAttribute('aria-expanded',S.open);if(S.idx>-1)inp.setAttribute('aria-activedescendant','opt'+S.idx);else inp.removeAttribute('aria-activedescendant');
+ var h='';if(S.open){S.list=find(S.q,S.scope);h=S.off?panel({mode:'error'}):S.load?panel({mode:'loading'}):!S.q?panel({mode:'recent'}):panel({mode:'results',q:S.q,scope:S.scope,idx:S.idx})}
+ $('#pnl').innerHTML=h}
+function go(){S.idx=-1;S.load=!!S.q&&!S.off;clearTimeout(tm);upd();if(S.load)tm=setTimeout(function(){S.load=false;upd()},380)}
+function pick(i){var it=S.list[i];if(!it)return;$('#picked').textContent=it.t==='p'?'Selected: '+it.d.n+', DOB '+it.d.dob+', MRN '+it.d.m+' (revealed on selection)':'Selected order: '+it.d.n;S.open=false;S.idx=-1;upd()}
+var qi=$('#q');
+qi.addEventListener('input',function(){S.q=qi.value;S.open=true;go()});
+qi.addEventListener('focus',function(){S.open=true;upd()});
+qi.addEventListener('keydown',function(e){var n=S.list.length;
+ if(e.key==='ArrowDown'&&n){e.preventDefault();S.idx=(S.idx+1)%n;upd()}else if(e.key==='ArrowUp'&&n){e.preventDefault();S.idx=(S.idx-1+n)%n;upd()}
+ else if(e.key==='Enter'&&S.idx>-1){e.preventDefault();pick(S.idx)}else if(e.key==='Escape'){S.open=false;S.idx=-1;upd()}});
+$('#srch-wrap')||0;
+document.addEventListener('mousedown',function(e){if(!e.target.closest('.pw')&&!e.target.closest('.scope'))if(S.open){S.open=false;upd()}});
+$('#pnl').addEventListener('mousedown',function(e){var r=e.target.closest('[data-i]'),rc=e.target.closest('[data-r]');if(r){e.preventDefault();pick(+r.dataset.i)}if(rc){e.preventDefault();qi.value=rc.dataset.r;S.q=rc.dataset.r;S.open=true;go();qi.focus()}});
+$('#srchF').addEventListener('click',function(e){if(e.target.closest('[data-clear]')){qi.value='';S.q='';S.open=true;go();qi.focus()}});
+$('#scope').addEventListener('click',function(e){var b=e.target.closest('[data-s]');if(!b)return;S.scope=b.dataset.s;$('#scope').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});S.open=true;go()});
+$('#off').addEventListener('change',function(){S.off=this.checked;S.open=true;go()});
+document.addEventListener('keydown',function(e){var k=(MAC?e.metaKey:e.ctrlKey)&&e.key.toLowerCase()==='k',sl=e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName);if(k||sl){e.preventDefault();qi.focus()}});
+
+/* ---------- 5 derived ---------- */
+function derived(){
+ $('#derived').innerHTML=
+  ff({id:'d1',label:'Text input',ph:'Patient last name'})+
+  ff({id:'d2',label:'Select',options:['Oral','Topical','Inhaled'],value:'Oral',chev:true},'helper','Route of administration.')+
+  ff({id:'d3',label:'Number input',type:'number',value:'30',suffix:'tablets'})+
+  ff({id:'d4',label:'Date select',options:['Today','Tomorrow'],value:'Today',lead:'cal'})+
+  ff({id:'d5',label:'Days supply',state:'read-only',value:'30'},'helper','Calculated from quantity and directions.')+
+  ff({id:'d6',label:'Disabled',state:'disabled',value:'Locked by workflow'})+
+  '<div class="wide">'+ff({id:'d7',label:'Medication (combobox)',req:true,ph:'Search medication',lead:'search',size:'lg',extra:' autocomplete="off"'})+'<ul class="pnl" id="mc" hidden role="listbox"></ul></div>'+
+  '<div class="wide">'+ff({id:'d8',label:'Notes to pharmacy (textarea)',area:true,ph:'Add a note',value:''},'helper','Generated from your safety decision. Edit to override.')+'</div>';
+ var M=['Losartan 25 mg','Losartan 50 mg','Lisinopril 20 mg','Metformin ER 1000 mg'],mi=$('#d7'),mc=$('#mc');
+ function mr(){var q=mi.value.toLowerCase(),r=M.filter(function(m){return m.toLowerCase().indexOf(q)>-1});mc.hidden=!r.length;mc.innerHTML=r.map(function(m){return '<li class="rr" role="option" data-m="'+m+'"><span class="av o">'+IC.pill+'</span><div><b>'+hl(m,mi.value)+'</b><small>Formulary</small></div></li>'}).join('')}
+ mi.addEventListener('input',mr);mi.addEventListener('focus',mr);
+ mc.addEventListener('mousedown',function(e){var r=e.target.closest('[data-m]');if(r){e.preventDefault();mi.value=r.dataset.m;mc.hidden=true}});
+ mi.addEventListener('blur',function(){mc.hidden=true});
+}derived();
+
+/* ---------- 6 gallery ---------- */
+function gal(){$('#gal').innerHTML=[['Recent',panel({mode:'recent',st:1})],['Results (Patient + Order, highlighted row, match bold)',panel({mode:'results',q:'lo',idx:0,st:1})+panel({mode:'results',q:'alpha',idx:-1,st:1})],['Loading',panel({mode:'loading',st:1})],['No results',panel({mode:'empty',q:'zzz',st:1})],['Error (offline)',panel({mode:'error',st:1})]].map(function(g){return '<div><p class="cap" style="margin:0 0 4px">'+g[0]+'</p>'+g[1]+'</div>'}).join('')}
+$('#mask').addEventListener('change',function(){MASK=this.checked;gal();upd()});MASK=$('#mask').checked;gal();upd();
+
+/* ---------- 7 e-rx ---------- */
+function erx(){
+ $('#erx').innerHTML=
+  '<div class="wide">'+ff({id:'e1',label:'Medication',req:true,value:'Losartan potassium',lead:'search',chev:false,state:'read-only'},'helper','ARB, Rx only, formulary.')+'</div>'+
+  ff({id:'e2',label:'Quantity',req:true,type:'text',value:'30',suffix:'tablets'},'helper','Tablets to dispense.')+
+  ff({id:'e3',label:'Days supply',state:'read-only',value:'30'},'helper','Calculated.')+
+  ff({id:'e4',label:'Refills',options:['0','1','2','3'],value:'2',chev:true})+
+  ff({id:'e5',label:'Start date',options:['Today','Tomorrow'],value:'Today',lead:'cal'})+
+  '<div class="wide">'+ff({id:'e6',label:'Notes to pharmacy',area:true,value:'Please discontinue lisinopril 20 mg when this prescription is dispensed.'},'helper','Generated from your safety decision. Edit to override.')+'</div>';
+ var q=$('#e2'),dm=$('#e3');
+ function on(){var bad=!/^\d+$/.test(q.value)||+q.value<1;var c=q.closest('.ff');c.querySelector('.ctl').className='ctl '+(bad?'s-error':'s-default');q.setAttribute('aria-invalid',bad);
+  c.querySelector('.fm').outerHTML=fm(bad?'error':'helper',bad?'Enter a whole number of 1 or more.':'Tablets to dispense.','e2-m');dm.value=bad?'':q.value}
+ q.addEventListener('input',on);
+}erx();
+
+$('#theme').addEventListener('click',function(){var r=document.documentElement,d=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);r.setAttribute('data-theme',d?'light':'dark')});
+})();
+</script>
+</body>
+</html>

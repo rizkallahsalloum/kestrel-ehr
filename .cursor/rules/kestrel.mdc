@@ -1,0 +1,19 @@
+---
+description: Kestrel EHR rules and guardrails
+alwaysApply: true
+---
+
+# Kestrel EHR Architecture & Coding Standards
+
+## 1. Design & Layout Tokens
+- **Breakpoints:** Use the documented Figma-derived breakpoints defined in docs/theme.md (do not force default Tailwind breakpoints if they contradict the Figma reference). Multi-column layouts collapse one step at a time: 3 → 2 → 1 where three columns exist (the prescribing workspace), 2 → 1 where there are two (the patient chart). Never jump from three columns straight to one. Every layout is single-column at 760px and below (below the `md` breakpoint, 761px) to prevent text squishing; page-specific breakpoints for the intermediate steps are listed in docs/theme.md.
+- **Design Tokens:** Always reference central design token definitions (`design-reference/design-tokens.tokens.json` via `src/styles/tokens.css` and `src/app/globals.css`). Do not hardcode magic hex values, spacing rems or raw pixel values in components: snap to the Tailwind spacing scale (e.g., `p-3`, `gap-4.5`) or add a named token to `globals.css` for a specific layout dimension (e.g., `grid-cols-workspace`, `max-w-footer`).
+- **Red and orange:** Red (`danger`) is used only for resolution actions and destructive confirms; today that is only the "Cancel draft" confirm button. Every detection state uses the orange family (`warning`, `warning-subtle`, `warning-line`, `warning-stroke`): blocking safety states (e.g., blocking demo alerts, severe allergies, critical vitals), advisory states (e.g., mild and moderate allergies, non-blocking alerts) and form errors. Blocking is told apart from advisory by the emphasis border width (`--border-width-emphasis` in `warning-stroke`, via `severityOutline`), the circle icon versus the triangle (`severityIcons`), the label text, and ordering (blocking first), never by colour alone. Summary indicators take the treatment of the highest severity they summarize.
+
+## 2. Component Organization
+- **Feature components:** Feature components live in `src/features/<feature>/components/` (e.g., `src/features/chart/`, `src/features/prescriptions/`), next to that feature's queries, actions and pure logic. Shared, feature-agnostic primitives live in `src/components/ui/` and the app shell in `src/components/shell/`. A future vitals panel goes in `src/features/vitals/`, not `src/components/vitals-panel/`.
+- **Isolation:** Keep presentation components isolated from data-fetching logic where possible to ensure seamless testability.
+
+## 3. EHR Safety & Integrity Guardrails
+- **Data Freshness:** Stale front-end states can lead to clinical errors. No clinical data is cached (see `AGENTS.md`); after a mutation, use Next.js route invalidation (`revalidatePath`) to refresh the affected pages. Before browser tests, delete only the dev server cache `.next/dev` (`pnpm test:browser` does this automatically). Do not delete the whole `.next` directory between `pnpm build` and `pnpm check:bundle`.
+- **Consistency:** This file must coexist and remain completely aligned with `AGENTS.md`. If architectural instructions deviate between the two, stop and request clarification.

@@ -1,0 +1,42 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+.pnpm-debug.log*
+
+# env files: never commit real keys; only the placeholder example is tracked
+.env*
+!.env.example
+.env.local
+
+# supabase CLI local state
+/supabase/.temp/
+/supabase/.branches/
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

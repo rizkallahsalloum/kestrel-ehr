@@ -1,0 +1,344 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/*
+ * Kestrel theme. Three layers:
+ *   1. src/styles/tokens.css   generated from the Figma export (pnpm tokens:build)
+ *   2. :root fallback layer    values the export has no semantic token for, or that
+ *                              fail contrast as exported (C7, C10).
+ *                              Each one names its source; delete it once Figma covers it.
+ *   3. @theme inline static    Tailwind names mapped onto layers 1 and 2.
+ * Design references: design-reference/*.html. Plan: kestrel_ehr_frontend plan, section 2.
+ */
+
+:root {
+  /* no semantic token: HTML rail secondary text (same value as primitive gray.600) */
+  --kf-on-inverse-muted: #9aa39c;
+  /* no semantic token: dashboard --brand-dark, accent hover (Figma primary.hover is the ink button hover) */
+  --kf-accent-hover: #1f5058;
+
+  /* overrides Figma warning.text on warning.subtle (#9C6A15 on #F4E7CE fails AA): revised E-Rx values */
+  --kf-warning-text: #8a5a0e;
+  --kf-warning-subtle: #f8edd6;
+  /* overrides Figma border.warning (#F4E7CE, same as its own warning.subtle fill, so invisible) */
+  --kf-warning-line: #e9d6ac;
+
+  /* no Figma radius between md 8 and lg 16: 12px inner panels and tiles (dashboard, E-Rx, Input System) */
+  --kf-radius-panel: 12px;
+  /* no Figma radius between sm 4 and control 8: focus outline corners (all three references, :focus-visible) */
+  --kf-radius-focus: 6px;
+}
+
+/* static: emit every variable so inline styles can use var(--color-*) */
+@theme inline static {
+  /* ---- Surfaces ---- */
+  --color-page: var(--k-semantic-bg-page, #f6f2ea);
+  --color-surface: var(--k-semantic-bg-surface, #fffdf9);
+  --color-surface-pure: var(--k-semantic-bg-surface-pure, #ffffff);
+  --color-surface-warm: var(--k-semantic-bg-surface-hover, #f0eae0);
+  --color-inverse: var(--k-semantic-bg-inverse, #1c2321);
+  --color-inverse-hover: var(--k-semantic-bg-inverse-hover, #2a3330);
+
+  /* ---- Text ---- */
+  --color-ink: var(--k-semantic-text-primary, #1c2321);
+  --color-ink-strong: var(--k-semantic-text-strong, #585f58);
+  --color-ink-secondary: var(--k-semantic-text-secondary, #6a6863);
+  --color-ink-muted: var(--k-semantic-text-muted, #6d6b66);
+  --color-ink-placeholder: var(--k-semantic-text-placeholder, #6d6b66);
+  --color-on-accent: var(--k-semantic-text-on-brand, #ffffff);
+  --color-on-inverse: var(--k-semantic-text-on-inverse, #ffffff);
+  --color-on-inverse-muted: var(--kf-on-inverse-muted);
+
+  /* ---- Borders ---- */
+  --color-line-subtle: var(--k-semantic-border-condition, #e2dacb);
+  --color-line: var(--k-semantic-border-default, #d2c8b4);
+  --color-line-field: var(--k-semantic-border-field, #8a8f87);
+  --color-line-strong: var(--k-semantic-border-strong, #585f58);
+
+  /* ---- Accent (teal, C1). Figma has no accent token; cyan.700 via primary.subtle-border ---- */
+  --color-accent: var(--k-semantic-primary-subtle-border, #2b6c76);
+  --color-accent-hover: var(--kf-accent-hover);
+  --color-accent-subtle: var(--k-semantic-primary-subtle, #deebea);
+
+  /* ---- Status ---- */
+  --color-ok: var(--k-semantic-success-default, #356f51);
+  --color-ok-subtle: var(--k-semantic-success-subtle, #dfebe2);
+  --color-warning: var(--kf-warning-text);
+  --color-warning-subtle: var(--kf-warning-subtle);
+  --color-warning-line: var(--kf-warning-line);
+  --color-warning-stroke: var(--k-semantic-warning-border-strong, #9c6a15);
+  --color-danger: var(--k-semantic-error-default, #b03a32);
+  --color-danger-ink: var(--k-semantic-error-hover, #7a2822);
+  --color-danger-subtle: var(--k-semantic-alert-critical-bg, #f6e4e1);
+  --color-danger-line: var(--k-semantic-border-warning-strong, #d9cbc6);
+  --color-status-stable: var(--k-semantic-status-stable, #356f51);
+  /* Figma status.warning (#C98A2A) is 2.89:1 on surface; the dashboard's warning dot uses #9C6A15 */
+  --color-status-warning: var(--k-semantic-warning-border-strong, #9c6a15);
+  --color-status-critical: var(--k-semantic-status-critical, #b03a32);
+
+  /* ---- Focus (Input System / Figma green, C3) ---- */
+  --color-focus: var(--k-semantic-focus-ring, #356f51);
+  --color-focus-glow: var(--k-semantic-focus-glow, #356f511f);
+
+  /* ---- Dialog backdrop. Figma bg.modal is opaque black (docs/theme.md), so it is not used ---- */
+  --color-scrim: color-mix(in srgb, var(--color-inverse) calc(var(--opacity-overlay) * 100%), transparent);
+
+  /* ---- Avatars (Figma) ---- */
+  --color-avatar-teal: var(--k-semantic-avatar-teal, #2b6c76);
+  --color-avatar-green: var(--k-semantic-avatar-green, #356f51);
+  --color-avatar-red: var(--k-semantic-avatar-red, #b03a32);
+
+  /* ---- Radii (C10) ---- */
+  --radius-sm: var(--k-semantic-border-radius-sm, 4px);
+  --radius-control: var(--k-semantic-border-radius-control, 8px);
+  --radius-panel: var(--kf-radius-panel);
+  --radius-focus: var(--kf-radius-focus);
+  --radius-card: var(--k-semantic-border-radius-card, 16px);
+  --radius-pill: var(--k-semantic-border-radius-pill, 999px);
+
+  /* ---- Shadows (C14) ---- */
+  --shadow-level-1: var(--k-semantic-shadow-level-1, 0 4px 8px rgb(28 35 33 / 0.08));
+  --shadow-level-2: var(--k-semantic-shadow-level-2, 0 8px 16px rgb(28 35 33 / 0.14));
+
+  /* ---- Border widths: use as border-(length:--border-width-field) ---- */
+  --border-width-hairline: var(--k-semantic-border-width-hairline, 1px);
+  --border-width-field: var(--k-semantic-border-width-default, 1.5px);
+  --border-width-emphasis: var(--k-semantic-border-width-emphasis, 2px);
+  --border-width-heavy: var(--k-semantic-border-width-heavy, 3px);
+
+  /* ---- Fonts (section 3). Figma text-family: Inter, IBM Plex Mono; loaded by next/font in the root layout.
+     Display (Fraunces) has no Figma token; it comes from the HTML references. ---- */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "SF Mono", ui-monospace, monospace;
+  --font-display: var(--font-fraunces), Georgia, serif;
+
+  --font-weight-light: var(--k-semantic-text-weight-light, 300);
+  --font-weight-normal: var(--k-semantic-text-weight-regular, 400);
+  --font-weight-medium: var(--k-semantic-text-weight-medium, 500);
+  --font-weight-semibold: var(--k-semantic-text-weight-semibold, 600);
+  --font-weight-bold: var(--k-semantic-text-weight-bold, 700);
+
+  /* ---- Type scale: Figma text-size. Figma line heights are roles, not per-size pairs;
+     the pairing below follows the closest role (caption 16, body 20, heading-3 24,
+     heading-2 28, heading-1 32, display 40). ---- */
+  --text-caption: var(--k-semantic-text-size-caption, 11px);
+  --text-caption--line-height: var(--k-semantic-text-line-height-caption, 16px);
+  --text-label-sm: var(--k-semantic-text-size-label-sm, 12px);
+  --text-label-sm--line-height: var(--k-semantic-text-line-height-caption, 16px);
+  --text-label: var(--k-semantic-text-size-label-md, 13px);
+  --text-label--line-height: var(--k-semantic-text-line-height-body, 20px);
+  --text-body-sm: var(--k-semantic-text-size-body-sm, 13px);
+  --text-body-sm--line-height: var(--k-semantic-text-line-height-body, 20px);
+  --text-body: var(--k-semantic-text-size-body-md, 14px);
+  --text-body--line-height: var(--k-semantic-text-line-height-body, 20px);
+  --text-body-lg: var(--k-semantic-text-size-body-lg, 16px);
+  --text-body-lg--line-height: var(--k-semantic-text-line-height-heading-3, 24px);
+  --text-heading-sm: var(--k-semantic-text-size-heading-sm, 16px);
+  --text-heading-sm--line-height: var(--k-semantic-text-line-height-heading-3, 24px);
+  --text-heading-md: var(--k-semantic-text-size-heading-md, 18px);
+  --text-heading-md--line-height: var(--k-semantic-text-line-height-heading-3, 24px);
+  --text-heading-lg: var(--k-semantic-text-size-heading-lg, 20px);
+  --text-heading-lg--line-height: var(--k-semantic-text-line-height-heading-2, 28px);
+  --text-heading-xl: var(--k-semantic-text-size-heading-xl, 24px);
+  --text-heading-xl--line-height: var(--k-semantic-text-line-height-heading-1, 32px);
+  --text-data-sm: var(--k-semantic-text-size-data-sm, 18px);
+  --text-data-sm--line-height: var(--k-semantic-text-line-height-heading-3, 24px);
+  --text-data-md: var(--k-semantic-text-size-data-md, 24px);
+  --text-data-md--line-height: var(--k-semantic-text-line-height-heading-1, 32px);
+  --text-data-lg: var(--k-semantic-text-size-data-lg, 32px);
+  --text-data-lg--line-height: var(--k-semantic-text-line-height-display, 40px);
+  --text-display-md: var(--k-semantic-text-size-display-md, 32px);
+  --text-display-md--line-height: var(--k-semantic-text-line-height-display, 40px);
+  --text-display-lg: var(--k-semantic-text-size-display-lg, 40px);
+  --text-display-lg--line-height: var(--k-semantic-text-line-height-display, 40px);
+  --text-control-sm: var(--k-semantic-text-size-control-sm, 12px);
+  --text-control-sm--line-height: var(--k-semantic-text-line-height-caption, 16px);
+  --text-control-md: var(--k-semantic-text-size-control-md, 14px);
+  --text-control-md--line-height: var(--k-semantic-text-line-height-body, 20px);
+  --text-control-lg: var(--k-semantic-text-size-control-lg, 16px);
+  --text-control-lg--line-height: var(--k-semantic-text-line-height-heading-3, 24px);
+  --text-button-sm: var(--k-semantic-button-size-sm-font-size, 14px);
+  --text-button-sm--line-height: var(--k-semantic-text-line-height-body, 20px);
+  --text-button-md: var(--k-semantic-button-size-md-font-size, 14px);
+  --text-button-md--line-height: var(--k-semantic-text-line-height-body, 20px);
+  --text-button-lg: var(--k-semantic-button-size-lg-font-size, 16px);
+  --text-button-lg--line-height: var(--k-semantic-text-line-height-heading-3, 24px);
+  --text-code-sm: var(--k-semantic-text-size-code-sm, 12px);
+  --text-code-sm--line-height: var(--k-semantic-text-line-height-caption, 16px);
+  --text-code-md: var(--k-semantic-text-size-code-md, 13px);
+  --text-code-md--line-height: var(--k-semantic-text-line-height-body, 20px);
+  --text-code-lg: var(--k-semantic-text-size-code-lg, 14px);
+  --text-code-lg--line-height: var(--k-semantic-text-line-height-body, 20px);
+  /* Input System .sfx: relative to the control's own size, so it scales with sm/md/lg fields */
+  --text-suffix: 0.85em;
+
+  --tracking-tight: var(--k-semantic-text-tracking-tight, -0.25px);
+  --tracking-normal: var(--k-semantic-text-tracking-normal, 0);
+  --tracking-wide: var(--k-semantic-text-tracking-wide, 0.5px);
+  --tracking-wider: var(--k-semantic-text-tracking-wider, 1px);
+
+  /* ---- Opacity: opacity-(--opacity-disabled) ---- */
+  --opacity-disabled: var(--k-semantic-opacity-disabled, 0.5);
+  --opacity-muted: var(--k-semantic-opacity-muted, 0.65);
+  --opacity-overlay: var(--k-semantic-opacity-overlay, 0.5);
+
+  /* ---- Spacing: Tailwind's 4px scale stays (2.4); Figma semantic steps added by name ---- */
+  --spacing-xxxs: var(--k-semantic-spacing-padding-xxxs, 2px);
+  --spacing-xxs: var(--k-semantic-spacing-padding-xxs, 4px);
+  --spacing-xs: var(--k-semantic-spacing-padding-xs, 8px);
+  --spacing-sm: var(--k-semantic-spacing-padding-sm, 12px);
+  --spacing-md: var(--k-semantic-spacing-padding-md, 16px);
+  --spacing-lg: var(--k-semantic-spacing-padding-lg, 24px);
+  --spacing-xl: var(--k-semantic-spacing-padding-xl, 32px);
+  /* Tailwind resolves w-*, min-w-* and max-w-* through --spacing before --container, so the named
+     steps above would turn max-w-sm into 12px. Pin xs–xl back to the container sizes. */
+  --max-width-xs: 20rem;
+  --max-width-sm: 24rem;
+  --max-width-md: 28rem;
+  --max-width-lg: 32rem;
+  --max-width-xl: 36rem;
+  --width-xs: 20rem;
+  --width-sm: 24rem;
+  --width-md: 28rem;
+  --width-lg: 32rem;
+  --width-xl: 36rem;
+  --min-width-xs: 20rem;
+  --min-width-sm: 24rem;
+  --min-width-md: 28rem;
+  --min-width-lg: 32rem;
+  --min-width-xl: 36rem;
+
+  /* ---- Control heights (C12): h-control-md, min-h-control-lg, ... Figma button-size.*.height ---- */
+  --spacing-control-sm: var(--k-semantic-button-size-sm-height, 32px);
+  --spacing-control-md: var(--k-semantic-button-size-md-height, 40px);
+  --spacing-control-lg: var(--k-semantic-button-size-lg-height, 48px);
+  /* touch and cta have no Figma token: Input System 44px minimum target, E-Rx 52px sign button */
+  --spacing-touch: 44px;
+  --spacing-cta: 52px;
+
+  /* ---- Layout dimensions from the HTML references (no Figma token). Components use these names,
+     never raw pixel values; everything else snaps to the 4px spacing scale. ---- */
+  --grid-template-columns-shell: 60px minmax(0, 1fr); /* narrow icon rail + content */
+  --grid-template-columns-shell-wide: 76px minmax(0, 1fr); /* labelled rail + content */
+  --grid-template-columns-workspace: minmax(0, 1fr) 340px; /* dashboard chart + context column */
+  --grid-template-columns-erx: 280px minmax(0, 1fr); /* E-Rx context + form; review spans below */
+  --grid-template-columns-erx-wide: 300px minmax(0, 1fr) 380px; /* E-Rx context + form + review */
+  --grid-template-columns-key-value: max-content minmax(0, 1fr); /* E-Rx .kv label/value rows */
+  --grid-template-columns-rx-header: auto minmax(0, 1fr); /* E-Rx .hdr identity + summary tiles */
+  --width-context: 340px;
+  --width-dialog: min(420px, calc(100vw - 2rem));
+  --max-width-footer: 760px; /* dashboard .footer-note */
+  /* sticky offset for the dashboard context column, just below the sticky top bar */
+  --spacing-below-topbar: 78px;
+  --shadow-rail-current: inset var(--border-width-emphasis) 0 0 var(--color-on-inverse);
+
+  /* ---- Breakpoints from the HTML references (section 5) ---- */
+  /* md starts at 761px: the references switch to the narrow layout at max-width 760px */
+  --breakpoint-md: 761px;
+  --breakpoint-lg: 820px;
+  --breakpoint-xl: 1180px;
+  --breakpoint-2xl: 1280px;
+  /* Dashboard workspace only: one column at the reference's max-width 1180px and below; xl stays at 1180 */
+  --breakpoint-workspace: 1181px;
+  /* E-Rx workspace only: one column at max-width 820px, two at max-width 1280px, three above */
+  --breakpoint-erx: 821px;
+  --breakpoint-erx-wide: 1281px;
+  /* E-Rx form column (container queries): its width depends on the side columns, not the viewport */
+  --container-fields-2: 22rem;
+  --container-fields-4: 40rem;
+  /* E-Rx section tracker (container query on the tracker itself): a row of short labels from
+     tracker-row, full labels from tracker-full; below tracker-row the steps stack */
+  --container-tracker-row: 20rem;
+  --container-tracker-full: 28rem;
+
+  /* ---- Motion: dashboard staggered entrance (.chart-col children 0/40/80ms, .context-col 60ms) ---- */
+  --animate-fade-up: fade-up 0.5s ease both;
+  --animate-fade-up-2: fade-up 0.5s ease 40ms both;
+  --animate-fade-up-3: fade-up 0.5s ease 80ms both;
+  --animate-fade-up-context: fade-up 0.5s ease 60ms both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(calc(var(--spacing) * 1.5));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer base {
+  html {
+    scroll-padding-top: var(--spacing-md);
+  }
+
+  body {
+    background: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  ::selection {
+    background: var(--color-accent-subtle);
+  }
+
+  :focus-visible {
+    outline: var(--border-width-emphasis) solid var(--color-focus);
+    outline-offset: var(--spacing-xxxs);
+    border-radius: var(--radius-focus);
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Uppercase micro-label used for table headers and section labels in the dashboard. */
+@utility label-caps {
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+/* Error stroke for composite controls (Input System .s-error), without and with keyboard focus.
+   The inset brings the field border (1.5px) up to the emphasis width (2px); the glow uses the heavy width (3px). */
+@utility error-ring {
+  box-shadow: inset 0 0 0 calc(var(--border-width-emphasis) - var(--border-width-field)) var(--color-warning-stroke);
+}
+
+@utility error-ring-focus {
+  box-shadow:
+    inset 0 0 0 calc(var(--border-width-emphasis) - var(--border-width-field)) var(--color-warning-stroke),
+    0 0 0 var(--border-width-heavy) var(--color-focus-glow);
+}
+
+/* Focus treatment for composite controls (Input System .s-focus): ring plus glow. */
+@utility focus-ring {
+  border-color: var(--color-focus);
+  box-shadow:
+    inset 0 0 0 calc(var(--border-width-emphasis) - var(--border-width-field)) var(--color-focus),
+    0 0 0 var(--border-width-heavy) var(--color-focus-glow);
+}

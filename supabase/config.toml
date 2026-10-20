@@ -1,0 +1,19 @@
+# Supabase CLI configuration. Kestrel uses hosted projects only (no Docker):
+# migrations are applied with `pnpm db:push:test` (see scripts/db.ts).
+project_id = "kestrel-ehr"
+
+[api]
+schemas = ["public"]
+
+[db]
+major_version = 17
+
+[db.seed]
+# Seeding needs Auth users created through the Admin API first, so it runs
+# through `pnpm db:seed:test` instead of the CLI.
+enabled = false
+
+[auth]
+# Mirrors the required hosted setting: disable public sign-ups in the dashboard
+# (Authentication > Sign In / Providers) for both projects.
+enable_signup = false

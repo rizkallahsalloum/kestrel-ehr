@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kestrel Family Health — Clinical Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --canvas:#F6F2EA;
+    --surface:#FFFDF9;
+    --surface-alt:#F0EAE0;
+    --hairline:#E2DACB;
+    --hairline-strong:#D2C8B4;
+    --ink:#1B211E;
+    --ink-soft:#585F58;
+    --ink-faint:#8A8F87;
+    --rail:#1C2321;
+    --rail-ink:#EDE9DF;
+    --rail-ink-dim:#9AA39C;
+    --brand:#2B6C76;
+    --brand-dark:#1F5058;
+    --brand-soft:#DEEBEA;
+    --critical:#B03A32;
+    --critical-ink:#7A2822;
+    --critical-soft:#F6E4E1;
+    --critical-line:#D9CBC6;
+    --warning:#9C6A15;
+    --warning-soft:#F4E7CE;
+    --stable:#356F51;
+    --stable-soft:#DFEBE2;
+    --font-display:'Fraunces', Georgia, serif;
+    --font-body:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono:'IBM Plex Mono', 'SF Mono', monospace;
+    --shadow-card: 0 1px 2px rgba(28,24,16,0.04), 0 8px 24px -12px rgba(28,24,16,0.10);
+    --shadow-pop: 0 4px 10px rgba(28,24,16,0.06), 0 20px 40px -16px rgba(28,24,16,0.16);
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+    font-size:14px;
+    line-height:1.45;
+  }
+  h1,h2,h3,h4{margin:0;font-weight:600;}
+  p{margin:0;}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea{font-family:inherit;}
+  ::selection{background:var(--brand-soft);}
+
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--brand);
+    outline-offset:2px;
+    border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ============ APP SHELL ============ */
+  .app{
+    display:grid;
+    grid-template-columns:76px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---- Rail ---- */
+  .rail{
+    background:var(--rail);
+    color:var(--rail-ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:18px 0 16px;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .rail-mark{
+    width:34px;height:34px;
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:26px;
+  }
+  .rail-nav{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    flex:1;
+    width:100%;
+    align-items:center;
+  }
+  .rail-btn{
+    width:52px;
+    height:52px;
+    border-radius:var(--radius-sm);
+    background:transparent;
+    border:none;
+    color:var(--rail-ink-dim);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    font-size:10px;
+    letter-spacing:0.02em;
+    transition:background .15s ease, color .15s ease;
+  }
+  .rail-btn svg{width:19px;height:19px;}
+  .rail-btn:hover{background:rgba(237,233,223,0.06); color:var(--rail-ink);}
+  .rail-btn.active{
+    background:rgba(237,233,223,0.10);
+    color:var(--rail-ink);
+    box-shadow:inset 2px 0 0 var(--brand);
+  }
+  .rail-foot{
+    display:flex;flex-direction:column;align-items:center;gap:14px;
+    padding-top:14px;
+    border-top:1px solid rgba(237,233,223,0.10);
+    width:100%;
+  }
+  .rail-avatar{
+    width:34px;height:34px;border-radius:50%;
+    background:var(--brand);
+    color:#fff;
+    font-family:var(--font-mono);
+    font-size:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:500;
+  }
+
+  /* ---- Main column ---- */
+  .main-col{display:flex;flex-direction:column;min-width:0;}
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    gap:22px;
+    padding:16px 28px;
+    border-bottom:1px solid var(--hairline);
+    background:var(--canvas);
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  .search{
+    flex:0 0 300px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--surface);
+    border:1px solid var(--hairline);
+    border-radius:var(--radius-md);
+    padding:9px 12px;
+    color:var(--ink-faint);
+  }
+  .search svg{width:15px;height:15px;flex:none;}
+  .search input{
+    border:none;outline:none;background:transparent;
+    font-size:13px;color:var(--ink);width:100%;
+  }
+  .search input::placeholder{color:var(--ink-faint);}
+  .search kbd{
+    font-family:var(--font-mono);
+    font-size:10px;
+    color:var(--ink-faint);
+    background:var(--surface-alt);
+    border:1px solid var(--hairline);
+    border-radius:4px;
+    padding:2px 5px;
+  }
+
+  .queue{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex:1;
+    overflow-x:auto;
+  }
+  .queue-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink-faint);
+    flex:none;
+    margin-right:2px;
+  }
+  .queue-item{
+    flex:none;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    background:var(--surface);
+    border:1px solid var(--hairline);
+    border-radius:999px;
+    padding:5px 12px 5px 5px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .queue-item:hover{border-color:var(--hairline-strong);}
+  .queue-item.active{
+    border-color:var(--brand);
+    color:var(--ink);
+    background:var(--brand-soft);
+    font-weight:500;
+  }
+  .queue-avatar{
+    width:22px;height:22px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);
+    font-size:10px;font-weight:500;
+    color:#fff;
+    flex:none;
+  }
+  .queue-dot{
+    width:6px;height:6px;border-radius:50%;flex:none;
+  }
+
+  .identity{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex:none;
+    padding-left:18px;
+    border-left:1px solid var(--hairline);
+  }
+  .identity-text{text-align:right;line-height:1.25;}
+  .identity-name{font-size:13px;font-weight:600;}
+  .identity-role{font-size:11.5px;color:var(--ink-faint);}
+  .identity-avatar{
+    width:32px;height:32px;border-radius:50%;
+    background:var(--ink);
+    color:var(--canvas);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-size:11px;
+  }
+  .sync-pill{
+    display:flex;align-items:center;gap:6px;
+    font-size:11px;color:var(--ink-faint);
+    padding-left:14px;border-left:1px solid var(--hairline);
+    flex:none;
+  }
+  .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--stable);flex:none;
+    box-shadow:0 0 0 3px var(--stable-soft);
+  }
+
+  /* ---- Workspace grid ---- */
+  .workspace{
+    display:grid;
+    grid-template-columns:1fr 340px;
+    gap:22px;
+    padding:24px 28px 48px;
+    align-items:start;
+  }
+  .chart-col{display:flex;flex-direction:column;gap:18px;min-width:0;}
+  .context-col{display:flex;flex-direction:column;gap:16px;position:sticky; top:78px;}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--hairline);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+  }
+
+  .fade-in{
+    animation:fadeUp .5s ease both;
+  }
+  @keyframes fadeUp{
+    from{opacity:0; transform:translateY(6px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .chart-col > *:nth-child(1){animation-delay:0ms;}
+  .chart-col > *:nth-child(2){animation-delay:40ms;}
+  .chart-col > *:nth-child(3){animation-delay:80ms;}
+  .chart-col > *:nth-child(4){animation-delay:120ms;}
+  .chart-col > *:nth-child(5){animation-delay:160ms;}
+  .context-col > *{animation:fadeUp .5s ease both; animation-delay:60ms;}
+
+  /* ---- Patient hero ---- */
+  .hero{
+    padding:22px 26px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+  .hero-left{display:flex;gap:16px;align-items:center;}
+  .hero-avatar{
+    width:56px;height:56px;border-radius:50%;
+    background:var(--brand);
+    color:#fff;
+    font-family:var(--font-mono);
+    font-size:18px;
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .hero-name{
+    font-family:var(--font-display);
+    font-size:25px;
+    font-weight:500;
+    letter-spacing:-0.01em;
+    margin-bottom:4px;
+  }
+  .hero-meta{
+    display:flex;flex-wrap:wrap;gap:10px 16px;
+    font-size:12.5px;color:var(--ink-soft);
+    font-family:var(--font-mono);
+  }
+  .hero-meta span{white-space:nowrap;}
+  .hero-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .tag{
+    font-size:11.5px;
+    padding:4px 10px;
+    border-radius:999px;
+    background:var(--surface-alt);
+    color:var(--ink-soft);
+    border:1px solid var(--hairline);
+  }
+
+  /* ---- Alert banner ---- */
+  .alert-banner{
+    display:flex;
+    align-items:flex-start;
+    gap:14px;
+    padding:16px 20px;
+    border-radius:var(--radius-lg);
+    border:1px solid var(--critical-line);
+    background:var(--critical-soft);
+  }
+  .alert-banner.warning{
+    border-color:#E9D6AC;
+    background:var(--warning-soft);
+  }
+  .alert-icon{
+    width:34px;height:34px;border-radius:50%;
+    background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+    color:var(--critical);
+    box-shadow:0 0 0 1px var(--critical-line);
+  }
+  .alert-banner.warning .alert-icon{color:var(--warning); box-shadow:0 0 0 1px #E9D6AC;}
+  .alert-icon svg{width:17px;height:17px;}
+  .alert-body{flex:1;min-width:0;}
+  .alert-title{font-size:13.5px;font-weight:600;color:var(--critical-ink);margin-bottom:3px;}
+  .alert-banner.warning .alert-title{color:var(--warning);}
+  .alert-desc{font-size:13px;color:var(--ink-soft);}
+  .alert-actions{display:flex;gap:10px;margin-top:12px;}
+  .btn{
+    border:1px solid var(--hairline-strong);
+    background:var(--surface);
+    color:var(--ink);
+    font-size:12.5px;
+    font-weight:500;
+    padding:7px 14px;
+    border-radius:999px;
+    transition:background .15s ease, border-color .15s ease, opacity .15s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--ink-faint);}
+  .btn-quiet{
+    border-color:transparent;
+    background:transparent;
+    color:var(--ink-soft);
+  }
+  .btn-quiet:hover{background:rgba(0,0,0,0.04);}
+  .btn-dark{
+    background:var(--ink);
+    color:var(--canvas);
+    border-color:var(--ink);
+  }
+  .btn-dark:hover{background:#000;}
+  .btn:disabled{opacity:0.5;cursor:default;}
+  .btn[data-done="true"]{background:var(--stable-soft); border-color:var(--stable); color:var(--stable);}
+
+  .no-alert{
+    display:flex;align-items:center;gap:10px;
+    padding:14px 20px;
+    border-radius:var(--radius-lg);
+    border:1px dashed var(--hairline-strong);
+    color:var(--ink-faint);
+    font-size:13px;
+  }
+  .no-alert svg{width:16px;height:16px;color:var(--stable);}
+
+  /* ---- Vitals band ---- */
+  .vitals-band{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+  }
+  .vital{
+    padding:18px 20px;
+    border-right:1px solid var(--hairline);
+    position:relative;
+  }
+  .vital:last-child{border-right:none;}
+  .vital-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .vital-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--ink-faint);
+    font-weight:600;
+  }
+  .status-dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .status-dot.stable{background:var(--stable);}
+  .status-dot.warning{background:var(--warning);}
+  .status-dot.critical{background:var(--critical);}
+  .vital-value{
+    font-family:var(--font-mono);
+    font-size:26px;
+    font-weight:500;
+    color:var(--ink);
+    letter-spacing:-0.01em;
+  }
+  .vital-unit{font-size:13px;color:var(--ink-faint); margin-left:3px; font-weight:400;}
+  .vital-spark{margin-top:10px; height:28px;}
+  .vital-spark svg{width:100%;height:100%; display:block;}
+  .vital.warning .vital-value{color:var(--warning);}
+  .vital.critical .vital-value{color:var(--critical);}
+
+  /* ---- Chart card ---- */
+  .card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:20px 24px 4px;
+  }
+  .card-title{font-size:15px; font-weight:600;}
+  .card-sub{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+  .legend{display:flex;gap:16px;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);}
+  .legend-swatch{width:10px;height:3px;border-radius:2px;flex:none;}
+  .chart-wrap{padding:6px 16px 20px;}
+  .chart-empty{
+    padding:40px 24px 44px;
+    text-align:center;
+    color:var(--ink-faint);
+    font-size:13px;
+  }
+  .chart-empty svg{width:26px;height:26px;margin-bottom:10px; color:var(--hairline-strong);}
+
+  .chart-tooltip{
+    position:absolute;
+    background:var(--ink);
+    color:var(--canvas);
+    font-size:11.5px;
+    padding:7px 10px;
+    border-radius:8px;
+    pointer-events:none;
+    transform:translate(-50%,-115%);
+    opacity:0;
+    transition:opacity .1s ease;
+    white-space:nowrap;
+    font-family:var(--font-mono);
+    z-index:5;
+  }
+  .chart-tooltip.show{opacity:1;}
+  .chart-svg-holder{position:relative;}
+  .chart-pt{cursor:pointer;}
+
+  /* ---- Table card ---- */
+  table{width:100%; border-collapse:collapse;}
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--ink-faint);
+    font-weight:600;
+    padding:10px 24px;
+    border-bottom:1px solid var(--hairline);
+  }
+  tbody td{
+    padding:13px 24px;
+    border-bottom:1px solid var(--hairline);
+    font-size:13px;
+    vertical-align:middle;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  .code{font-family:var(--font-mono); font-size:12px; color:var(--ink-soft);}
+  .badge{
+    font-size:11px;
+    font-weight:500;
+    padding:3px 10px;
+    border-radius:999px;
+    display:inline-block;
+  }
+  .badge.active{background:var(--stable-soft); color:var(--stable);}
+  .badge.resolved{background:var(--surface-alt); color:var(--ink-faint);}
+  .row-actions{display:flex; gap:6px;}
+  .icon-btn{
+    width:28px;height:28px;
+    border-radius:7px;
+    border:1px solid transparent;
+    background:transparent;
+    color:var(--ink-faint);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn:hover{background:var(--surface-alt); color:var(--ink);}
+  .icon-btn svg{width:14px;height:14px;}
+  .edit-input{
+    width:100%;
+    font-size:13px;
+    font-family:inherit;
+    padding:6px 8px;
+    border:1px solid var(--brand);
+    border-radius:6px;
+    background:#fff;
+  }
+  .desc-cell{max-width:230px;}
+
+  /* ---- Context panel cards ---- */
+  .panel-title{
+    display:flex;align-items:center;gap:8px;
+    padding:16px 20px 12px;
+    font-size:13px;
+    font-weight:600;
+  }
+  .panel-title svg{width:15px;height:15px;color:var(--ink-faint);}
+  .panel-title.critical svg{color:var(--critical);}
+
+  .allergy-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+    padding:11px 20px;
+    border-top:1px solid var(--critical-line);
+  }
+  .allergy-row:first-of-type{border-top:none;}
+  .allergy-name{font-size:13px; font-weight:600; color:var(--critical-ink);}
+  .allergy-reaction{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .sev-tag{
+    font-size:10.5px; font-weight:600;
+    padding:2px 8px; border-radius:999px;
+    background:#fff; color:var(--critical);
+    border:1px solid var(--critical-line);
+    flex:none;
+  }
+  .sev-tag.moderate{color:var(--warning); border-color:#E9D6AC;}
+  .allergy-card{border-color:var(--critical-line);}
+  .allergy-empty{padding:14px 20px 18px; font-size:12.5px; color:var(--ink-faint);}
+
+  .med-row{
+    padding:13px 20px;
+    border-top:1px solid var(--hairline);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .med-row:first-of-type{border-top:none;}
+  .med-name{font-size:13px; font-weight:600;}
+  .med-dose{font-size:12px; color:var(--ink-faint); margin-top:2px; font-family:var(--font-mono);}
+  .med-flag{
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:10.5px; color:var(--critical); font-weight:600;
+    margin-top:5px;
+  }
+  .med-flag svg{width:11px;height:11px;}
+
+  .notes-card textarea{
+    width:100%;
+    border:none;
+    resize:vertical;
+    min-height:96px;
+    padding:14px 20px 16px;
+    font-size:13px;
+    color:var(--ink);
+    outline:none;
+    background:transparent;
+    line-height:1.55;
+  }
+  .notes-card textarea::placeholder{color:var(--ink-faint);}
+  .notes-foot{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:0 20px 14px;
+    font-size:11px;color:var(--ink-faint);
+  }
+
+  .footer-note{
+    padding:6px 28px 30px;
+    font-size:11.5px;
+    color:var(--ink-faint);
+    max-width:760px;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 1180px){
+    .workspace{grid-template-columns:1fr;}
+    .context-col{position:static;}
+    .queue-label{display:none;}
+  }
+  @media (max-width: 760px){
+    .app{grid-template-columns:60px 1fr;}
+    .rail-btn{width:44px; font-size:0;}
+    .rail-btn svg{width:18px;height:18px;}
+    .topbar{flex-wrap:wrap; gap:12px;}
+    .search{flex:1 1 100%; order:1;}
+    .queue{order:2;}
+    .identity{order:3; border-left:none; padding-left:0;}
+    .sync-pill{display:none;}
+    .vitals-band{grid-template-columns:1fr 1fr;}
+    .vital:nth-child(2){border-right:none;}
+    .vital:nth-child(3){border-top:1px solid var(--hairline);}
+    .vital:nth-child(4){border-top:1px solid var(--hairline);}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============ RAIL ============ -->
+  <aside class="rail">
+    <div class="rail-mark" aria-hidden="true">
+      <svg viewBox="0 0 34 34" fill="none">
+        <path d="M17 3 L27 15 L20 15 L27 31 L17 22 L7 31 L14 15 L7 15 Z" fill="#EDE9DF" opacity="0.95"/>
+      </svg>
+    </div>
+    <nav class="rail-nav" aria-label="Primary">
+      <button class="rail-btn active" data-route="chart" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V5M4 19h16M8 15v-3m4 3V8m4 7v-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Chart
+      </button>
+      <button class="rail-btn" data-route="schedule">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+        Schedule
+      </button>
+      <button class="rail-btn" data-route="rx">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 4h5.5a3.5 3.5 0 0 1 0 7H9v9M9 11h5l5 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        E-Rx
+      </button>
+      <button class="rail-btn" data-route="labs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 3h6M10 3v6.5L5.5 18a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 9.5V3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Labs
+      </button>
+      <button class="rail-btn" data-route="billing">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4" stroke-linecap="round"/></svg>
+        Billing
+      </button>
+    </nav>
+    <div class="rail-foot">
+      <div class="rail-avatar" title="Dr. Naomi Fitzgerald">NF</div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main-col">
+    <header class="topbar">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+        <input type="text" placeholder="Search patients, MRN, or orders" aria-label="Search patients">
+        <kbd>/</kbd>
+      </label>
+
+      <div class="queue" id="queue" aria-label="Today's queue">
+        <span class="queue-label">Today's queue</span>
+        <!-- queue items injected by JS -->
+      </div>
+
+      <div class="sync-pill">
+        <span class="sync-dot" aria-hidden="true"></span>
+        Synced with Kestrel Health Network · 2 min ago
+      </div>
+
+      <div class="identity">
+        <div class="identity-text">
+          <div class="identity-name">Dr. Naomi Fitzgerald, MD</div>
+          <div class="identity-role">Internal Medicine · Cedar Park</div>
+        </div>
+        <div class="identity-avatar">NF</div>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <!-- ============ CENTER: CLINICAL WORKSPACE ============ -->
+      <section class="chart-col" id="chartCol" aria-label="Clinical workspace">
+
+        <div class="card hero fade-in">
+          <div class="hero-left">
+            <div class="hero-avatar" id="heroAvatar">DR</div>
+            <div>
+              <h1 class="hero-name" id="heroName">Dorothy A. Reyes</h1>
+              <div class="hero-meta">
+                <span id="heroMeta1">67F · DOB 03/14/1959</span>
+                <span id="heroMrn">MRN 00482913</span>
+                <span>Kestrel Cedar Park · Rm 4</span>
+              </div>
+              <div class="hero-tags" id="heroTags"></div>
+            </div>
+          </div>
+          <button class="btn" id="editChartBtn">Open full chart</button>
+        </div>
+
+        <div id="alertSlot" class="fade-in"></div>
+
+        <div class="card fade-in">
+          <div class="vitals-band" id="vitalsBand"></div>
+        </div>
+
+        <div class="card fade-in">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">HbA1c vs. estimated average glucose</h2>
+              <p class="card-sub">6-month trend · paired lab values, not two unrelated lines</p>
+            </div>
+            <div class="legend" id="chartLegend"></div>
+          </div>
+          <div id="chartArea"></div>
+        </div>
+
+        <div class="card fade-in">
+          <div class="card-head" style="padding-bottom:14px;">
+            <div>
+              <h2 class="card-title">Diagnostic history</h2>
+              <p class="card-sub">ICD-10 · click Resolve or Edit to try the row actions</p>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Code</th>
+                  <th>Description</th>
+                  <th>Provider</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dxTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <p class="footer-note">This is a case-study prototype built with synthetic patient data — no real patient information is represented. Only the Chart view is fully modeled; Schedule, E-Rx, Labs, and Billing are shown as navigation states only.</p>
+      </section>
+
+      <!-- ============ RIGHT: IMMEDIATE CARE PANEL ============ -->
+      <aside class="context-col" aria-label="Immediate care panel">
+
+        <div class="card allergy-card fade-in">
+          <div class="panel-title critical">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 10v4M12 17.5h.01" stroke-linecap="round"/></svg>
+            Allergies &amp; contraindications
+          </div>
+          <div id="allergyList"></div>
+        </div>
+
+        <div class="card fade-in">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 10h8M8 14h5" stroke-linecap="round"/></svg>
+            Active medications
+          </div>
+          <div id="medList"></div>
+        </div>
+
+        <div class="card notes-card fade-in">
+          <div class="panel-title" style="padding-bottom:2px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17.25V20h2.75L17.8 8.94l-2.75-2.75L4 17.25z" stroke-linejoin="round"/><path d="M13.5 4.5l3 3" stroke-linecap="round"/></svg>
+            Encounter notes
+          </div>
+          <textarea id="notesArea" placeholder="Type visit notes here — saves automatically as you go."></textarea>
+          <div class="notes-foot">
+            <span id="notesStatus">No changes yet</span>
+            <span>Visible to care team only</span>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  var COLORS = { stable:'#356F51', warning:'#9C6A15', critical:'#B03A32' };
+
+  // ============ PATIENT DATA ============
+  var patients = {
+    reyes: {
+      id:'reyes', initials:'DR', avatarColor:'#2B6C76',
+      name:'Dorothy A. Reyes', meta1:'67F · DOB 03/14/1959', mrn:'MRN 00482913',
+      tags:['Type 2 diabetes','Hypertension','Hyperlipidemia'],
+      alert:{ level:'critical',
+        title:'Allergy conflict on today\u2019s order',
+        desc:'Amoxicillin 500mg was ordered for this visit. Patient has a documented severe penicillin allergy (hives, angioedema — reported 2019).'
+      },
+      vitals:[
+        {key:'hr', label:'Heart rate', value:'78', unit:'bpm', status:'stable', trend:[72,75,74,77,76,78]},
+        {key:'bp', label:'Blood pressure', value:'148/92', unit:'mmHg', status:'warning', trend:[138,142,140,145,144,148]},
+        {key:'spo2', label:'SpO\u2082', value:'97', unit:'%', status:'stable', trend:[98,97,98,97,98,97]},
+        {key:'temp', label:'Temperature', value:'98.4', unit:'\u00B0F', status:'stable', trend:[98.1,98.0,98.3,98.2,98.5,98.4]}
+      ],
+      chart:{
+        months:['Mar','Apr','May','Jun','Jul','Aug'],
+        a1c:[7.8,7.6,7.3,7.1,6.9,6.8],
+        eag:[177,171,163,158,152,148]
+      },
+      allergies:[
+        {name:'Penicillin', reaction:'Hives, angioedema — 2019', severity:'severe'},
+        {name:'Latex', reaction:'Contact dermatitis', severity:'moderate'}
+      ],
+      meds:[
+        {name:'Metformin', dose:'1000mg · PO · BID', flag:false},
+        {name:'Lisinopril', dose:'20mg · PO · QD', flag:false},
+        {name:'Atorvastatin', dose:'40mg · PO · QHS', flag:false},
+        {name:'Amoxicillin', dose:'500mg · PO · TID (pending)', flag:true}
+      ],
+      dx:[
+        {date:'08/20/2026', code:'I10', desc:'Essential (primary) hypertension', provider:'N. Fitzgerald, MD', status:'active'},
+        {date:'08/20/2026', code:'E11.9', desc:'Type 2 diabetes mellitus without complications', provider:'N. Fitzgerald, MD', status:'active'},
+        {date:'06/02/2026', code:'E78.5', desc:'Hyperlipidemia, unspecified', provider:'N. Fitzgerald, MD', status:'active'},
+        {date:'11/14/2025', code:'J06.9', desc:'Acute upper respiratory infection', provider:'R. Okafor, PA-C', status:'resolved'},
+        {date:'03/30/2025', code:'M54.5', desc:'Low back pain', provider:'N. Fitzgerald, MD', status:'resolved'}
+      ]
+    },
+    webb: {
+      id:'webb', initials:'MW', avatarColor:'#356F51',
+      name:'Marcus T. Webb', meta1:'45M · DOB 09/02/1981', mrn:'MRN 00477201',
+      tags:['Seasonal allergic rhinitis'],
+      alert:null,
+      vitals:[
+        {key:'hr', label:'Heart rate', value:'68', unit:'bpm', status:'stable', trend:[70,69,71,68,70,68]},
+        {key:'bp', label:'Blood pressure', value:'118/76', unit:'mmHg', status:'stable', trend:[120,119,117,118,116,118]},
+        {key:'spo2', label:'SpO\u2082', value:'99', unit:'%', status:'stable', trend:[98,99,98,99,99,99]},
+        {key:'temp', label:'Temperature', value:'98.2', unit:'\u00B0F', status:'stable', trend:[98.0,98.1,98.2,98.1,98.3,98.2]}
+      ],
+      chart:null,
+      allergies:[],
+      meds:[
+        {name:'Cetirizine', dose:'10mg · PO · PRN', flag:false}
+      ],
+      dx:[
+        {date:'08/12/2026', code:'J30.2', desc:'Other seasonal allergic rhinitis', provider:'N. Fitzgerald, MD', status:'active'},
+        {date:'02/06/2025', code:'S93.401A', desc:'Sprain of right ankle, initial encounter', provider:'R. Okafor, PA-C', status:'resolved'}
+      ]
+    },
+    nair: {
+      id:'nair', initials:'PN', avatarColor:'#B03A32',
+      name:'Priya S. Nair', meta1:'34F · DOB 11/23/1991', mrn:'MRN 00491185',
+      tags:['Asthma','Anaphylaxis history'],
+      alert:{ level:'critical',
+        title:'SpO\u2082 below safe threshold',
+        desc:'Oxygen saturation reading of 91% falls below this patient\u2019s safe range. Reassess respiratory status before proceeding.'
+      },
+      vitals:[
+        {key:'hr', label:'Heart rate', value:'108', unit:'bpm', status:'warning', trend:[88,92,96,101,105,108]},
+        {key:'bp', label:'Blood pressure', value:'122/78', unit:'mmHg', status:'stable', trend:[118,120,119,121,120,122]},
+        {key:'spo2', label:'SpO\u2082', value:'91', unit:'%', status:'critical', trend:[97,96,95,94,92,91]},
+        {key:'temp', label:'Temperature', value:'99.1', unit:'\u00B0F', status:'stable', trend:[98.3,98.4,98.6,98.8,99.0,99.1]}
+      ],
+      chart:null,
+      allergies:[
+        {name:'Shellfish', reaction:'Anaphylaxis — 2021', severity:'severe'}
+      ],
+      meds:[
+        {name:'Albuterol', dose:'90mcg · Inhaled · PRN', flag:false},
+        {name:'Montelukast', dose:'10mg · PO · QHS', flag:false}
+      ],
+      dx:[
+        {date:'08/23/2026', code:'J45.901', desc:'Unspecified asthma with (acute) exacerbation', provider:'N. Fitzgerald, MD', status:'active'},
+        {date:'05/18/2024', code:'T78.2XXA', desc:'Anaphylactic shock, unspecified, initial encounter', provider:'ED — St. Aldric Medical', status:'resolved'}
+      ]
+    }
+  };
+
+  var queueOrder = ['reyes','webb','nair'];
+  var activePatientId = 'reyes';
+
+  // ============ RENDER: QUEUE ============
+  function renderQueue(){
+    var el = document.getElementById('queue');
+    var items = el.querySelectorAll('.queue-item');
+    items.forEach(function(i){ i.remove(); });
+    queueOrder.forEach(function(id){
+      var p = patients[id];
+      var statusColor = p.alert ? (p.alert.level === 'critical' ? COLORS.critical : COLORS.warning) : COLORS.stable;
+      var btn = document.createElement('button');
+      btn.className = 'queue-item' + (id === activePatientId ? ' active' : '');
+      btn.setAttribute('data-patient', id);
+      btn.innerHTML =
+        '<span class="queue-avatar" style="background:' + p.avatarColor + '">' + p.initials + '</span>' +
+        p.name.split(' ')[0] + ' ' + p.name.split(' ').slice(-1) +
+        '<span class="queue-dot" style="background:' + statusColor + '"></span>';
+      btn.addEventListener('click', function(){ setActivePatient(id); });
+      el.appendChild(btn);
+    });
+  }
+
+  // ============ RENDER: HERO ============
+  function renderHero(p){
+    document.getElementById('heroAvatar').textContent = p.initials;
+    document.getElementById('heroAvatar').style.background = p.avatarColor;
+    document.getElementById('heroName').textContent = p.name;
+    document.getElementById('heroMeta1').textContent = p.meta1;
+    document.getElementById('heroMrn').textContent = p.mrn;
+    var tagsEl = document.getElementById('heroTags');
+    tagsEl.innerHTML = '';
+    p.tags.forEach(function(t){
+      var s = document.createElement('span');
+      s.className = 'tag';
+      s.textContent = t;
+      tagsEl.appendChild(s);
+    });
+  }
+
+  // ============ RENDER: ALERT ============
+  function renderAlert(p){
+    var slot = document.getElementById('alertSlot');
+    if(!p.alert){
+      slot.innerHTML =
+        '<div class="no-alert">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+          'No active clinical alerts for this patient.' +
+        '</div>';
+      return;
+    }
+    var isCritical = p.alert.level === 'critical';
+    slot.innerHTML =
+      '<div class="alert-banner ' + (isCritical ? '' : 'warning') + '" id="activeAlert">' +
+        '<div class="alert-icon">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 16H3l9-16z" stroke-linejoin="round"/><path d="M12 10v4M12 17.5h.01" stroke-linecap="round"/></svg>' +
+        '</div>' +
+        '<div class="alert-body">' +
+          '<div class="alert-title">' + p.alert.title + '</div>' +
+          '<div class="alert-desc">' + p.alert.desc + '</div>' +
+          '<div class="alert-actions">' +
+            '<button class="btn btn-dark" id="reviewOrderBtn">Review order</button>' +
+            '<button class="btn btn-quiet" id="ackBtn">Acknowledge</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('ackBtn').addEventListener('click', function(){
+      var banner = document.getElementById('activeAlert');
+      banner.style.transition = 'opacity .25s ease, transform .25s ease';
+      banner.style.opacity = '0';
+      banner.style.transform = 'translateY(-4px)';
+      setTimeout(function(){
+        slot.innerHTML =
+          '<div class="no-alert">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            'Alert acknowledged by Dr. Fitzgerald · ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) +
+          '</div>';
+      }, 250);
+    });
+  }
+
+  // ============ RENDER: VITALS ============
+  function sparkPath(trend, w, h){
+    var min = Math.min.apply(null, trend), max = Math.max.apply(null, trend);
+    var range = (max - min) || 1;
+    var step = w / (trend.length - 1);
+    var pts = trend.map(function(v, i){
+      var x = i * step;
+      var y = h - ((v - min) / range) * (h - 4) - 2;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    return pts.join(' ');
+  }
+
+  function renderVitals(p){
+    var band = document.getElementById('vitalsBand');
+    band.innerHTML = '';
+    p.vitals.forEach(function(v){
+      var w = 100, h = 28;
+      var pts = sparkPath(v.trend, w, h);
+      var color = COLORS[v.status];
+      var div = document.createElement('div');
+      div.className = 'vital ' + v.status;
+      div.innerHTML =
+        '<div class="vital-top">' +
+          '<span class="vital-label">' + v.label + '</span>' +
+          '<span class="status-dot ' + v.status + '"></span>' +
+        '</div>' +
+        '<div class="vital-value">' + v.value + '<span class="vital-unit">' + v.unit + '</span></div>' +
+        '<div class="vital-spark">' +
+          '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+            '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>' +
+          '</svg>' +
+        '</div>';
+      band.appendChild(div);
+    });
+  }
+
+  // ============ RENDER: CHART ============
+  function renderChart(p){
+    var area = document.getElementById('chartArea');
+    var legend = document.getElementById('chartLegend');
+    if(!p.chart){
+      legend.innerHTML = '';
+      area.innerHTML =
+        '<div class="chart-empty">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19V5M4 19h16M8 15v-3m4 3V8m4 7v-5" stroke-linecap="round" stroke-linejoin="round"/></svg><br/>' +
+          'No longitudinal HbA1c trend on file — this patient has no active diabetes diagnosis.' +
+        '</div>';
+      return;
+    }
+    legend.innerHTML =
+      '<span class="legend-item"><span class="legend-swatch" style="background:#2B6C76"></span>HbA1c (%)</span>' +
+      '<span class="legend-item"><span class="legend-swatch" style="background:#C98A2A"></span>Est. avg glucose (mg/dL)</span>';
+
+    var W = 620, H = 200, padL = 34, padR = 34, padT = 14, padB = 26;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    var months = p.chart.months, a1c = p.chart.a1c, eag = p.chart.eag;
+    var a1cMin = 6.0, a1cMax = 8.2;
+    var eagMin = 120, eagMax = 190;
+    var stepX = innerW / (months.length - 1);
+
+    function x(i){ return padL + i * stepX; }
+    function yA1c(v){ return padT + innerH - ((v - a1cMin) / (a1cMax - a1cMin)) * innerH; }
+    function yEag(v){ return padT + innerH - ((v - eagMin) / (eagMax - eagMin)) * innerH; }
+
+    var a1cPts = a1c.map(function(v,i){ return x(i).toFixed(1) + ',' + yA1c(v).toFixed(1); }).join(' ');
+    var eagPts = eag.map(function(v,i){ return x(i).toFixed(1) + ',' + yEag(v).toFixed(1); }).join(' ');
+
+    var gridLines = '';
+    for(var g=0; g<=3; g++){
+      var gy = padT + (innerH/3)*g;
+      gridLines += '<line x1="' + padL + '" y1="' + gy.toFixed(1) + '" x2="' + (W-padR) + '" y2="' + gy.toFixed(1) + '" stroke="#E2DACB" stroke-width="1"/>';
+    }
+
+    var xLabels = months.map(function(m,i){
+      return '<text x="' + x(i).toFixed(1) + '" y="' + (H-8) + '" font-size="10.5" fill="#8A8F87" text-anchor="middle" font-family="IBM Plex Mono, monospace">' + m + '</text>';
+    }).join('');
+
+    var a1cDots = a1c.map(function(v,i){
+      return '<circle class="chart-pt" data-idx="' + i + '" data-series="a1c" cx="' + x(i).toFixed(1) + '" cy="' + yA1c(v).toFixed(1) + '" r="4" fill="#2B6C76" stroke="#FFFDF9" stroke-width="2" tabindex="0"/>';
+    }).join('');
+    var eagDots = eag.map(function(v,i){
+      return '<circle class="chart-pt" data-idx="' + i + '" data-series="eag" cx="' + x(i).toFixed(1) + '" cy="' + yEag(v).toFixed(1) + '" r="4" fill="#C98A2A" stroke="#FFFDF9" stroke-width="2" tabindex="0"/>';
+    }).join('');
+
+    area.innerHTML =
+      '<div class="chart-wrap chart-svg-holder">' +
+        '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%; height:auto; overflow:visible;">' +
+          gridLines +
+          '<polyline points="' + a1cPts + '" fill="none" stroke="#2B6C76" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '<polyline points="' + eagPts + '" fill="none" stroke="#C98A2A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5" stroke-linecap="round"/>' +
+          a1cDots + eagDots +
+          xLabels +
+        '</svg>' +
+        '<div class="chart-tooltip" id="chartTip"></div>' +
+      '</div>';
+
+    var tip = document.getElementById('chartTip');
+    var holder = area.querySelector('.chart-svg-holder');
+    area.querySelectorAll('.chart-pt').forEach(function(dot){
+      function show(){
+        var idx = +dot.getAttribute('data-idx');
+        var series = dot.getAttribute('data-series');
+        var label = series === 'a1c' ? (a1c[idx] + '% HbA1c') : (eag[idx] + ' mg/dL eAG');
+        tip.textContent = months[idx] + ' — ' + label;
+        var svgRect = holder.getBoundingClientRect();
+        var cx = parseFloat(dot.getAttribute('cx')) / W * svgRect.width;
+        var cy = parseFloat(dot.getAttribute('cy')) / H * (svgRect.width * (H/W));
+        tip.style.left = cx + 'px';
+        tip.style.top = cy + 'px';
+        tip.classList.add('show');
+      }
+      function hide(){ tip.classList.remove('show'); }
+      dot.addEventListener('mouseenter', show);
+      dot.addEventListener('mouseleave', hide);
+      dot.addEventListener('focus', show);
+      dot.addEventListener('blur', hide);
+    });
+  }
+
+  // ============ RENDER: DX TABLE ============
+  function renderDx(p){
+    var body = document.getElementById('dxTableBody');
+    body.innerHTML = '';
+    p.dx.forEach(function(row, idx){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + row.date + '</td>' +
+        '<td class="code">' + row.code + '</td>' +
+        '<td class="desc-cell" data-desc-cell>' + row.desc + '</td>' +
+        '<td>' + row.provider + '</td>' +
+        '<td><span class="badge ' + row.status + '">' + (row.status === 'active' ? 'Active' : 'Resolved') + '</span></td>' +
+        '<td>' +
+          '<div class="row-actions">' +
+            '<button class="icon-btn" data-edit title="Edit description">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17.25V20h2.75L17.8 8.94l-2.75-2.75L4 17.25z" stroke-linejoin="round"/></svg>' +
+            '</button>' +
+            '<button class="icon-btn" data-resolve title="Toggle resolved">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            '</button>' +
+          '</div>' +
+        '</td>';
+
+      tr.querySelector('[data-resolve]').addEventListener('click', function(){
+        row.status = row.status === 'active' ? 'resolved' : 'active';
+        renderDx(p);
+      });
+      tr.querySelector('[data-edit]').addEventListener('click', function(){
+        var cell = tr.querySelector('[data-desc-cell]');
+        var current = row.desc;
+        cell.innerHTML = '<input class="edit-input" value="' + current.replace(/"/g,'&quot;') + '"/>';
+        var input = cell.querySelector('input');
+        input.focus();
+        input.select();
+        function commit(){
+          row.desc = input.value || current;
+          renderDx(p);
+        }
+        input.addEventListener('keydown', function(e){
+          if(e.key === 'Enter') commit();
+          if(e.key === 'Escape') renderDx(p);
+        });
+        input.addEventListener('blur', commit);
+      });
+
+      body.appendChild(tr);
+    });
+  }
+
+  // ============ RENDER: ALLERGIES ============
+  function renderAllergies(p){
+    var el = document.getElementById('allergyList');
+    if(!p.allergies.length){
+      el.innerHTML = '<div class="allergy-empty">No known drug allergies (NKDA) on file.</div>';
+      return;
+    }
+    el.innerHTML = p.allergies.map(function(a){
+      return '<div class="allergy-row">' +
+        '<div>' +
+          '<div class="allergy-name">' + a.name + '</div>' +
+          '<div class="allergy-reaction">' + a.reaction + '</div>' +
+        '</div>' +
+        '<span class="sev-tag ' + a.severity + '">' + a.severity + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ============ RENDER: MEDS ============
+  function renderMeds(p){
+    var el = document.getElementById('medList');
+    el.innerHTML = p.meds.map(function(m, i){
+      return '<div class="med-row">' +
+        '<div>' +
+          '<div class="med-name">' + m.name + '</div>' +
+          '<div class="med-dose">' + m.dose + '</div>' +
+          (m.flag ? '<div class="med-flag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l9 16H3l9-16z"/></svg>Allergy conflict</div>' : '') +
+        '</div>' +
+        '<button class="btn" data-renew="' + i + '">Renew</button>' +
+      '</div>';
+    }).join('');
+    el.querySelectorAll('[data-renew]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        btn.textContent = 'Renewed';
+        btn.setAttribute('data-done','true');
+        btn.disabled = true;
+      });
+    });
+  }
+
+  // ============ ORCHESTRATION ============
+  function setActivePatient(id){
+    activePatientId = id;
+    var p = patients[id];
+    renderQueue();
+    renderHero(p);
+    renderAlert(p);
+    renderVitals(p);
+    renderChart(p);
+    renderDx(p);
+    renderAllergies(p);
+    renderMeds(p);
+  }
+
+  // Rail nav (visual state only — see footer note)
+  document.querySelectorAll('.rail-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.rail-btn').forEach(function(b){ b.classList.remove('active'); b.removeAttribute('aria-current'); });
+      btn.classList.add('active');
+      btn.setAttribute('aria-current','page');
+    });
+  });
+
+  // Notes autosave indicator
+  var notesArea = document.getElementById('notesArea');
+  var notesStatus = document.getElementById('notesStatus');
+  var notesTimer;
+  notesArea.addEventListener('input', function(){
+    notesStatus.textContent = 'Saving\u2026';
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(function(){
+      notesStatus.textContent = 'Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }, 600);
+  });
+
+  document.getElementById('editChartBtn').addEventListener('click', function(){
+    this.textContent = 'Full chart open';
+  });
+
+  setActivePatient('reyes');
+
+})();
+</script>
+</body>
+</html>
