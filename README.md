@@ -21,6 +21,12 @@ Login, patient list, chart, prescription draft, safety check, sign. Specifically
 
 Two roles exist: `clinician` and `admin`. Access is granted by care-team membership (one team per patient).
 
+### Privacy mode
+
+A **Privacy** button in the top bar (or Ctrl+. / ⌘+.) hides all patient content behind a "Content hidden" card until "Show content" is pressed. It also turns on by itself after 60 seconds without pointer, keyboard, touch or scroll activity (`PRIVACY_IDLE_MS` in `src/features/privacy/config.ts`). The state lasts for the tab's session across navigation (`sessionStorage`), is turned off on the sign-in page and is cleared on sign-out.
+
+**This is client-side shoulder-surfing protection, nothing more.** The data is already in the page; anyone with access to the browser's developer tools can read it. Privacy mode is not the session timeout and changes nothing about authentication. Details, and the server-rendered alternative that was not built: [docs/theme.md](docs/theme.md#privacy-mode-phase-8).
+
 ## Architecture in brief
 
 - **Next.js 16 App Router** (TypeScript strict, React Server Components by default, Tailwind v4). `src/proxy.ts` refreshes the session and redirects anonymous visitors, but it is only a convenience. Every page query and Server Action re-checks the user itself.
@@ -33,7 +39,7 @@ Layout:
 
 ```
 src/app/            routes: (auth)/login, (app)/patients/..., (app)/admin/audit
-src/features/       auth, patients, chart, prescriptions, audit (queries, actions, schemas, components)
+src/features/       auth, patients, chart, prescriptions, audit, privacy (queries, actions, schemas, components)
 src/lib/            env validation, Supabase clients, auth guards, ActionResult
 supabase/migrations 0001-0010, applied in order
 supabase/seed/      synthetic seed data (fixed UUIDs, see scripts/fixtures.ts)
@@ -81,7 +87,7 @@ Supabase does not create every project with the same defaults. Two differences m
 | `pnpm test:db` | SQL-level RLS, grants, constraints, signing rules, audit behaviour against `kestrel-test` |
 | `pnpm test:int` | supabase-js and Server Actions with real test-user JWTs |
 | `pnpm test:e2e` | Playwright happy path, blocked path, cancel flow, access control |
-| `pnpm test:browser` | Playwright on the development-only specimens (no Supabase): dialog accessibility, contrast, wrapped headings, date field, column collapse at every breakpoint edge, audit table, loading skeleton geometry and layout shift, error pages, axe-core scans, focus rings, combobox and tracker keyboard use, error announcements, reduced motion |
+| `pnpm test:browser` | Playwright on the development-only specimens (no Supabase): dialog accessibility, contrast, wrapped headings, date field, column collapse at every breakpoint edge, audit table, loading skeleton geometry and layout shift, error pages, axe-core scans, focus rings, combobox and tracker keyboard use, error announcements, reduced motion, Privacy mode |
 | `pnpm build && pnpm check:bundle` | Checks that no secret names or values from env files appear in the client bundle |
 | `pnpm db:reset:test` | Re-applies the schema on `kestrel-test`; run `pnpm db:seed:test` afterwards |
 
@@ -89,9 +95,10 @@ Supabase does not create every project with the same defaults. Two differences m
 
 Be precise about what has and has not been shown:
 
-- Unit and component tests (170), typecheck, lint, browser specimens (199, including axe-core scans, focus rings, keyboard use and reduced motion), production build and the client-bundle secret check pass locally (21 Oct 2026, Phase 7). Details, axe findings and what remains unverified (including any screen-reader test): [docs/qa-phase7.md](docs/qa-phase7.md).
+- Unit and component tests (190), typecheck, lint, browser specimens (210, including axe-core scans, focus rings, keyboard use and reduced motion), production build and the client-bundle secret check pass locally (21 Oct 2026, Phase 8). Details, axe findings and what remains unverified (including any screen-reader test): [docs/qa-phase7.md](docs/qa-phase7.md).
+- Privacy mode (Phase 8) is checked in Chromium only: toggling, the shortcut, masked content absent from the accessibility tree and Tab order, focus handoff, persistence across navigation and skeletons, auto-hide with a fake clock, reduced motion, 1440 / 1024 / 390px, and axe with the overlay shown and hidden (moderate findings only). Not tested with a screen reader, in other browsers, on macOS (⌘+.) or with an input method editor.
 - Loading skeletons are checked against the specimens only: column boxes match at every collapse step, and layout shift stays below 0.05 when content streams in. Not measured on hosted data.
-- Against hosted `kestrel-test` with migrations 0001-0010 applied (21 Oct 2026): `pnpm test:db` 46 passed, `pnpm test:int` 18 passed, `pnpm test:e2e` 16 passed (`auth`, `shell`, `prescribing`, `dev-routes`; the first run had 3 hosted-latency timeouts, the re-run passed).
+- Against hosted `kestrel-test` with migrations 0001-0010 applied (21 Oct 2026): `pnpm test:db` 46 passed, `pnpm test:int` 18 passed, `pnpm test:e2e` 16 passed (`auth`, `shell`, `prescribing`, `dev-routes`; the first run had 3 hosted-latency timeouts, the re-run passed). After Phase 8 (21 Oct 2026), `pnpm test:e2e` 17 passed on the first run, including the Privacy mode sign-out/sign-in case; `test:db` and `test:int` were not re-run (no database or Server Action changes).
 - In the production build every `/dev/*` URL returns 404 from the proxy, signed in or out, and the `?skeleton` and `?delay` specimen modes have no effect (`tests/e2e/dev-routes.spec.ts`).
 - There is no chart e2e spec. The chart is covered by `tests/integration/chart.test.ts` and the browser specimens.
 - Migrations 0001-0010 are applied to both hosted projects. Read-only comparison of table, column, function and default grants, RLS flags and policies (20 Oct 2026): identical except `rls_auto_enable`, which exists only on `kestrel-test` (see above). `service_role` holds no privileges on Kestrel objects in either project.
@@ -113,7 +120,7 @@ Full rules, overrides and contrast notes: [docs/theme.md](docs/theme.md).
 - **Token source.** `design-reference/design-tokens.tokens.json` (the Figma export) is the source of truth. `pnpm tokens:build` writes it to `src/styles/tokens.css`, and `src/app/globals.css` maps those variables to Tailwind names. Components use those names only: no raw hex, rem or pixel values. A layout dimension without a token gets a named one in `globals.css`.
 - **Breakpoints.** Figma-derived, not Tailwind's defaults: `md` starts at 761px, so every layout is one column at 760px and below. Multi-column layouts collapse one step at a time (3 → 2 → 1 for prescribing, 2 → 1 for the chart) at the page breakpoints listed in the theme doc.
 - **Red and orange.** Red (`danger`) is only for the "Cancel draft" confirm. Every detection state (blocking, advisory, form errors) is orange; blocking is told apart by the 2px outline, the circle icon, the label and ordering, never by colour alone.
-- **Components.** Shared primitives live in `src/components/ui/`, the shell in `src/components/shell/`, and feature components in `src/features/<feature>/components/`. Development-only specimens at `/dev/theme`, `/dev/components`, `/dev/shell`, `/dev/chart`, `/dev/prescribing`, `/dev/audit` and `/dev/error` (404 outside `pnpm dev`) show every state.
+- **Components.** Shared primitives live in `src/components/ui/`, the shell in `src/components/shell/`, and feature components in `src/features/<feature>/components/`. Development-only specimens at `/dev/theme`, `/dev/components`, `/dev/shell`, `/dev/chart`, `/dev/prescribing`, `/dev/audit`, `/dev/error` and `/dev/privacy` (404 outside `pnpm dev`) show every state.
 - **Motion and focus.** Animations stop under `prefers-reduced-motion`. Every focusable control shows a ring of at least 3:1 (white on the dark rail).
 
 ### Re-exporting design tokens
