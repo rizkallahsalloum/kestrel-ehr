@@ -44,7 +44,7 @@ Run on 21 Oct 2026 on Windows 10, Chromium from Playwright, against the developm
 
 | Rule | Impact | Where | Note |
 | --- | --- | --- | --- |
-| `region` | moderate | 37 of 40 scans: every page with the synthetic-data banner | The banner (`role="note"`) sits above the top bar, outside any landmark. Moving it into the `header` landmark or a labelled region would clear it; not changed in this phase. |
+| `region` | moderate | 3 of 40 scans, all on `/dev/components` (page, combobox expanded, errors shown) | **Resolved on app pages in the Phase 8 follow-up (21 Oct 2026).** The banner now sits inside the `header` landmark in the app shell, sign-in, status and full-page error screens; before that it was flagged on 37 of 40 scans. What remains is the banner shown on its own as a component specimen on `/dev/components`, outside any landmark by design. |
 | `page-has-heading-one` | moderate | 4 skeleton views (chart, prescribing new and saved, audit) | While loading, the page content, including the heading, is `aria-hidden` and the region announces "Loading …". Expected for a skeleton. |
 
 No minor findings. The theme and components contrast tables are excluded from axe because they deliberately render UI-only and "not used" colour pairs as sample text; `contrast.spec.ts` checks each pair against its own threshold.
