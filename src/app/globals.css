@@ -230,6 +230,8 @@
   --max-width-footer: 760px; /* dashboard .footer-note */
   /* sticky offset for the dashboard context column, just below the sticky top bar */
   --spacing-below-topbar: 78px;
+  /* scroll offset below the top bar at 760px and below, where the search wraps onto its own row */
+  --spacing-below-topbar-stacked: 120px;
   --shadow-rail-current: inset var(--border-width-emphasis) 0 0 var(--color-on-inverse);
 
   /* ---- Breakpoints from the HTML references (section 5) ---- */
@@ -329,10 +331,11 @@
   box-shadow: inset 0 0 0 calc(var(--border-width-emphasis) - var(--border-width-field)) var(--color-warning-stroke);
 }
 
+/* The error stroke stays while focused, so focus needs its own ring: the global :focus-visible outline. */
 @utility error-ring-focus {
-  box-shadow:
-    inset 0 0 0 calc(var(--border-width-emphasis) - var(--border-width-field)) var(--color-warning-stroke),
-    0 0 0 var(--border-width-heavy) var(--color-focus-glow);
+  box-shadow: inset 0 0 0 calc(var(--border-width-emphasis) - var(--border-width-field)) var(--color-warning-stroke);
+  outline: var(--border-width-emphasis) solid var(--color-focus);
+  outline-offset: var(--spacing-xxxs);
 }
 
 /* Focus treatment for composite controls (Input System .s-focus): ring plus glow. */

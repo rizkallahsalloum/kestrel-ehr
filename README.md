@@ -81,7 +81,7 @@ Supabase does not create every project with the same defaults. Two differences m
 | `pnpm test:db` | SQL-level RLS, grants, constraints, signing rules, audit behaviour against `kestrel-test` |
 | `pnpm test:int` | supabase-js and Server Actions with real test-user JWTs |
 | `pnpm test:e2e` | Playwright happy path, blocked path, cancel flow, access control |
-| `pnpm test:browser` | Playwright on the development-only specimens (no Supabase): dialog accessibility, contrast, wrapped headings, date field, column collapse, loading skeleton geometry and layout shift, error pages |
+| `pnpm test:browser` | Playwright on the development-only specimens (no Supabase): dialog accessibility, contrast, wrapped headings, date field, column collapse at every breakpoint edge, audit table, loading skeleton geometry and layout shift, error pages, axe-core scans, focus rings, combobox and tracker keyboard use, error announcements, reduced motion |
 | `pnpm build && pnpm check:bundle` | Checks that no secret names or values from env files appear in the client bundle |
 | `pnpm db:reset:test` | Re-applies the schema on `kestrel-test`; run `pnpm db:seed:test` afterwards |
 
@@ -89,9 +89,9 @@ Supabase does not create every project with the same defaults. Two differences m
 
 Be precise about what has and has not been shown:
 
-- Unit and component tests (170), typecheck, lint, browser specimens (88), production build and the client-bundle secret check pass locally (21 Oct 2026, Task B).
+- Unit and component tests (170), typecheck, lint, browser specimens (199, including axe-core scans, focus rings, keyboard use and reduced motion), production build and the client-bundle secret check pass locally (21 Oct 2026, Phase 7). Details, axe findings and what remains unverified (including any screen-reader test): [docs/qa-phase7.md](docs/qa-phase7.md).
 - Loading skeletons are checked against the specimens only: column boxes match at every collapse step, and layout shift stays below 0.05 when content streams in. Not measured on hosted data.
-- Against hosted `kestrel-test` with migrations 0001-0010 applied (21 Oct 2026): `pnpm test:db` 46 passed, `pnpm test:int` 18 passed, `pnpm test:e2e` 15 passed (`auth`, `shell`, `prescribing`, `dev-routes`).
+- Against hosted `kestrel-test` with migrations 0001-0010 applied (21 Oct 2026): `pnpm test:db` 46 passed, `pnpm test:int` 18 passed, `pnpm test:e2e` 16 passed (`auth`, `shell`, `prescribing`, `dev-routes`; the first run had 3 hosted-latency timeouts, the re-run passed).
 - In the production build every `/dev/*` URL returns 404 from the proxy, signed in or out, and the `?skeleton` and `?delay` specimen modes have no effect (`tests/e2e/dev-routes.spec.ts`).
 - There is no chart e2e spec. The chart is covered by `tests/integration/chart.test.ts` and the browser specimens.
 - Migrations 0001-0010 are applied to both hosted projects. Read-only comparison of table, column, function and default grants, RLS flags and policies (20 Oct 2026): identical except `rls_auto_enable`, which exists only on `kestrel-test` (see above). `service_role` holds no privileges on Kestrel objects in either project.
@@ -105,6 +105,16 @@ Be precise about what has and has not been shown:
 - **A few theme values are not from Figma.** Warning colors that fail contrast as exported, and values with no semantic token, are overridden in one place. See [docs/theme.md](docs/theme.md).
 - `supabase db reset --db-url` without Docker has not been verified (see `scripts/db.ts`).
 - No MFA or re-authentication before signing, no voiding of signed prescriptions, no admin UI for teams, and diagnoses, vitals and notes are deferred.
+
+## Design system
+
+Full rules, overrides and contrast notes: [docs/theme.md](docs/theme.md).
+
+- **Token source.** `design-reference/design-tokens.tokens.json` (the Figma export) is the source of truth. `pnpm tokens:build` writes it to `src/styles/tokens.css`, and `src/app/globals.css` maps those variables to Tailwind names. Components use those names only: no raw hex, rem or pixel values. A layout dimension without a token gets a named one in `globals.css`.
+- **Breakpoints.** Figma-derived, not Tailwind's defaults: `md` starts at 761px, so every layout is one column at 760px and below. Multi-column layouts collapse one step at a time (3 → 2 → 1 for prescribing, 2 → 1 for the chart) at the page breakpoints listed in the theme doc.
+- **Red and orange.** Red (`danger`) is only for the "Cancel draft" confirm. Every detection state (blocking, advisory, form errors) is orange; blocking is told apart by the 2px outline, the circle icon, the label and ordering, never by colour alone.
+- **Components.** Shared primitives live in `src/components/ui/`, the shell in `src/components/shell/`, and feature components in `src/features/<feature>/components/`. Development-only specimens at `/dev/theme`, `/dev/components`, `/dev/shell`, `/dev/chart`, `/dev/prescribing`, `/dev/audit` and `/dev/error` (404 outside `pnpm dev`) show every state.
+- **Motion and focus.** Animations stop under `prefers-reduced-motion`. Every focusable control shows a ring of at least 3:1 (white on the dark rail).
 
 ### Re-exporting design tokens
 

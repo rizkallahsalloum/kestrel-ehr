@@ -81,8 +81,14 @@ export function Combobox({
   const [typed, setTyped] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+  const [labelId, setLabelId] = useState<string | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+
+  // The listbox is named by the input's <label> (FormField gives it an id) unless aria-label is set.
+  useEffect(() => {
+    setLabelId(inputRef.current?.labels?.[0]?.id || undefined);
+  }, []);
 
   const results = useMemo(
     () => (typed ? options.filter((option) => matches(option, query)) : options),
@@ -221,6 +227,7 @@ export function Combobox({
         id={listId}
         role="listbox"
         aria-label={aria["aria-label"]}
+        aria-labelledby={aria["aria-label"] ? undefined : labelId}
         hidden={!open}
         className="absolute inset-x-0 z-20 mt-1.5 max-h-85 overflow-auto rounded-panel border border-line-subtle bg-surface p-1.5 shadow-level-2"
       >

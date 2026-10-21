@@ -38,7 +38,7 @@ import {
   LockIcon,
 } from "@/components/ui";
 import { ContrastTable, type ContrastPair } from "../theme/contrast-table";
-import { ComboboxDemo, ComboboxStatusDemo, DialogDemo } from "./demos";
+import { ComboboxDemo, ComboboxStatusDemo, DialogDemo, SubmitErrorsDemo } from "./demos";
 
 export const metadata: Metadata = { title: "Component specimen (development only) | Kestrel EHR" };
 
@@ -292,6 +292,10 @@ export default function ComponentSpecimenPage() {
             <div className="md:col-span-2">
               <Label>FormErrors</Label>
               <FormErrors messages={["The draft changed since you opened it. Reload to see the latest version."]} />
+            </div>
+            <div className="md:col-span-2" data-testid="submit-errors-demo">
+              <Label>After a submit (announced)</Label>
+              <SubmitErrorsDemo />
             </div>
           </div>
         </Section>

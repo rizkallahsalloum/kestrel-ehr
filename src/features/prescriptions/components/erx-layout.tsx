@@ -219,8 +219,9 @@ export function ReviewShell({
   return (
     <section
       id="rx-review"
+      tabIndex={-1}
       aria-labelledby="rx-review-title"
-      className="scroll-mt-below-topbar overflow-hidden rounded-card border border-line-subtle bg-surface shadow-level-1"
+      className="scroll-mt-below-topbar-stacked overflow-hidden rounded-card border border-line-subtle bg-surface shadow-level-1 md:scroll-mt-below-topbar"
     >
       <header className="flex flex-wrap items-center justify-between gap-3 bg-inverse px-5 py-4">
         <div className="min-w-0">

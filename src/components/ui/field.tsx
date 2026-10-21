@@ -222,7 +222,7 @@ export function FormField({
 
   return (
     <div className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <label htmlFor={id} className="text-label font-medium text-ink-strong">
+      <label htmlFor={id} id={`${id}-label`} className="text-label font-medium text-ink-strong">
         {label}
         {required && (
           <span aria-hidden="true" className="text-ink-muted">

@@ -75,6 +75,7 @@ export function ContrastTable({ pairs }: { pairs: ContrastPair[] }) {
               <td className="py-2 pr-4">{pair.label}</td>
               <td className="py-2 pr-4">
                 <span
+                  data-contrast-sample={pair.kind}
                   className="inline-block rounded-sm px-2 py-0.5 font-medium"
                   style={{ color: pair.fg, background: pair.bg, outline: pair.kind === "ui" ? `var(--border-width-emphasis) solid ${pair.fg}` : undefined }}
                 >
