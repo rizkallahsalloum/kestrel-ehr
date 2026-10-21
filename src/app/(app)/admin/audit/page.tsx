@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge, Card, EmptyState } from "@/components/ui";
+import { Badge, Card, cn, EmptyState } from "@/components/ui";
+import { AuditIntro, auditText } from "@/features/audit/components/audit-header";
 import { AUDIT_PAGE_SIZE, listAuditEvents, parseBeforeId } from "@/features/audit/queries";
 import { formatDateTime } from "@/lib/format";
 
@@ -13,25 +14,22 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Audit log</h1>
-      <p className="text-sm text-ink-secondary">
-        Read-only, append-only record of synthetic clinical activity. Identifiers only; no clinical content is stored
-        in audit metadata.
-      </p>
+      <h1 className={auditText.heading}>Audit log</h1>
+      <AuditIntro />
       <Card>
         {events.length === 0 ? (
           <EmptyState>No audit events.</EmptyState>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase tracking-wide text-ink-muted">
+            <table className={cn("w-full text-left", auditText.table)}>
+              <thead className="label-caps">
                 <tr>
-                  <th scope="col" className="py-2 pr-4 font-medium">When (UTC)</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Action</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Actor</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Entity</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Patient</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Details</th>
+                  <th scope="col" className="py-2 pr-4">When (UTC)</th>
+                  <th scope="col" className="py-2 pr-4">Action</th>
+                  <th scope="col" className="py-2 pr-4">Actor</th>
+                  <th scope="col" className="py-2 pr-4">Entity</th>
+                  <th scope="col" className="py-2 pr-4">Patient</th>
+                  <th scope="col" className="py-2 pr-4">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -41,16 +39,16 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
                     <td className="py-2 pr-4">
                       <Badge tone="accent">{event.action}</Badge>
                     </td>
-                    <td className="py-2 pr-4 font-mono text-xs">
+                    <td className="py-2 pr-4 font-mono text-code-sm">
                       {event.actor_id ?? "system"}
                       {event.actor_role && <span className="block text-ink-muted">{event.actor_role}</span>}
                     </td>
-                    <td className="py-2 pr-4 font-mono text-xs">
+                    <td className="py-2 pr-4 font-mono text-code-sm">
                       {event.entity_type}
                       <span className="block text-ink-muted">{event.entity_id}</span>
                     </td>
-                    <td className="py-2 pr-4 font-mono text-xs">{event.patient_id ?? ""}</td>
-                    <td className="py-2 pr-4 font-mono text-xs break-all">{JSON.stringify(event.metadata)}</td>
+                    <td className="py-2 pr-4 font-mono text-code-sm">{event.patient_id ?? ""}</td>
+                    <td className="py-2 pr-4 font-mono text-code-sm break-all">{JSON.stringify(event.metadata)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -58,7 +56,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
           </div>
         )}
       </Card>
-      <nav className="flex gap-4 text-sm" aria-label="Audit pagination">
+      <nav className="flex gap-4 text-label" aria-label="Audit pagination">
         {beforeId !== null && (
           <Link href="/admin/audit" className="text-accent underline">
             Newest events
