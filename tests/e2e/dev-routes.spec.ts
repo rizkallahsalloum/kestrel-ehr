@@ -15,6 +15,10 @@ const DEV_URLS = [
   "/dev/chart?delay=2000",
   "/dev/prescribing?skeleton=1",
   "/dev/prescribing?delay=2000",
+  "/dev/audit",
+  "/dev/audit?view=empty",
+  "/dev/audit?skeleton=1",
+  "/dev/audit?delay=2000",
 ];
 
 async function expectAllNotFound(page: Page): Promise<void> {
@@ -33,5 +37,10 @@ test("development-only routes return 404 when signed out", async ({ page }) => {
 
 test("development-only routes return 404 when signed in", async ({ page }) => {
   await signIn(page, "clinicianA");
+  await expectAllNotFound(page);
+});
+
+test("development-only routes return 404 for an administrator", async ({ page }) => {
+  await signIn(page, "admin");
   await expectAllNotFound(page);
 });

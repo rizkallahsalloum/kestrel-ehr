@@ -108,6 +108,9 @@ test("admins can read the audit log but not patient charts", async ({ page }) =>
   await signIn(page, "admin");
   await expect(page).toHaveURL(/\/admin\/audit$/);
   await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
+  const table = page.getByRole("table");
+  await expect(table.getByRole("columnheader")).toHaveText(["When (UTC)", "Action", "Actor", "Entity", "Patient", "Details"]);
+  await expect(table.getByRole("row").nth(1)).toBeVisible();
   await page.goto(`/patients/${PATIENTS.northOne}`);
   await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
 });

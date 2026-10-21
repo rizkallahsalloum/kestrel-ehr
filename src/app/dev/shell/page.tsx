@@ -52,7 +52,13 @@ export default async function ShellSpecimenPage({ searchParams }: PageProps<"/de
         <div className="flex flex-col gap-4">
           <h1 className="font-display text-heading-xl font-medium tracking-tight">Audit log</h1>
           <Card>
-            <EmptyState>Specimen placeholder. The audit table is restyled in Phase 6.</EmptyState>
+            <EmptyState>
+              Specimen placeholder. Open the{" "}
+              <Link href="/dev/audit" className="underline">
+                table specimen
+              </Link>{" "}
+              for the real layout.
+            </EmptyState>
           </Card>
         </div>
       </AppShell>

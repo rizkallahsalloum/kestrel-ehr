@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { hideDevOverlay, LAYOUT_WIDTHS } from "./support";
 
 // Loading skeletons must hold the final layout: same columns at every breakpoint step, same header
 // box, and no layout shift when the real content streams in.
@@ -6,12 +7,8 @@ import { expect, test, type Page } from "@playwright/test";
 type Box = { x: number; y: number; width: number; height: number };
 type Layout = { columns: Box[]; header: Box };
 
-const CHART_WIDTHS = [1440, 1181, 1180, 820, 760, 390];
-const RX_WIDTHS = [1440, 1281, 1280, 821, 820, 760, 390];
-
-async function hideDevOverlay(page: Page): Promise<void> {
-  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-}
+const CHART_WIDTHS = LAYOUT_WIDTHS;
+const RX_WIDTHS = LAYOUT_WIDTHS;
 
 /** Column boxes of the grid around `aside[aria-label=…]`, plus the header card above or inside it. */
 function measure(page: Page, asideLabel: string, header: "first-in-main" | "before-grid"): Promise<Layout> {
@@ -127,6 +124,59 @@ for (const width of RX_WIDTHS) {
   });
 }
 
+type AuditLayout = { heading: Box; intro: Box; card: Box; firstRow: Box; headers: Box[] };
+
+/** Boxes of the audit page body (real view or skeleton): heading, intro, card, first row, headers. */
+function measureAudit(page: Page): Promise<AuditLayout> {
+  return page.evaluate(() => {
+    const rect = (el: Element | null | undefined) => {
+      if (!el) throw new Error("missing audit layout element");
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y + window.scrollY, width: r.width, height: r.height };
+    };
+    const root =
+      document.querySelector("[data-skeleton=page] > [aria-hidden]") ??
+      document.querySelector("main h1")?.parentElement;
+    if (!root) throw new Error("no audit view");
+    const card = root.children[2];
+    return {
+      heading: rect(root.children[0]),
+      intro: rect(root.children[1]),
+      card: rect(card),
+      firstRow: rect(card?.querySelector("tbody tr")),
+      headers: Array.from(card?.querySelectorAll("thead th") ?? [], rect),
+    };
+  });
+}
+
+for (const width of LAYOUT_WIDTHS) {
+  test(`audit skeleton matches the audit table at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+
+    await page.goto("/dev/audit?skeleton=1");
+    await expect(page.locator("[data-skeleton=page]")).toContainText("Loading audit log");
+    await hideDevOverlay(page);
+    const skeleton = await measureAudit(page);
+
+    await page.goto("/dev/audit");
+    await expect(page.getByRole("heading", { level: 1, name: "Audit log" })).toBeVisible();
+    await hideDevOverlay(page);
+    const audit = await measureAudit(page);
+
+    expectSameBox(skeleton.heading, audit.heading, "heading");
+    expectSameBox(skeleton.intro, audit.intro, "intro");
+    // The card grows with the rows, so only its position and width belong to the layout.
+    expectSameBox(skeleton.card, audit.card, "card", { height: false });
+    expectSameBox(skeleton.firstRow, audit.firstRow, "first row", { height: false });
+    if (width > 760) {
+      // Fixed table layout: the column boxes do not depend on the content.
+      expect(audit.headers).toHaveLength(6);
+      audit.headers.forEach((header, i) => expectSameBox(skeleton.headers[i]!, header, `column ${i + 1} header`));
+    }
+  });
+}
+
 /** Sums layout-shift entries (CLS without session windows) from navigation until now. */
 async function observeLayoutShift(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -147,6 +197,7 @@ for (const [name, url] of [
   ["chart", "/dev/chart?view=blocking&delay=1500"],
   ["new prescription", "/dev/prescribing?view=new&delay=1500"],
   ["saved prescription", "/dev/prescribing?view=blocking&delay=1500"],
+  ["audit log", "/dev/audit?delay=1500"],
 ] as const) {
   for (const width of [1440, 1024, 390]) {
     test(`${name}: no layout shift when content replaces the skeleton at ${width}px`, async ({ page }) => {

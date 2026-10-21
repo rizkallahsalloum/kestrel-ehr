@@ -9,6 +9,8 @@
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+# screenshots saved by the browser specs for manual review (never compared)
+/review-screenshots/
 
 # next.js
 /.next/

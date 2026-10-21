@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { LAYOUT_WIDTHS, reviewPath } from "./support";
 
-const WIDTHS = [1440, 1181, 1180, 820, 760, 390];
+const WIDTHS = LAYOUT_WIDTHS;
 const VIEWS = ["blocking", "advisory", "mixed", "no-drafts", "no-allergies"] as const;
 
 const sidePanel = (page: Page) => page.getByRole("complementary", { name: "Allergies and medications" });
@@ -40,7 +41,7 @@ for (const width of WIDTHS) {
       await page.waitForTimeout(700);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect.soft(overflow, `${view} overflows horizontally`).toBeLessThanOrEqual(0);
-      await page.screenshot({ path: test.info().outputPath(`chart-${view}-${width}.png`), fullPage: true, caret: "initial" });
+      await page.screenshot({ path: reviewPath("chart", `chart-${view}-${width}.png`), fullPage: true, caret: "initial" });
     }
 
     await open(page, "blocking");
@@ -169,7 +170,7 @@ test("mixed: blocking banner first, allergies most severe first, draft badges ne
   const draftBadge = page.getByRole("table", { name: "Prescriptions" }).getByText("draft", { exact: true }).first();
   expect(await textColor(draftBadge)).toBe(await tokenColor(page, "ink-secondary"));
   expect(await style(draftBadge, "backgroundColor")).toBe(await tokenColor(page, "surface-warm"));
-  await page.screenshot({ path: test.info().outputPath("chart-mixed-1440.png"), fullPage: true, caret: "initial" });
+  await page.screenshot({ path: reviewPath("chart", "chart-mixed-1440.png"), fullPage: true, caret: "initial" });
 });
 
 test("no drafts: dashed no-alert state", async ({ page }) => {

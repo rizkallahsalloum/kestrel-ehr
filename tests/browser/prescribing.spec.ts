@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { LAYOUT_WIDTHS, reviewPath } from "./support";
 
-const WIDTHS = [1440, 1281, 1280, 821, 820, 760, 390];
+const WIDTHS = LAYOUT_WIDTHS;
 const VIEWS = ["new", "unevaluated", "blocking", "advisory", "mixed", "ready", "signed", "cancelled", "other-prescriber"] as const;
 type View = (typeof VIEWS)[number];
 
@@ -38,7 +39,7 @@ for (const width of WIDTHS) {
       await open(page, view);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect.soft(overflow, `${view} overflows horizontally`).toBeLessThanOrEqual(0);
-      await page.screenshot({ path: test.info().outputPath(`rx-${view}-${width}.png`), fullPage: true, caret: "initial" });
+      await page.screenshot({ path: reviewPath("prescribing", `rx-${view}-${width}.png`), fullPage: true, caret: "initial" });
     }
 
     await open(page, "blocking");
@@ -125,7 +126,7 @@ test("unsaved changes: notice, saved summary unchanged, signing disabled", async
   await expect(review(page).getByText("28 dispensed, 1 refill, 14 days")).toBeVisible();
   await expect(page.getByRole("button", { name: "Save draft" })).toBeEnabled();
   await expect(page.getByRole("link", { name: /Review \(not complete\)/ })).toBeVisible();
-  await page.screenshot({ path: test.info().outputPath("rx-unsaved-1280.png"), fullPage: true, caret: "initial" });
+  await page.screenshot({ path: reviewPath("prescribing", "rx-unsaved-1280.png"), fullPage: true, caret: "initial" });
 });
 
 test("blocking alert: orange card with the emphasis outline, no acknowledgement, link to the medication section", async ({ page }) => {
@@ -175,7 +176,7 @@ test("mixed alerts: blocking first, then advisory, then acknowledged; advisory h
   await expect(icon(cards.nth(0))).toHaveAttribute("data-icon", "alert-circle");
   await expect(icon(cards.nth(1))).toHaveAttribute("data-icon", "alert-triangle");
   for (const i of [0, 1]) expect(await style(cards.nth(i), "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
-  await page.screenshot({ path: test.info().outputPath("rx-mixed-1440.png"), fullPage: true, caret: "initial" });
+  await page.screenshot({ path: reviewPath("prescribing", "rx-mixed-1440.png"), fullPage: true, caret: "initial" });
 });
 
 test("no detection state in the workspace is red; only the cancel confirm is", async ({ page }) => {
@@ -239,7 +240,7 @@ for (const width of WIDTHS) {
     expect(shortWidth > 1, `short label shown at ${width}px (tracker ${inner}px)`).toBe(!fullShown);
     const overflow = await tracker.evaluate((el) => el.scrollWidth - el.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
-    await tracker.screenshot({ path: test.info().outputPath(`rx-tracker-${width}.png`) });
+    await tracker.screenshot({ path: reviewPath("prescribing", `rx-tracker-${width}.png`) });
   });
 }
 
@@ -288,7 +289,7 @@ test("cancel dialog keeps the draft on Escape and uses the red destructive confi
   await expect(dialog).toBeVisible();
   const confirm = dialog.getByRole("button", { name: "Cancel draft" });
   expect(await style(confirm, "backgroundColor")).toBe(await tokenColor(page, "danger"));
-  await page.screenshot({ path: test.info().outputPath("rx-cancel-dialog.png"), caret: "initial", animations: "disabled" });
+  await page.screenshot({ path: reviewPath("prescribing", "rx-cancel-dialog.png"), caret: "initial", animations: "disabled" });
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();

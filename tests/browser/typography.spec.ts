@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { reviewPath } from "./support";
 
 // Regression check for the provisional line-height pairing (display-lg 40/40 and the heading sizes).
 // Glyphs that extend past the line box show up as vertical scroll overflow. Two pairings overflow by a
@@ -41,6 +42,6 @@ for (const width of [360, 760, 1280]) {
     }
     expect(await section.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 
-    await section.screenshot({ path: test.info().outputPath(`typography-wrap-${width}.png`) });
+    await section.screenshot({ path: reviewPath("typography", `typography-wrap-${width}.png`) });
   });
 }

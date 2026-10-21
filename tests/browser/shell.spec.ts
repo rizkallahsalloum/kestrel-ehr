@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import { LAYOUT_WIDTHS, reviewPath } from "./support";
 
-const WIDTHS = [1440, 1180, 820, 760, 390];
+const WIDTHS = LAYOUT_WIDTHS;
 const VIEWS = ["clinician", "admin", "login", "not-found", "error"] as const;
 
 const searchBox = (page: Page) => page.getByRole("searchbox", { name: "Search patients by name or MRN" });
@@ -25,7 +26,7 @@ for (const width of WIDTHS) {
       await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect.soft(overflow, `${view} overflows horizontally`).toBeLessThanOrEqual(0);
-      await page.screenshot({ path: test.info().outputPath(`${view}-${width}.png`), fullPage: true, caret: "initial" });
+      await page.screenshot({ path: reviewPath("shell", `${view}-${width}.png`), fullPage: true, caret: "initial" });
     }
 
     await page.goto("/dev/shell?view=clinician");
