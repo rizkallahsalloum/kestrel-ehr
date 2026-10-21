@@ -122,6 +122,14 @@ export const AuditIcon = createIcon(
   </>,
 );
 
+export const EyeOffIcon = createIcon(
+  "EyeOffIcon",
+  <>
+    <path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6 0 9.5 7 9.5 7a17.4 17.4 0 0 1-2.6 3.5M6.6 6.6A17.2 17.2 0 0 0 2.5 12s3.5 7 9.5 7a9.6 9.6 0 0 0 5.4-1.6" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" />
+  </>,
+);
+
 /** Loading indicator for field slots. Visual only: announce loading through a live region. */
 export function Spinner({ className }: { className?: string }) {
   return (

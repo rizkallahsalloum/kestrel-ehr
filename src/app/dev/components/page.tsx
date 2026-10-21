@@ -45,6 +45,12 @@ export const metadata: Metadata = { title: "Component specimen (development only
 // Static specimen for reviewing Phase 2 shared components. Synthetic sample text only; no data access.
 
 const PAIRS: ContrastPair[] = [
+  { label: "Privacy overlay title: ink on surface (card)", fg: "var(--color-ink)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Privacy overlay text: ink-secondary on surface (card)", fg: "var(--color-ink-secondary)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Privacy overlay Show content button: page on ink (primary)", fg: "var(--color-page)", bg: "var(--color-ink)", kind: "text" },
+  { label: "Privacy overlay Show content button edge vs surface (card)", fg: "var(--color-ink)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "Privacy button: ink-secondary on page (top bar)", fg: "var(--color-ink-secondary)", bg: "var(--color-page)", kind: "text" },
+  { label: "Privacy button pressed: ink on surface-warm", fg: "var(--color-ink)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "Badge accent: accent on accent-subtle", fg: "var(--color-accent)", bg: "var(--color-accent-subtle)", kind: "text" },
   { label: "Badge/Tag neutral: ink-secondary on surface-warm", fg: "var(--color-ink-secondary)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "Badge critical and warning: warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Mono, Inter } from "next/font/google";
+import { PRIVACY_BOOT_SCRIPT } from "@/features/privacy/config";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,7 +28,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${plexMono.variable} ${fraunces.variable} h-full`}>
+    // suppressHydrationWarning: the Privacy mode script may add data-privacy to <html> before hydration.
+    <html lang="en" className={`${inter.variable} ${plexMono.variable} ${fraunces.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: PRIVACY_BOOT_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

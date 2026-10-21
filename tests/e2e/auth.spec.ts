@@ -46,3 +46,26 @@ test("sign out ends the session", async ({ page }) => {
   await page.goto("/patients");
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test("Privacy mode stays on across navigation and is off after signing out and in again", async ({ page }) => {
+  const privacy = page.getByRole("button", { name: "Privacy" });
+  await signIn(page, "clinicianA");
+  await expect(privacy).toHaveAttribute("aria-pressed", "false");
+  await expect(async () => {
+    await privacy.click();
+    await expect(privacy).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Show content" })).toBeFocused();
+
+  await page.goto(`/patients/${PATIENTS.northOne}`);
+  await expect(page.getByRole("button", { name: "Show content" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("heading")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy"))).toBeNull();
+
+  await signIn(page, "clinicianA");
+  await expect(privacy).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("link", { name: /Testcase, Rowan/ })).toBeVisible();
+});

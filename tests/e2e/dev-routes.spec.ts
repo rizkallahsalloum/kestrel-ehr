@@ -19,6 +19,9 @@ const DEV_URLS = [
   "/dev/audit?view=empty",
   "/dev/audit?skeleton=1",
   "/dev/audit?delay=2000",
+  "/dev/privacy",
+  "/dev/privacy?skeleton=1",
+  "/dev/privacy?delay=2000",
 ];
 
 async function expectAllNotFound(page: Page): Promise<void> {
