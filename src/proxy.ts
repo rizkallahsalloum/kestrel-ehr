@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isDevOnlyPath } from "@/lib/dev-routes";
+import { isDevOnlyPath, isDevPath } from "@/lib/dev-routes";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
-  if (isDevOnlyPath(request.nextUrl.pathname)) return NextResponse.next();
+  const { pathname } = request.nextUrl;
+  if (isDevOnlyPath(pathname)) return NextResponse.next();
+  if (isDevPath(pathname)) return new NextResponse("Not found", { status: 404 });
   return updateSession(request);
 }
 

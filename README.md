@@ -81,7 +81,7 @@ Supabase does not create every project with the same defaults. Two differences m
 | `pnpm test:db` | SQL-level RLS, grants, constraints, signing rules, audit behaviour against `kestrel-test` |
 | `pnpm test:int` | supabase-js and Server Actions with real test-user JWTs |
 | `pnpm test:e2e` | Playwright happy path, blocked path, cancel flow, access control |
-| `pnpm test:browser` | Playwright on the development-only specimens (no Supabase): dialog accessibility, contrast, wrapped headings, date field |
+| `pnpm test:browser` | Playwright on the development-only specimens (no Supabase): dialog accessibility, contrast, wrapped headings, date field, column collapse, loading skeleton geometry and layout shift, error pages |
 | `pnpm build && pnpm check:bundle` | Checks that no secret names or values from env files appear in the client bundle |
 | `pnpm db:reset:test` | Re-applies the schema on `kestrel-test`; run `pnpm db:seed:test` afterwards |
 
@@ -89,8 +89,10 @@ Supabase does not create every project with the same defaults. Two differences m
 
 Be precise about what has and has not been shown:
 
-- Unit tests, typecheck, lint, production build and the client-bundle secret check pass locally.
-- Against hosted `kestrel-test` with migrations 0001-0010 applied (20 Oct 2026): `pnpm test:db` 46 passed, `pnpm test:int` 18 passed, `pnpm test:e2e` 13 passed (`auth`, `shell`, `prescribing`).
+- Unit and component tests (170), typecheck, lint, browser specimens (88), production build and the client-bundle secret check pass locally (21 Oct 2026, Task B).
+- Loading skeletons are checked against the specimens only: column boxes match at every collapse step, and layout shift stays below 0.05 when content streams in. Not measured on hosted data.
+- Against hosted `kestrel-test` with migrations 0001-0010 applied (21 Oct 2026): `pnpm test:db` 46 passed, `pnpm test:int` 18 passed, `pnpm test:e2e` 15 passed (`auth`, `shell`, `prescribing`, `dev-routes`).
+- In the production build every `/dev/*` URL returns 404 from the proxy, signed in or out, and the `?skeleton` and `?delay` specimen modes have no effect (`tests/e2e/dev-routes.spec.ts`).
 - There is no chart e2e spec. The chart is covered by `tests/integration/chart.test.ts` and the browser specimens.
 - Migrations 0001-0010 are applied to both hosted projects. Read-only comparison of table, column, function and default grants, RLS flags and policies (20 Oct 2026): identical except `rls_auto_enable`, which exists only on `kestrel-test` (see above). `service_role` holds no privileges on Kestrel objects in either project.
 
@@ -98,6 +100,7 @@ Be precise about what has and has not been shown:
 
 - **Read auditing is incomplete.** Chart views through the app are logged before any data is returned, but a user calling the Supabase API directly with their own session can read rows RLS allows without a `patient_chart.viewed` entry. Closing this means serving reads only through logging definer functions.
 - **RLS is enabled but not `FORCE`d.** Definer functions run as the table owner and rely on their own explicit checks. The table owner (`postgres`) can bypass RLS and alter the audit triggers; tamper-evidence (hash chaining, external log shipping) is out of scope.
+- **Browser error reporting is anonymous and not rate-limited.** The error pages send the error name, a truncated stack (without the message), the route pattern and the on-screen reference to a Server Action that needs no session, so the login page can report too. Input is validated with fixed maximum lengths and scrubbed of control characters, and each report is logged as one JSON line marked `"source": "client-reported"`, but anyone can call the endpoint to fill the log. Production would need a session requirement and rate limiting at the edge.
 - **`src/types/database.ts` is hand-written** to match the migrations. Replace it with `pnpm db:types` output once a project exists.
 - **A few theme values are not from Figma.** Warning colors that fail contrast as exported, and values with no semantic token, are overridden in one place. See [docs/theme.md](docs/theme.md).
 - `supabase db reset --db-url` without Docker has not been verified (see `scripts/db.ts`).

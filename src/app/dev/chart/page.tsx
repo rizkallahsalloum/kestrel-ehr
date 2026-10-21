@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { AppShell, type ShellUser } from "@/components/shell/app-shell";
+import { ChartSkeleton } from "@/features/chart/components/chart-skeleton";
 import { PatientChartView } from "@/features/chart/components/patient-chart-view";
+import { Delayed, delayParam } from "../delayed";
 import type { PatientChart } from "@/features/chart/queries";
 import type { DraftAlertRow, PatientSummary, PrescriptionListItem } from "@/types/domain";
 
@@ -134,9 +137,10 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
 
   const params = await searchParams;
   const view: View = VIEWS.find((v) => v === params.view) ?? "blocking";
+  const delay = delayParam(params.delay);
 
-  return (
-    <AppShell user={CLINICIAN} activePath="/patients" searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
+  const content = (
+    <>
       <PatientChartView chart={CHARTS[view]} backHref="/dev/shell?view=clinician" />
       <p className="mt-6 text-label-sm text-ink-muted">
         Development specimen. Views:{" "}
@@ -148,7 +152,25 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
             </Link>
           </span>
         ))}
+        {" · "}
+        <Link href={`/dev/chart?view=${view}&skeleton=1`} className="underline">
+          skeleton
+        </Link>
       </p>
+    </>
+  );
+
+  return (
+    <AppShell user={CLINICIAN} activePath="/patients" searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
+      {params.skeleton ? (
+        <ChartSkeleton />
+      ) : delay ? (
+        <Suspense fallback={<ChartSkeleton />}>
+          <Delayed ms={delay}>{content}</Delayed>
+        </Suspense>
+      ) : (
+        content
+      )}
     </AppShell>
   );
 }

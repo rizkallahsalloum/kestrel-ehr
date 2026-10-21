@@ -20,3 +20,4 @@ export {
 } from "./field";
 export * from "./icons";
 export { severityIcons, severityOutline } from "./severity";
+export { LoadingRegion, SkeletonBlock, SkeletonLine } from "./skeleton";

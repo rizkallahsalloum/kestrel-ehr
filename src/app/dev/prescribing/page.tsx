@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { AppShell, type ShellUser } from "@/components/shell/app-shell";
+import { PrescribingSkeleton } from "@/features/prescriptions/components/prescribing-skeleton";
 import { NewPrescriptionView, PrescriptionView } from "@/features/prescriptions/components/prescription-views";
 import type { PrescriptionWorkspace } from "@/features/prescriptions/queries";
 import { todayUtc } from "@/features/prescriptions/schemas";
 import type { Allergy, MedicationOption, PatientMedication, PatientSummary, Prescription, PrescriptionAlert } from "@/types/domain";
+import { Delayed, delayParam } from "../delayed";
 
 export const metadata: Metadata = { title: "Prescribing specimen (development only) | Kestrel EHR" };
 
@@ -140,9 +143,11 @@ export default async function PrescribingSpecimenPage({ searchParams }: PageProp
 
   const params = await searchParams;
   const view = (VIEWS.find((v) => v === params.view) ?? "new") as View;
+  const delay = delayParam(params.delay);
+  const skeleton = <PrescribingSkeleton withStatus={view !== "new"} />;
 
-  return (
-    <AppShell user={CLINICIAN} activePath="/patients" searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
+  const content = (
+    <>
       {view === "new" ? (
         <NewPrescriptionView
           patient={PATIENT}
@@ -165,7 +170,25 @@ export default async function PrescribingSpecimenPage({ searchParams }: PageProp
             </Link>
           </span>
         ))}
+        {" · "}
+        <Link href={`/dev/prescribing?view=${view}&skeleton=1`} className="underline">
+          skeleton
+        </Link>
       </p>
+    </>
+  );
+
+  return (
+    <AppShell user={CLINICIAN} activePath="/patients" searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
+      {params.skeleton ? (
+        skeleton
+      ) : delay ? (
+        <Suspense fallback={skeleton}>
+          <Delayed ms={delay}>{content}</Delayed>
+        </Suspense>
+      ) : (
+        content
+      )}
     </AppShell>
   );
 }

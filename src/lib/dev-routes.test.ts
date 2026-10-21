@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { isDevOnlyPath } from "./dev-routes";
+import { isDevOnlyPath, isDevPath } from "./dev-routes";
+
+describe("isDevPath", () => {
+  it("matches /dev routes in any environment, with or without a query", () => {
+    expect(isDevPath("/dev")).toBe(true);
+    expect(isDevPath("/dev/chart")).toBe(true);
+    expect(isDevPath("/developer")).toBe(false);
+    expect(isDevPath("/patients/dev")).toBe(false);
+  });
+});
 
 describe("isDevOnlyPath", () => {
   it("matches /dev routes in development only", () => {
