@@ -52,26 +52,29 @@ export function AppShell({
       <Rail role={user.role} initials={initials} activePath={activePath} />
       <PrivacyProvider>
         <div className="flex min-w-0 flex-col">
-          <SyntheticBanner />
-          <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-line-subtle bg-page px-4 py-3 md:flex-nowrap md:gap-5.5 md:px-7 md:py-4">
-            {user.role === "clinician" && (
-              <div className="order-1 basis-full md:order-none md:shrink-0 md:basis-75">
-                <PatientSearch action={searchAction} hiddenFields={searchHiddenFields} />
-              </div>
-            )}
-            <div className="order-2 ml-auto flex items-center gap-2 md:order-none md:gap-4.5">
-              <span className="hidden whitespace-nowrap xl:inline-flex">
-                <Tag>Synthetic data</Tag>
-              </span>
-              <PrivacyButton />
-              <div className="flex items-center gap-3 md:border-l md:border-line-subtle md:pl-4.5">
-                <div className="text-right" data-testid="current-user">
-                  <p className="text-label font-semibold whitespace-nowrap text-ink">{user.fullName}</p>
-                  <p className="text-caption text-ink-muted">{ROLE_LABEL[user.role]}</p>
+          {/* `contents`: the banner sits in the header landmark, and the top bar stays sticky against the column, not the header. */}
+          <header className="contents">
+            <SyntheticBanner />
+            <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-line-subtle bg-page px-4 py-3 md:flex-nowrap md:gap-5.5 md:px-7 md:py-4">
+              {user.role === "clinician" && (
+                <div className="order-1 basis-full md:order-none md:shrink-0 md:basis-75">
+                  <PatientSearch action={searchAction} hiddenFields={searchHiddenFields} />
                 </div>
-                <Avatar initials={initials} tone="ink" size="sm" />
+              )}
+              <div className="order-2 ml-auto flex items-center gap-2 md:order-none md:gap-4.5">
+                <span className="hidden whitespace-nowrap xl:inline-flex">
+                  <Tag>Synthetic data</Tag>
+                </span>
+                <PrivacyButton />
+                <div className="flex items-center gap-3 md:border-l md:border-line-subtle md:pl-4.5">
+                  <div className="text-right" data-testid="current-user">
+                    <p className="text-label font-semibold whitespace-nowrap text-ink">{user.fullName}</p>
+                    <p className="text-caption text-ink-muted">{ROLE_LABEL[user.role]}</p>
+                  </div>
+                  <Avatar initials={initials} tone="ink" size="sm" />
+                </div>
+                <SignOutButton action={signOutAction} />
               </div>
-              <SignOutButton action={signOutAction} />
             </div>
           </header>
           <div className="relative flex flex-1 flex-col">

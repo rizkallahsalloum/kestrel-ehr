@@ -269,7 +269,8 @@ test.describe("E-Rx section tracker", () => {
       await expect(page).toHaveURL(/#rx-directions$/);
       const geometry = await page.evaluate(() => {
         const section = document.getElementById("rx-directions")!.getBoundingClientRect();
-        const header = document.querySelector("header")!.getBoundingClientRect();
+        // The header landmark is `display: contents`; the sticky top bar is its only div.
+        const header = document.querySelector("header > div")!.getBoundingClientRect();
         return { top: section.top, headerBottom: header.bottom, viewport: window.innerHeight };
       });
       expect(geometry.top, "section starts below the sticky top bar").toBeGreaterThanOrEqual(geometry.headerBottom - 1);

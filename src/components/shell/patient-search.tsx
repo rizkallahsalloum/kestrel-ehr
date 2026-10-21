@@ -2,9 +2,10 @@
 
 import Form from "next/form";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import { SearchIcon, TextInput } from "@/components/ui";
 import { PATIENT_QUERY_MAX } from "@/features/patients/search";
+import { usePrivacy } from "@/features/privacy/components/privacy-provider";
 
 const INPUT_ID = "patient-search";
 const TYPING_TARGETS = "input, textarea, select, [contenteditable=''], [contenteditable='true']";
@@ -71,8 +72,39 @@ function SearchForm({ action, hiddenFields, query }: SearchProps & { query: stri
 function CurrentSearch(props: SearchProps) {
   const pathname = usePathname();
   const params = useSearchParams();
+  usePrivacyQueryReset(params.toString());
   const query = pathname === props.action ? (params.get("q") ?? "") : "";
   return <SearchForm {...props} query={query} />;
+}
+
+const currentUrl = () => window.location.pathname + window.location.search + window.location.hash;
+
+/**
+ * The search field and `?q=` stay outside the Privacy mask, so Privacy mode empties the field and
+ * drops `q` from the address bar (history.replaceState: no request, the masked list is unchanged).
+ * Show content puts `q` back if the URL is still the stripped one. Unsubmitted text is not restored.
+ */
+function usePrivacyQueryReset(search: string) {
+  const { on } = usePrivacy();
+  const stripped = useRef<{ from: string; to: string } | null>(null);
+
+  useLayoutEffect(() => {
+    if (on) {
+      const input = document.getElementById(INPUT_ID);
+      if (input instanceof HTMLInputElement) input.value = "";
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has("q")) return;
+      const from = currentUrl();
+      url.searchParams.delete("q");
+      const to = url.pathname + url.search + url.hash;
+      window.history.replaceState(null, "", to);
+      stripped.current = { from, to };
+    } else if (stripped.current) {
+      const { from, to } = stripped.current;
+      stripped.current = null;
+      if (currentUrl() === to) window.history.replaceState(null, "", from);
+    }
+  }, [on, search]);
 }
 
 /** Top-bar patient search: a GET form to the patient list, filtered on the server (plan D6). */

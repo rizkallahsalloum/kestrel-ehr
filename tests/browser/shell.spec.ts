@@ -22,7 +22,7 @@ for (const width of WIDTHS) {
     for (const view of VIEWS) {
       await page.goto(`/dev/shell?view=${view}`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(page.getByRole("note")).toContainText("Synthetic data prototype");
+      await expect(page.getByRole("banner").getByRole("note")).toContainText("Synthetic data prototype");
       await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect.soft(overflow, `${view} overflows horizontally`).toBeLessThanOrEqual(0);

@@ -15,7 +15,9 @@ export function StatusPage({
 }) {
   return (
     <div className="flex flex-1 flex-col">
-      <SyntheticBanner />
+      <header>
+        <SyntheticBanner />
+      </header>
       <main className="flex flex-1 items-center justify-center p-4 md:p-8">
         <div className="flex w-full max-w-md flex-col gap-4 rounded-card border border-line-subtle bg-surface p-6">
           <h1 className="font-display text-heading-lg font-medium tracking-tight">{title}</h1>

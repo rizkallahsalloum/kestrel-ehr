@@ -101,7 +101,9 @@ export function RouteError({
   if (!fullPage) return <div className="flex justify-center py-8">{card}</div>;
   return (
     <div className="flex flex-1 flex-col">
-      <SyntheticBanner />
+      <header>
+        <SyntheticBanner />
+      </header>
       <main id="main" className="flex flex-1 items-center justify-center p-4 md:p-8">
         {card}
       </main>

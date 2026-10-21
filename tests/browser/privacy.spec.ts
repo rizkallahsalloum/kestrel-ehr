@@ -10,6 +10,8 @@ const URL = "/dev/privacy";
 const privacyButton = (page: Page) => page.getByRole("button", { name: "Privacy" });
 const showButton = (page: Page) => page.getByRole("button", { name: "Show content" });
 const liveText = (page: Page) => page.locator("header [aria-live=polite]");
+/** The sticky top bar inside the `display: contents` header landmark. */
+const topBar = (page: Page) => page.getByRole("banner").locator(":scope > div");
 
 /**
  * Records every animation frame (before paint) in which Privacy mode is stored as on but content
@@ -66,7 +68,8 @@ for (const width of [1440, 1024, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await open(page);
     const content = page.locator("[data-privacy-content]");
-    const before = { header: await page.locator("header").first().boundingBox(), content: await content.boundingBox() };
+    const before = { header: await topBar(page).boundingBox(), content: await content.boundingBox() };
+    expect(before.header).not.toBeNull();
 
     await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
     await expect(page.getByRole("link", { name: /Testcase, Rowan/ })).toBeVisible();
@@ -105,7 +108,7 @@ for (const width of [1440, 1024, 390]) {
     expect(selected).not.toContain("SYN-0001");
 
     // Zero layout shift: the top bar and the content box do not move.
-    expect(await page.locator("header").first().boundingBox()).toEqual(before.header);
+    expect(await topBar(page).boundingBox()).toEqual(before.header);
     expect(await content.boundingBox()).toEqual(before.content);
     await reviewScreenshot(page, "privacy", `on-${width}`);
 
@@ -155,7 +158,7 @@ test("stays on across client navigation, reloads and loading skeletons without a
   const search = page.getByRole("searchbox", { name: /Search patients/ });
   await search.fill("Rowan");
   await search.press("Enter");
-  await expect(page).toHaveURL(/\/dev\/shell\?.*q=Rowan/);
+  await expect(page).toHaveURL(/\/dev\/shell\?view=clinician$/);
   await expect(showButton(page)).toBeVisible();
   await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("main").getByRole("heading")).toHaveCount(0);
@@ -167,6 +170,65 @@ test("stays on across client navigation, reloads and loading skeletons without a
   await expect(page.getByRole("main").getByRole("heading")).toHaveCount(0);
 
   expect(await leaks(page)).toEqual([]);
+});
+
+test("turning on empties the search field and drops ?q= from the URL; Show content puts the query back", async ({ page }) => {
+  await open(page, "/dev/shell?view=clinician&q=Rowan");
+  const search = page.getByRole("searchbox", { name: /Search patients/ });
+  await expect(search).toHaveValue("Rowan");
+  const requests: string[] = [];
+  page.on("request", (request) => {
+    if (request.resourceType() === "document" || request.headers()["rsc"]) requests.push(request.url());
+  });
+
+  await turnOn(page);
+  await expect(search).toHaveValue("");
+  await expect(page).toHaveURL(/\/dev\/shell\?view=clinician$/);
+  expect(await page.locator("body").ariaSnapshot()).not.toContain("Rowan");
+  expect(requests, "stripping the query does not reload the page").toEqual([]);
+
+  await showButton(page).click();
+  await expect(page).toHaveURL(/\/dev\/shell\?view=clinician&q=Rowan$/);
+  await expect(search).toHaveValue("Rowan");
+  await expect(page.getByRole("link", { name: /Testcase, Rowan/ })).toBeVisible();
+
+  // Unsubmitted text is cleared too, and is not restored.
+  await search.fill("Testcase");
+  await page.keyboard.press("Control+.");
+  await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
+  await expect(search).toHaveValue("");
+  await showButton(page).click();
+  await expect(search).toHaveValue("Rowan");
+});
+
+test("auto-hide closing a prescribing dialog keeps the unsaved draft and the typed cancel reason", async ({ page }) => {
+  await page.clock.install();
+  await open(page, "/dev/prescribing?view=ready");
+  const quantity = page.getByLabel("Quantity");
+  await quantity.fill("56");
+  const trigger = page.getByRole("button", { name: "Cancel this draft" });
+  const dialog = page.getByRole("dialog", { name: "Cancel this draft?" });
+  await trigger.click();
+  await dialog.getByLabel("Reason (optional)").fill("Duplicate order");
+
+  await page.clock.fastForward(PRIVACY_IDLE_MS + 1_000);
+  await expect(dialog).toBeHidden();
+  await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
+  await expect(showButton(page)).toBeFocused();
+
+  await showButton(page).click();
+  await expect(quantity).toHaveValue("56");
+  await expect(page.getByRole("button", { name: "Cancel this draft" })).toBeVisible();
+  await trigger.click();
+  await expect(dialog.getByLabel("Reason (optional)")).toHaveValue("Duplicate order");
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "Preview label" }).click();
+  await expect(page.getByRole("dialog", { name: "Label preview" })).toBeVisible();
+  await page.clock.fastForward(PRIVACY_IDLE_MS + 1_000);
+  await expect(page.getByRole("dialog", { name: "Label preview" })).toBeHidden();
+  await showButton(page).click();
+  await expect(quantity).toHaveValue("56");
 });
 
 test.describe("auto-hide", () => {

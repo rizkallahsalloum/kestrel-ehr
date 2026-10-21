@@ -6,7 +6,9 @@ import { SyntheticBanner } from "@/components/ui";
 export function LoginCard({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col">
-      <SyntheticBanner />
+      <header>
+        <SyntheticBanner />
+      </header>
       <main className="flex flex-1 items-center justify-center p-4 md:p-6">
         <div className="w-full max-w-sm overflow-hidden rounded-card border border-line-subtle bg-surface shadow-level-1">
           <div className="flex items-center gap-3 bg-inverse px-6 py-4 text-on-inverse">
