@@ -96,6 +96,20 @@ test("Today's queue dots follow the queue status function for every seeded patie
       const chip = queue.locator(`[data-queue-item="${row.id}"]`);
       await expect(chip.locator("[data-status]")).toHaveAttribute("data-status", expected);
       await expect(chip).toHaveAccessibleName(new RegExp(`, ${QUEUE_STATUS_LABEL[expected]}$`));
+      if (row.id === PATIENTS.northOne) {
+        // Rowan's active severe allergy: a plain critical dot, no ring.
+        const dot = await chip.locator("[data-status]").evaluate((el) => {
+          const probe = document.createElement("div");
+          probe.style.backgroundColor = "var(--color-status-critical)";
+          document.body.append(probe);
+          const critical = getComputedStyle(probe).backgroundColor;
+          probe.remove();
+          const cs = getComputedStyle(el);
+          return { fill: cs.backgroundColor, critical, outline: cs.outlineStyle };
+        });
+        expect(dot.fill).toBe(dot.critical);
+        expect(dot.outline).toBe("none");
+      }
     }
     await signOut(page);
   }

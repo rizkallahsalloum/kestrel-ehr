@@ -64,8 +64,8 @@ for (const width of WIDTHS) {
 test("blocking draft: critical banner links to the draft and offers no acknowledgement", async ({ page }) => {
   await open(page, "blocking");
   const slot = alertSlot(page);
-  await expect(slot.getByText("Blocking demo alert on draft: Zentoril 10 mg tablet")).toBeVisible();
-  await expect(slot).toContainText("1 blocking alert (change the draft or cancel it).");
+  await expect(slot.getByText("Allergy conflict on today's order", { exact: true })).toBeVisible();
+  await expect(slot).toContainText("Draft: Zentoril 10 mg tablet. 1 blocking alert (change the draft or cancel it).");
   await expect(slot).toContainText("DEMO RULE: recorded allergy to demo class Alpha.");
   await expect(slot.getByRole("link", { name: "Review draft for Zentoril 10 mg tablet" })).toHaveAttribute(
     "href",
@@ -87,7 +87,7 @@ test("advisory draft: warning banner, plus a note for a draft without a safety c
   await expect(slot.getByText("Advisory demo alert to acknowledge on draft: Calvexa 250 mg capsule")).toBeVisible();
   await expect(slot).toContainText("1 advisory alert to acknowledge.");
   await expect(slot).toContainText("1 draft has not had a safety check on the saved version.");
-  await expect(slot.getByText(/^Blocking demo alert/)).toHaveCount(0);
+  await expect(slot.getByText(/^Allergy conflict on today's order/)).toHaveCount(0);
 
   const rows = page.getByRole("table", { name: "Prescriptions" }).locator("tbody tr");
   await expect(rows.nth(0)).toContainText("1 advisory alert to acknowledge");
@@ -181,7 +181,8 @@ test("mixed: blocking banner first, allergies most severe first, draft badges ne
   await open(page, "mixed");
   const banners = alertSlot(page).locator(":scope > div");
   await expect(banners).toHaveCount(2);
-  await expect(banners.nth(0)).toContainText("Blocking demo alert on draft: Zentoril 10 mg tablet");
+  await expect(banners.nth(0)).toContainText("Allergy conflict on today's order");
+  await expect(banners.nth(0)).toContainText("Draft: Zentoril 10 mg tablet.");
   await expect(banners.nth(1)).toContainText("Advisory demo alert to acknowledge on draft: Calvexa 250 mg capsule");
   expect(await borderWidth(banners.nth(0))).toBe("2px");
   expect(await borderColor(banners.nth(0))).toBe(await tokenColor(page, "danger"));

@@ -240,8 +240,6 @@
   --grid-template-columns-key-value: max-content minmax(0, 1fr); /* E-Rx .kv label/value rows */
   --grid-template-columns-rx-header: auto minmax(0, 1fr); /* E-Rx .hdr identity + summary tiles */
   --width-context: 340px;
-  /* widest content area; the HTML references are fluid, this keeps lines readable on very wide screens */
-  --max-width-content: 1760px;
   --width-dialog: min(420px, calc(100vw - 2rem));
   --max-width-footer: 760px; /* dashboard .footer-note */
   /* sticky offset for the context and review columns: the sticky top bar's height, which grows with

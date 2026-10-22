@@ -3,9 +3,13 @@ import { Avatar, cn, PrivateText, StatusDot, type AvatarTone } from "@/component
 import { getInitials } from "@/lib/initials";
 import { QUEUE_STATUS_LABEL, type QueuePatient } from "../queue";
 
-/** Fills its queue column (`--spacing-queue-chip` at most); a long name truncates. */
+/**
+ * Fills its queue column (`--spacing-queue-chip` at most); a long name truncates. No outline ring in
+ * any state: keyboard focus is a 2px inset border in the focus colour (border plus an inset ring, so
+ * the pill keeps its size). In forced-colours mode, where box shadows are dropped, the outline returns.
+ */
 export const queueChipClass =
-  "flex h-control-sm w-full min-w-0 items-center gap-2 rounded-pill border py-1 pr-3 pl-1 text-label-sm whitespace-nowrap transition-colors";
+  "flex h-control-sm w-full min-w-0 items-center gap-2 rounded-pill border py-1 pr-3 pl-1 text-label-sm whitespace-nowrap transition-colors focus-visible:border-focus focus-visible:outline-none forced-colors:focus-visible:outline-solid focus-visible:ring-(length:--border-width-hairline) focus-visible:ring-focus focus-visible:ring-inset";
 
 /**
  * One chip in Today's queue: initials, name and status dot, linking to the chart. The status is in
@@ -56,7 +60,8 @@ export function PatientQueueItem({
         </PrivateText>
         <span className="sr-only-inline">, {status}</span>
       </span>
-      <StatusDot tone={patient.status} />
+      {/* The dot is the only status colour on the chip; the chip itself never takes a status colour. */}
+      <StatusDot tone={patient.status} plain />
     </Link>
   );
 }

@@ -99,10 +99,11 @@ export function AppShell({
               {clinician && <PatientQueue queue={queue ?? null} activePath={activePath} />}
             </div>
           </header>
+          {/* Same edges as the top bar: full width of the content column, same horizontal padding, no max width. */}
           <main
             id="main"
             tabIndex={-1}
-            className="mx-auto w-full max-w-content flex-1 px-md py-lg focus-visible:outline-none md:px-lg"
+            className="w-full flex-1 px-md py-lg focus-visible:outline-none md:px-lg"
           >
             {children}
           </main>

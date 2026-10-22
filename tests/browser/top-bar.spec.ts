@@ -547,6 +547,88 @@ test("Today's queue statuses by case: critical, warning and stable chips are tol
   }
 });
 
+test("Today's queue chips: no outline ring at rest, on hover, when current or on click; keyboard focus is an inset focus border; only the dot takes the status colour", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const chips = queueBar(page).locator("[data-queue-item]");
+  const look = () =>
+    chips.evaluateAll((els) => {
+      const colour = (value: string) => {
+        const probe = document.createElement("div");
+        probe.style.color = value;
+        document.body.append(probe);
+        const c = getComputedStyle(probe).color;
+        probe.remove();
+        return c;
+      };
+      return {
+        statusColours: ["var(--color-status-critical)", "var(--color-status-warning)", "var(--color-danger)", "var(--color-warning)"].map(colour),
+        focus: colour("var(--color-focus)"),
+        chips: els.map((el) => {
+          const cs = getComputedStyle(el);
+          const dot = getComputedStyle(el.querySelector("[data-status]")!);
+          return {
+            status: el.querySelector("[data-status]")!.getAttribute("data-status"),
+            current: el.hasAttribute("aria-current"),
+            ring: cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0,
+            boxShadow: cs.boxShadow,
+            container: [cs.borderTopColor, cs.backgroundColor, cs.color].join(" | "),
+            dotRing: dot.outlineStyle !== "none" && parseFloat(dot.outlineWidth) > 0,
+          };
+        }),
+      };
+    });
+
+  const rest = await look();
+  expect(rest.chips.filter((c) => c.current)).toHaveLength(1);
+  for (const chip of rest.chips) {
+    expect(chip.ring, `${chip.status} chip has no outline ring`).toBe(false);
+    expect(chip.boxShadow, `${chip.status} chip has no ring shadow`).toBe("none");
+    expect(chip.dotRing, `${chip.status} dot has no ring`).toBe(false);
+    for (const part of chip.container.split(" | ")) {
+      expect(rest.statusColours, `${chip.status} chip container takes no status colour`).not.toContain(part);
+    }
+  }
+  // Chips that are not current look the same whatever the status: only the dot differs.
+  const others = rest.chips.filter((c) => !c.current);
+  expect(new Set(others.map((c) => c.status)).size).toBeGreaterThan(1);
+  expect(new Set(others.map((c) => c.container)).size, "one container style for every status").toBe(1);
+  // The current chip is marked by its fill and border, not by a ring.
+  expect(rest.chips.find((c) => c.current)!.container).not.toBe(others[0]!.container);
+
+  const index = rest.chips.findIndex((c) => !c.current);
+  const target = chips.nth(index);
+  await target.hover();
+  const hovered = (await look()).chips[index]!;
+  expect(hovered.ring, "no ring on hover").toBe(false);
+  expect(hovered.boxShadow).toBe("none");
+
+  // Mouse down focuses the link without :focus-visible: no ring. Releasing away from it skips navigation.
+  await page.mouse.down();
+  expect(await target.evaluate((el) => document.activeElement === el && !el.matches(":focus-visible"))).toBe(true);
+  const pressed = (await look()).chips[index]!;
+  expect(pressed.ring, "no ring on click").toBe(false);
+  expect(pressed.boxShadow).toBe("none");
+  await page.mouse.move(5, 890);
+  await page.mouse.up();
+
+  // Keyboard: Tab onto the next chip gives a visible inset border in the focus colour, still no outline.
+  await page.keyboard.press("Shift");
+  await target.focus();
+  await page.keyboard.press("Tab");
+  const next = chips.nth(index + 1);
+  expect(await next.evaluate((el) => document.activeElement === el && el.matches(":focus-visible"))).toBe(true);
+  // The border colour transitions in.
+  await expect.poll(async () => {
+    const now = await look();
+    return now.chips[index + 1]!.container.split(" | ")[0] === now.focus;
+  }, { message: "focus-coloured border" }).toBe(true);
+  const focused = (await look()).chips[index + 1]!;
+  expect(focused.ring, "no outline ring on keyboard focus").toBe(false);
+  expect(focused.boxShadow, "inset ring thickens the border").toMatch(/inset/);
+  await page.screenshot({ path: reviewPath("top-bar", "queue-chip-focus.png"), clip: { x: 0, y: 0, width: 1440, height: 200 } });
+});
+
 test("patient header meta line: age and sex together, then DOB; masked together with Privacy on", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const url of [CHART, "/dev/prescribing?view=blocking"]) {

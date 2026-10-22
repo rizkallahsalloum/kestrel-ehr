@@ -84,9 +84,9 @@ export default async function PrivacySpecimenPage({ searchParams }: PageProps<"/
     <div className="flex flex-col gap-4">
       <PatientList patients={PATIENTS} query="" clearHref="/dev/privacy" />
       <PatientHero patient={PATIENTS[0]!} allergies={ALLERGIES} />
-      <AlertBanner tone="critical" title="Blocking demo alert on draft: Zentoril 10 mg tablet">
+      <AlertBanner tone="critical" title="Allergy conflict on today's order">
         <p>
-          Allergy conflict (synthetic) for <PrivateText label="Patient name">Testcase, Rowan</PrivateText>: severe
+          Draft: Zentoril 10 mg tablet. Allergy conflict (synthetic) for <PrivateText label="Patient name">Testcase, Rowan</PrivateText>: severe
           DEMO-ALPHA class allergy. Safety information stays visible; only the patient identifier is masked.
         </p>
       </AlertBanner>

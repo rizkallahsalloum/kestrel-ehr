@@ -82,7 +82,7 @@ for (const width of [1280, 1440, 1920, 2389, 2390, 2560]) {
 }
 
 for (const width of [2560, 1920, 1440, 1181, 1180, 761, 760]) {
-  test(`page width at ${width}px: rail shown, full-width top bar, fluid main up to the max width, chart columns`, async ({ page }) => {
+  test(`page width at ${width}px: rail shown, main content edges match the top bar's, chart columns`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await open(page, "/dev/chart?view=blocking");
     const layout = await page.evaluate(() => {
@@ -97,13 +97,18 @@ for (const width of [2560, 1920, 1440, 1181, 1180, 761, 760]) {
       };
       const grid = document.querySelector('main [class*="grid-cols-workspace"]')!;
       const gs = getComputedStyle(grid);
+      const bar = document.querySelector("[data-topbar]")!;
+      const bs = getComputedStyle(bar);
       return {
+        grid: r(grid),
+        barContent: { left: r(bar).left + parseFloat(bs.paddingLeft), right: r(bar).right - parseFloat(bs.paddingRight) },
+        search: r(bar.querySelector("[role=search]")!),
+        controls: r(bar.querySelector(".area-controls")!),
         rail: r(document.querySelector("aside")!),
         railVisible: getComputedStyle(document.querySelector("aside")!).visibility,
         bar: r(document.querySelector("[data-topbar]")!),
         main: r(document.querySelector("main")!),
         mainPad: parseFloat(getComputedStyle(document.querySelector("main")!).paddingLeft),
-        maxContent: token("var(--max-width-content)"),
         context: token("var(--width-context)"),
         gapToken: token("var(--spacing-lg)"),
         columns: gs.gridTemplateColumns.split(" "),
@@ -120,11 +125,14 @@ for (const width of [2560, 1920, 1440, 1181, 1180, 761, 760]) {
     // The top bar spans the whole content column.
     expect(layout.bar.left).toBeCloseTo(layout.rail.right, 0);
     expect(layout.bar.right).toBeCloseTo(width, 0);
-    // Main: fluid, capped at --max-width-content and centred in the content column.
-    const column = width - layout.rail.right;
-    expect(layout.main.width).toBeCloseTo(Math.min(column, layout.maxContent), 0);
-    const leftSpace = layout.main.left - layout.rail.right;
-    expect(Math.abs(leftSpace - (width - layout.main.right))).toBeLessThanOrEqual(1);
+    // Main spans the same column as the top bar, with the same padding: the chart's outer edges line
+    // up with the bar's content edges (the search on the left, the account menu on the right).
+    expect(layout.main.left).toBeCloseTo(layout.bar.left, 0);
+    expect(layout.main.right).toBeCloseTo(layout.bar.right, 0);
+    expect(Math.abs(layout.grid.left - layout.barContent.left), "left edge").toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.grid.right - layout.barContent.right), "right edge").toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.grid.left - layout.search.left), "chart and search left edges").toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.grid.right - layout.controls.right), "chart and controls right edges").toBeLessThanOrEqual(1);
     // Chart: flexible main column plus the fixed context column from 1181px; one column at 1180 and below.
     if (width >= 1181) {
       expect(layout.columns).toHaveLength(2);

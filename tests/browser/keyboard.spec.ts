@@ -62,6 +62,23 @@ function measureFocus(page: Page): Promise<Indicator | null> {
       return { element: name, kind: "outline" as const, ratio: ratio(ring, paint(behind)), changed: true };
     }
 
+    // Its own border, thickened by an inset ring (Today's queue chips): compared like a field ring.
+    if (cs.boxShadow !== "none") {
+      const focusedBorder = cs.borderTopColor;
+      el.blur();
+      const restBorder = getComputedStyle(el).borderTopColor;
+      el.focus({ preventScroll: true });
+      if (focusedBorder !== restBorder) {
+        const ring = paint([...backgrounds(el.parentElement), focusedBorder]);
+        return {
+          element: name,
+          kind: "field ring" as const,
+          ratio: Math.min(ratio(ring, paint(backgrounds(el.parentElement))), ratio(ring, paint(backgrounds(el)))),
+          changed: true,
+        };
+      }
+    }
+
     const drawsRing = (node: HTMLElement) => {
       const style = getComputedStyle(node);
       return style.boxShadow !== "none" || (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) >= 2);
@@ -322,7 +339,7 @@ test.describe("error announcements", () => {
     await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
     const titles = await region.locator("p.font-semibold").allTextContents();
     expect(titles.length).toBe(new Set(titles).size);
-    expect(titles[0], "blocking first").toMatch(/^Blocking/);
+    expect(titles[0], "blocking first").toBe("Allergy conflict on today's order");
   });
 
   test("error screens announce one alert", async ({ page }) => {

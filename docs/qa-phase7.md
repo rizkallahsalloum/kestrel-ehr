@@ -129,7 +129,7 @@ Queue chip avatars are teal, green or blue (decorative; the colour carries no me
 
 ## Phase 8e note: queue statuses with allergies, queue position, page width, account trigger, button states (22 Oct 2026)
 
-Queue dots now also count active allergies (severe makes a patient critical, moderate a warning; mild alone stays stable). The queue sits on the search row when its items fit (measured per item count; six chips from 2390px, so **not at 1280px**), otherwise on its own row as in 8d. Every page is fluid up to 1760px. The Privacy label is 8px (`xs`) from its icon. Only the avatar and chevron open the account menu ("Account menu, <name>"); the name and "Clinician · Cedar Park" are plain text. Buttons, including links styled as buttons, have a visible hover and a darker pressed state. Details in [theme.md](theme.md#phase-8e-queue-statuses-with-allergies-queue-position-page-width-account-trigger-button-states).
+Queue dots now also count active allergies (severe makes a patient critical, moderate a warning; mild alone stays stable). The queue sits on the search row when its items fit (measured per item count; six chips from 2390px, so **not at 1280px**), otherwise on its own row as in 8d. Every page is fluid up to 1760px (cap removed in Phase 8f: main now shares the top bar's full width and padding). The Privacy label is 8px (`xs`) from its icon. Only the avatar and chevron open the account menu ("Account menu, <name>"); the name and "Clinician · Cedar Park" are plain text. Buttons, including links styled as buttons, have a visible hover and a darker pressed state. Details in [theme.md](theme.md#phase-8e-queue-statuses-with-allergies-queue-position-page-width-account-trigger-button-states).
 
 | Check | Result |
 | --- | --- |
@@ -147,6 +147,24 @@ Queue dots now also count active allergies (severe makes a patient critical, mod
 - **Contrast:** primary hover 7.48:1, pressed 16.24:1; danger hover 4.99:1, pressed 9.75:1; secondary and quiet pressed 11.51:1; link pressed 8.68:1; all pass.
 - **Found and fixed while testing:** axe `label-content-name-mismatch` on the new trigger (the avatar initials were its only visible text and are not in "Account menu, <name>"; they are now CSS generated content of the decorative avatar); the chart skeleton's allergy-badge placeholder was 1px too wide for one row at 761px once the page padding became `lg` (24px), so the skeleton hero wrapped while the chart did not (placeholder narrowed); the Privacy label gap came from the button's centred text inside the shared label cell.
 - **Unverified, not passed:** the inline queue with real names on hosted data at 2390px and up (specimens only; chips truncate rather than overflow if the controls are wider); hover on real touch devices (Playwright touch emulation only); speech-input use of the trigger ("click Account menu") with Dragon or Voice Access; the generated-content initials in Windows forced-colours mode.
+
+## Phase 8f note: UI regression fixes (22 Oct 2026)
+
+Today's queue chips have no outline ring at rest, on hover, when current or on mouse click; keyboard focus turns the chip's border to the `focus` colour, 2px inset (forced-colours mode keeps the outline). Only the dot carries the status colour (`bg-status-stable`, `bg-status-warning`, `bg-status-critical`, no ring); the queue status rule is unchanged (an active severe allergy is critical). `<main>` now shares the top bar's full width and padding (the 1760px cap is gone). The blocking chart banner reads "Allergy conflict on today's order", with the medication at the start of the body. Details in [theme.md](theme.md#phase-8f-ui-regression-fixes-queue-chips-content-width-alert-banner).
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 32 files, 266 passed |
+| `pnpm test:browser` (all specs) | 284 passed (the first full run had 283 passed, 1 failed: a stale "title starts with Blocking" assertion, updated) |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (36 files scanned) |
+| `pnpm test:e2e` (kestrel-test) | 20 passed |
+
+`test:db` and `test:int` were not re-run (no migrations or queries changed).
+
+- **New and changed tests:** chip ring, hover, pressed, current and keyboard-focus styles and one container style for every status (`top-bar.spec.ts`); the focus border's contrast (3:1 or more, `keyboard.spec.ts`); the chart's outer edges equal the top bar's content edges within 1px at 760 to 2560px (`top-bar-layout.spec.ts`); Rowan Testcase's dot is the `status-critical` colour with no outline on kestrel-test, and no banner before a draft exists (e2e); banner title and body (`chart`, `privacy`, `keyboard` specs, e2e).
+- **axe:** the existing top-bar and chart scans ran unchanged in the browser suite. No serious or critical findings.
+- **Unverified, not passed:** the banner title for a blocking interaction rule (none is seeded); chips in Windows forced-colours mode; the full-width layout with real hosted data at 2560px (specimens and e2e at 1440px only).
 
 ## Critical-dot pulse
 

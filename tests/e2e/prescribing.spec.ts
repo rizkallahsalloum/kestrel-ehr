@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { MEDICATIONS, PATIENTS } from "../../scripts/fixtures.ts";
 import { signIn } from "./helpers";
 
@@ -50,8 +50,16 @@ test("clinician drafts, acknowledges an advisory alert, and signs", async ({ pag
   await expect(page.getByRole("list", { name: "Active medications" }).getByText("from signed prescription")).toBeVisible();
 });
 
-test("a blocking demo alert cannot be acknowledged or signed", async ({ page }) => {
+test("a blocking demo alert cannot be acknowledged or signed; the chart banner shows only while the draft has one", async ({ page }) => {
   await signIn(page, "clinicianA");
+  const alertSlot = page.getByRole("region", { name: "Demo safety alerts" });
+  const banner = alertSlot.getByText("Allergy conflict on today's order", { exact: true });
+
+  // Rowan's severe allergy alone is not an order conflict: no draft, so the empty state and no banner.
+  await page.goto(`/patients/${PATIENTS.northOne}`);
+  await expect(alertSlot.getByText("No unresolved demo safety alerts on this patient's drafts.")).toBeVisible();
+  await expect(banner).toHaveCount(0);
+
   await createDraft(page, PATIENTS.northOne, MEDICATIONS.zentoril);
 
   await page.getByRole("button", { name: "Run safety check" }).click();
@@ -65,7 +73,16 @@ test("a blocking demo alert cannot be acknowledged or signed", async ({ page }) 
   await expect(page.getByRole("list", { name: "Signing prerequisites" })).toContainText("blocking demo alert");
 
   await page.goto(`/patients/${PATIENTS.northOne}`);
-  await expect(page.getByText("Blocking demo alert on draft: Zentoril 10 mg tablet").first()).toBeVisible();
+  await expect(banner.first()).toBeVisible();
+  await expect(alertSlot).toContainText("Draft: Zentoril 10 mg tablet.");
+  await expect(alertSlot.getByText("No unresolved demo safety alerts on this patient's drafts.")).toHaveCount(0);
+  // Top of the workspace: under the patient header, above the Prescriptions card.
+  const top = async (locator: Locator) => (await locator.boundingBox())!.y;
+  const headerTop = await top(page.getByRole("main").getByRole("heading", { level: 1 }));
+  const bannerTop = await top(banner.first());
+  const prescriptionsTop = await top(page.getByRole("table", { name: "Prescriptions" }));
+  expect(bannerTop).toBeGreaterThan(headerTop);
+  expect(bannerTop).toBeLessThan(prescriptionsTop);
   await expect(page.getByRole("button", { name: /acknowledge/i })).toHaveCount(0);
   await page.getByRole("link", { name: /^Review draft/ }).first().click();
   await expect(page).toHaveURL(new RegExp(`/patients/${PATIENTS.northOne}/prescriptions/[0-9a-f-]{36}$`));

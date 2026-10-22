@@ -100,14 +100,34 @@ const dotTones = {
 
 export type StatusTone = keyof typeof dotTones;
 
-/** 7px status indicator. Pair it with visible text, or pass `label` for screen readers. */
-export function StatusDot({ tone, label, className }: { tone: StatusTone; label?: string; className?: string }) {
+const dotFills: Record<StatusTone, string> = {
+  stable: "bg-status-stable",
+  warning: "bg-status-warning",
+  critical: "bg-status-critical",
+};
+
+/**
+ * 7px status indicator. Pair it with visible text, or pass `label` for screen readers. `plain` drops
+ * the critical outline ring, for places where the dot and its text are the only status cue inside a
+ * control that has its own focus and current-state styles (Today's queue chips).
+ */
+export function StatusDot({
+  tone,
+  label,
+  plain = false,
+  className,
+}: {
+  tone: StatusTone;
+  label?: string;
+  plain?: boolean;
+  className?: string;
+}) {
   return (
     <>
       <span
         aria-hidden="true"
         data-status={tone}
-        className={cn("inline-block size-1.75 shrink-0 rounded-full", dotTones[tone], className)}
+        className={cn("inline-block size-1.75 shrink-0 rounded-full", plain ? dotFills[tone] : dotTones[tone], className)}
       />
       {label && <span className="sr-only-inline">{label}</span>}
     </>

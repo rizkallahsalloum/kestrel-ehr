@@ -6,8 +6,9 @@ function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
+// Every seeded blocking DEMO rule is an allergy-class rule, so a blocking alert is an allergy conflict.
 function bannerTitle(summary: DraftAlertSummary): string {
-  if (summary.blocking > 0) return `Blocking demo alert on draft: ${summary.medicationLabel}`;
+  if (summary.blocking > 0) return "Allergy conflict on today's order";
   return `Advisory demo alert to acknowledge on draft: ${summary.medicationLabel}`;
 }
 
@@ -51,7 +52,10 @@ export function ChartAlertSlot({
             </Link>
           }
         >
-          <p>{bannerCounts(summary)}</p>
+          <p>
+            {summary.blocking > 0 && `Draft: ${summary.medicationLabel}. `}
+            {bannerCounts(summary)}
+          </p>
           <ul className="mt-1 list-disc pl-5">
             {summary.messages.map((message, i) => (
               <li key={i}>{message}</li>
