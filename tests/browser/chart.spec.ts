@@ -95,11 +95,14 @@ test("advisory draft: warning banner, plus a note for a draft without a safety c
   await expect(page.getByRole("list", { name: "Active medications" }).getByText("from signed prescription")).toBeVisible();
 });
 
-test("severe allergies are red with the 2px outline, mild and moderate orange; every icon is the triangle", async ({ page }) => {
+test("severe allergies are red with a hairline card outline, mild and moderate orange; every icon is the triangle", async ({ page }) => {
   await open(page, "blocking");
   const card = allergyCard(page);
-  expect(await borderColor(card)).toBe(await tokenColor(page, "danger"));
-  expect(await borderWidth(card)).toBe("2px");
+  // The emphasis width is for blocking alerts; the allergies card is a summary at the normal weight.
+  expect(await borderColor(card)).toBe(await tokenColor(page, "danger-line"));
+  expect(await borderWidth(card)).toBe("1px");
+  const divider = card.getByRole("list", { name: "Active allergies" }).locator("li").nth(1);
+  expect(await borderColor(divider)).toBe(await tokenColor(page, "danger-line"));
   const cardIcon = card.getByRole("heading", { name: "Allergies" }).locator("svg");
   await expect(cardIcon).toHaveAttribute("data-icon", "alert-triangle");
   expect(await textColor(cardIcon)).toBe(await tokenColor(page, "danger"));

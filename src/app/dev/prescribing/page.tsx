@@ -9,7 +9,7 @@ import type { PrescriptionWorkspace } from "@/features/prescriptions/queries";
 import { todayUtc } from "@/features/prescriptions/schemas";
 import type { Allergy, MedicationOption, PatientMedication, PatientSummary, Prescription, PrescriptionAlert } from "@/types/domain";
 import { Delayed, delayParam } from "../delayed";
-import { DEMO_QUEUE } from "../demo-queue";
+import { demoQueue } from "../demo-queue";
 
 export const metadata: Metadata = { title: "Prescribing specimen (development only) | Kestrel EHR" };
 
@@ -183,7 +183,7 @@ export default async function PrescribingSpecimenPage({ searchParams }: PageProp
     <AppShell
       user={CLINICIAN}
       activePath={`/patients/${PATIENT.id}/prescriptions/new`}
-      queue={DEMO_QUEUE}
+      queue={demoQueue(params.queue)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell"
       searchHiddenFields={{ view: "clinician" }}

@@ -10,3 +10,10 @@ export const DEMO_QUEUE: QueuePatient[] = orderQueue([
   { id: "00000000-0000-4000-8000-000000000106", givenName: "Jun", familyName: "Fixture", status: "warning" },
   { id: "00000000-0000-4000-8000-000000000107", givenName: "Lior", familyName: "Specimen", status: "stable" },
 ]);
+
+/** `?queue=N` keeps the first N demo patients (0 to 7); `?queue=unavailable` shows the failed-load state. */
+export function demoQueue(param: string | string[] | undefined): QueuePatient[] | null {
+  if (param === "unavailable") return null;
+  const count = typeof param === "string" ? Number.parseInt(param, 10) : Number.NaN;
+  return Number.isInteger(count) && count >= 0 ? DEMO_QUEUE.slice(0, count) : DEMO_QUEUE;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isPublicPath } from "@/lib/supabase/proxy";
-import { ageInYears } from "@/lib/format";
+import { ageInYears, formatAgeSex } from "@/lib/format";
 import { loginSchema } from "./schemas";
 
 describe("loginSchema", () => {
@@ -31,5 +31,17 @@ describe("ageInYears", () => {
     const today = new Date("2026-04-11T12:00:00Z");
     expect(ageInYears("1968-04-12", today)).toBe(57);
     expect(ageInYears("1968-04-11", today)).toBe(58);
+  });
+});
+
+describe("formatAgeSex", () => {
+  const today = new Date("2026-04-11T12:00:00Z");
+  it("joins age and the one-letter code with no space", () => {
+    expect(formatAgeSex("1968-04-11", "female", today)).toBe("58F");
+    expect(formatAgeSex("1968-04-12", "male", today)).toBe("57M");
+  });
+  it("spells out other values after a space", () => {
+    expect(formatAgeSex("1968-04-11", "unknown", today)).toBe("58 unknown");
+    expect(formatAgeSex("1968-04-11", "other", today)).toBe("58 other");
   });
 });

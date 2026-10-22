@@ -15,7 +15,7 @@ import {
 import { medicationLabel } from "@/features/chart/alerts";
 import { allergyTone, bySeverity, highestSeverity } from "@/features/chart/allergies";
 import { prescriptionStatusTone } from "@/features/chart/components/clinical-lists";
-import { ageInYears, formatDate } from "@/lib/format";
+import { formatAgeSex, formatDate } from "@/lib/format";
 import { getInitials } from "@/lib/initials";
 import type { Allergy, PatientMedication, PatientSummary, PrescriptionStatus } from "@/types/domain";
 import type { SafetyState } from "../workspace";
@@ -66,8 +66,6 @@ export function ErxPageHeading({
   );
 }
 
-const SEX_SHORT: Record<string, string> = { female: "F", male: "M" };
-
 const tileTones = {
   neutral: { box: "border border-line-subtle bg-surface-warm", title: "text-ink" },
   warning: { box: `${severityOutline.warning} ${severityFill.warning}`, title: severityText.warning },
@@ -114,7 +112,6 @@ export function RxPatientHeader({
   allergies: Allergy[];
   medications: PatientMedication[];
 }) {
-  const sex = SEX_SHORT[patient.sex] ?? patient.sex;
   return (
     <section
       aria-label="Patient"
@@ -135,11 +132,8 @@ export function RxPatientHeader({
           </h2>
           <p className="mt-0.5 mb-1.5 flex flex-wrap gap-x-4 font-mono text-code-sm text-ink-strong">
             <span className="whitespace-nowrap">
-              <PrivateText label="Age">{ageInYears(patient.date_of_birth)}</PrivateText>
-              <abbr title={patient.sex} className="no-underline">
-                {sex}
-              </abbr>{" "}
-              · DOB <PrivateText label="Date of birth" className="whitespace-nowrap">{formatDate(patient.date_of_birth)}</PrivateText>
+              <PrivateText label="Age and sex">{formatAgeSex(patient.date_of_birth, patient.sex)}</PrivateText>
+              {" · DOB"} <PrivateText label="Date of birth" className="whitespace-nowrap">{formatDate(patient.date_of_birth)}</PrivateText>
             </span>
             <span className="whitespace-nowrap">
               MRN <PrivateText label="MRN" className="whitespace-nowrap">{patient.mrn}</PrivateText>
@@ -249,7 +243,7 @@ export function ReviewShell({
       id="rx-review"
       tabIndex={-1}
       aria-labelledby="rx-review-title"
-      className="scroll-mt-below-topbar-stacked overflow-hidden rounded-card border border-line-subtle bg-surface shadow-level-1 md:scroll-mt-below-topbar"
+      className="overflow-hidden rounded-card border border-line-subtle bg-surface shadow-level-1"
     >
       <header className="flex flex-wrap items-center justify-between gap-3 bg-inverse px-5 py-4">
         <div className="min-w-0">

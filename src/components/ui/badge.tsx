@@ -109,7 +109,7 @@ export function StatusDot({ tone, label, className }: { tone: StatusTone; label?
         data-status={tone}
         className={cn("inline-block size-1.75 shrink-0 rounded-full", dotTones[tone], className)}
       />
-      {label && <span className="sr-only">{label}</span>}
+      {label && <span className="sr-only-inline">{label}</span>}
     </>
   );
 }

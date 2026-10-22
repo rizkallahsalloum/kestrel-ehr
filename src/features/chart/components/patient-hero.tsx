@@ -1,10 +1,8 @@
 import { AlertTriangleIcon, Avatar, Badge, PrivateText, Tag } from "@/components/ui";
 import { allergyTone, highestSeverity } from "@/features/chart/allergies";
-import { ageInYears, formatDate } from "@/lib/format";
+import { formatAgeSex, formatDate } from "@/lib/format";
 import { getInitials } from "@/lib/initials";
 import type { Allergy, PatientSummary } from "@/types/domain";
-
-const SEX_SHORT: Record<string, string> = { female: "F", male: "M" };
 
 function AllergyBadge({ allergies }: { allergies: Pick<Allergy, "severity">[] }) {
   const highest = highestSeverity(allergies);
@@ -21,7 +19,6 @@ function AllergyBadge({ allergies }: { allergies: Pick<Allergy, "severity">[] })
 
 /** Dashboard `.hero`: identity, demographics in mono, and context tags. */
 export function PatientHero({ patient, allergies }: { patient: PatientSummary; allergies: Pick<Allergy, "severity">[] }) {
-  const sex = SEX_SHORT[patient.sex] ?? patient.sex;
   return (
     <header className="flex flex-wrap items-start justify-between gap-5 rounded-card border border-line-subtle bg-surface px-5 py-5 shadow-level-1 md:px-6.5 md:py-5.5">
       <div className="flex min-w-0 items-center gap-4">
@@ -39,11 +36,8 @@ export function PatientHero({ patient, allergies }: { patient: PatientSummary; a
           </h1>
           <p className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-code-sm text-ink-strong">
             <span className="whitespace-nowrap">
-              <PrivateText label="Age">{ageInYears(patient.date_of_birth)}</PrivateText>
-              <abbr title={patient.sex} className="no-underline">
-                {sex}
-              </abbr>{" "}
-              · DOB <PrivateText label="Date of birth" className="whitespace-nowrap">{formatDate(patient.date_of_birth)}</PrivateText>
+              <PrivateText label="Age and sex">{formatAgeSex(patient.date_of_birth, patient.sex)}</PrivateText>
+              {" · DOB"} <PrivateText label="Date of birth" className="whitespace-nowrap">{formatDate(patient.date_of_birth)}</PrivateText>
             </span>
             <span className="whitespace-nowrap">
               MRN <PrivateText label="MRN" className="whitespace-nowrap">{patient.mrn}</PrivateText>

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { SyntheticBanner } from "@/components/ui";
+import { cn, SyntheticBanner } from "@/components/ui";
 import { PatientQueue } from "@/features/patients/components/patient-queue";
-import type { QueuePatient } from "@/features/patients/queue";
+import { queueItemCount, type QueuePatient } from "@/features/patients/queue";
 import { PrivacyButton } from "@/features/privacy/components/privacy-controls";
 import { PrivacyProvider } from "@/features/privacy/components/privacy-provider";
 import { getInitials } from "@/lib/initials";
@@ -16,8 +16,8 @@ const ROLE_LABEL: Record<AppRole, string> = { clinician: "Clinician", admin: "Ad
 export type ShellUser = { fullName: string; role: AppRole };
 
 /**
- * App chrome: rail, sticky top bar (search, Privacy pill, Today's queue and sync status for
- * clinicians, account menu) and the synthetic data banner. Presentation only; pages and data
+ * App chrome: rail, sticky top bar (search and Today's queue for clinicians; sync status, Privacy
+ * button and account menu on the right) and the synthetic data banner. Presentation only; pages and data
  * functions check the user themselves. Privacy mode masks the patient values (`PrivateText`,
  * `PrivateField`) inside the content area and the queue.
  */
@@ -44,7 +44,7 @@ export function AppShell({
 }) {
   const initials = getInitials(user.fullName) || "?";
   const clinician = user.role === "clinician";
-  const queueProps = { queue: queue ?? null, activePath };
+  const queueItems = clinician ? queueItemCount(queue ?? null) : 0;
 
   return (
     <div className="grid flex-1 grid-cols-shell md:grid-cols-shell-wide">
@@ -60,27 +60,33 @@ export function AppShell({
           {/* `contents`: the banner sits in the header landmark, and the top bar stays sticky against the column, not the header. */}
           <header className="contents">
             <SyntheticBanner />
-            <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-line-subtle bg-page px-4 py-3 md:flex-nowrap md:gap-5.5 md:px-7 md:py-4">
+            {/* Its height is --topbar-height in globals.css; data-queue-items and data-topbar-search feed it. */}
+            <div
+              data-topbar=""
+              data-topbar-search={clinician ? "" : undefined}
+              data-queue-items={queueItems || undefined}
+              className={cn(
+                "group/topbar sticky top-0 z-20 grid grid-areas-topbar items-center border-b border-line-subtle bg-page px-4 py-sm md:grid-areas-topbar-wide md:gap-x-5.5 md:px-7 md:py-md",
+                queueItems === 1 && "queue-inline:grid-areas-topbar-inline",
+              )}
+            >
               {clinician && (
-                <div className="order-1 basis-full md:order-none md:shrink-0 md:basis-75">
+                <div className="area-search">
                   <PatientSearch action={searchAction} hiddenFields={searchHiddenFields} />
                 </div>
               )}
-              <div className="order-2 ml-auto flex min-w-0 items-center gap-2 md:order-none md:ml-0 md:flex-1 md:gap-4.5">
+              <div className="flex min-h-control-md items-center justify-end gap-2 area-controls group-data-[topbar-search]/topbar:max-md:mt-sm md:gap-4.5">
+                <SyncStatus renderedAt={renderedAt} />
                 <PrivacyButton />
-                {clinician && <PatientQueue layout="bar" {...queueProps} />}
-                <div className="ml-auto flex shrink-0 items-center gap-4.5">
-                  <SyncStatus renderedAt={renderedAt} />
-                  <UserMenu
-                    fullName={user.fullName}
-                    roleLabel={ROLE_LABEL[user.role]}
-                    initials={initials}
-                    signOutAction={signOutAction}
-                  />
-                </div>
+                <UserMenu
+                  fullName={user.fullName}
+                  roleLabel={ROLE_LABEL[user.role]}
+                  initials={initials}
+                  signOutAction={signOutAction}
+                />
               </div>
+              {clinician && <PatientQueue queue={queue ?? null} activePath={activePath} />}
             </div>
-            {clinician && <PatientQueue layout="row" {...queueProps} />}
           </header>
           <main
             id="main"

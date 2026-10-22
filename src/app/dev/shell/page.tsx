@@ -10,7 +10,7 @@ import { LoginCard } from "@/features/auth/components/login-card";
 import { PatientList } from "@/features/patients/components/patient-list";
 import { filterPatients, parsePatientQuery } from "@/features/patients/search";
 import type { PatientSummary } from "@/types/domain";
-import { DEMO_QUEUE } from "../demo-queue";
+import { demoQueue } from "../demo-queue";
 import { ErrorDemo } from "./demos";
 
 export const metadata: Metadata = { title: "Shell specimen (development only) | Kestrel EHR" };
@@ -50,7 +50,7 @@ export default async function ShellSpecimenPage({ searchParams }: PageProps<"/de
 
   if (view === "placeholder") {
     return (
-      <AppShell user={CLINICIAN} activePath="/schedule" queue={DEMO_QUEUE} renderedAt={new Date().toISOString()}>
+      <AppShell user={CLINICIAN} activePath="/schedule" queue={demoQueue(params.queue)} renderedAt={new Date().toISOString()}>
         <PlaceholderPage title="Schedule" />
       </AppShell>
     );
@@ -79,7 +79,7 @@ export default async function ShellSpecimenPage({ searchParams }: PageProps<"/de
     <AppShell
       user={CLINICIAN}
       activePath="/patients"
-      queue={DEMO_QUEUE}
+      queue={demoQueue(params.queue)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell"
       searchHiddenFields={{ view: "clinician" }}

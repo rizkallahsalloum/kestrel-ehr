@@ -16,18 +16,18 @@ function currentFor(pathname: string, patientId: string): "page" | true | undefi
 
 /**
  * Today's queue (dashboard `.queue`): up to `QUEUE_LIMIT` chips, most urgent first, then "View all"
- * when there are more. `layout="bar"` sits in the top bar from 761px; `layout="row"` is the
- * horizontally scrolling row under the top bar at 760px and below.
+ * when there are more. Lives in the top bar's `queue` grid area: its own row under the search and
+ * controls, chips in `--queue-cols` columns that wrap onto more lines (never sideways scrolling).
+ * A single chip sits inline beside the controls from `queue-inline`. The top bar's height, and every
+ * sticky offset, follows from the item count (see `--topbar-height` in globals.css).
  */
 export function PatientQueue({
   queue,
-  layout,
   viewAllHref = "/patients",
   activePath,
 }: {
   /** `null` when the queue could not be loaded. */
   queue: QueuePatient[] | null;
-  layout: "bar" | "row";
   viewAllHref?: string;
   activePath?: string;
 }) {
@@ -39,45 +39,45 @@ export function PatientQueue({
   return (
     <nav
       aria-label="Today's queue"
-      data-queue={layout}
-      className={cn(
-        "min-w-0 items-center gap-2",
-        layout === "bar"
-          ? "hidden flex-1 md:flex"
-          : "flex border-b border-line-subtle bg-page px-4 py-2.5 md:hidden",
-      )}
+      data-queue=""
+      className="flex min-w-0 items-start gap-4 pt-sm area-queue queue-inline:group-data-[queue-items=1]/topbar:pt-0"
     >
-      <span aria-hidden="true" className={cn("label-caps shrink-0", layout === "bar" ? "hidden xl:inline" : "hidden")}>
+      <span
+        aria-hidden="true"
+        className="hidden h-control-sm shrink-0 items-center label-caps md:flex"
+      >
         Today&apos;s queue
       </span>
-      {queue === null && <p className="text-label-sm text-ink-muted">Queue unavailable</p>}
-      {/* `relative`: the chips' sr-only labels are absolutely positioned and must be clipped by this scroller. */}
-      <ul className="relative flex min-w-0 flex-1 items-center gap-2 scrollbar-none overflow-x-auto p-0.5">
-        {shown.map((patient, index) => (
-          <li key={patient.id} className="shrink-0">
-            <PatientQueueItem
-              patient={patient}
-              current={currentFor(current, patient.id)}
-              maskedLabel={
-                masked
-                  ? `Patient ${index + 1} of ${shown.length}, name hidden, ${QUEUE_STATUS_LABEL[patient.status]}`
-                  : undefined
-              }
-            />
-          </li>
-        ))}
-        {queue && queue.length > shown.length && (
-          <li className="shrink-0">
-            <Link
-              href={viewAllHref}
-              className={cn(queueChipClass, "border-line-subtle bg-surface pl-3 text-accent hover:border-line")}
-            >
-              View all <span className="font-mono text-ink-muted">{queue.length}</span>
-              <span className="sr-only"> patients</span>
-            </Link>
-          </li>
-        )}
-      </ul>
+      {queue === null ? (
+        <p className="flex h-control-sm items-center text-label-sm text-ink-muted">Queue unavailable</p>
+      ) : (
+        <ul className="grid min-w-0 flex-1 grid-cols-queue auto-rows-(--spacing-control-sm) gap-2 queue-inline:group-data-[queue-items=1]/topbar:flex">
+          {shown.map((patient, index) => (
+            <li key={patient.id} className="min-w-0 max-w-queue-chip">
+              <PatientQueueItem
+                patient={patient}
+                current={currentFor(current, patient.id)}
+                maskedLabel={
+                  masked
+                    ? `Patient ${index + 1} of ${shown.length}, name hidden, ${QUEUE_STATUS_LABEL[patient.status]}`
+                    : undefined
+                }
+              />
+            </li>
+          ))}
+          {queue.length > shown.length && (
+            <li className="min-w-0">
+              <Link
+                href={viewAllHref}
+                className={cn(queueChipClass, "border-line-subtle bg-surface pl-3 text-accent hover:border-line")}
+              >
+                View all <span className="font-mono text-ink-muted">{queue.length}</span>
+                <span className="sr-only-inline"> patients</span>
+              </Link>
+            </li>
+          )}
+        </ul>
+      )}
     </nav>
   );
 }

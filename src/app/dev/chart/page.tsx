@@ -6,7 +6,7 @@ import { AppShell, type ShellUser } from "@/components/shell/app-shell";
 import { ChartSkeleton } from "@/features/chart/components/chart-skeleton";
 import { PatientChartView } from "@/features/chart/components/patient-chart-view";
 import { Delayed, delayParam } from "../delayed";
-import { DEMO_QUEUE } from "../demo-queue";
+import { demoQueue } from "../demo-queue";
 import type { PatientChart } from "@/features/chart/queries";
 import type { DraftAlertRow, PatientSummary, PrescriptionListItem } from "@/types/domain";
 
@@ -165,7 +165,7 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
     <AppShell
       user={CLINICIAN}
       activePath={`/patients/${CHARTS[view].patient.id}`}
-      queue={DEMO_QUEUE}
+      queue={demoQueue(params.queue)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
       {params.skeleton ? (

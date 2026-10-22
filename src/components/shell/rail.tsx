@@ -92,7 +92,7 @@ export function Rail({
             aria-current={active ? (href === current ? "page" : "true") : undefined}
             data-rail-item={key}
             className={cn(
-              "flex h-13 w-11 flex-col items-center justify-center gap-1 rounded-control text-caption transition-colors md:w-13",
+              "flex h-13 w-11 flex-col items-center justify-center gap-1 rounded-control px-1 text-caption transition-colors md:w-17",
               railFocus,
               active
                 ? "bg-on-inverse/10 text-on-inverse shadow-rail-current"
@@ -100,7 +100,7 @@ export function Rail({
             )}
           >
             <Icon className="size-4.5 md:size-4.75" />
-            <span className="sr-only md:not-sr-only">{label}</span>
+            <span className="sr-only whitespace-nowrap md:not-sr-only">{label}</span>
           </Link>
         ))}
       </nav>

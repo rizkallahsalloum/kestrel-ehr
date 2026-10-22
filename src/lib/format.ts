@@ -30,6 +30,15 @@ export function ageInYears(dateOfBirth: string, today: Date = new Date()): numbe
   return age;
 }
 
+const SEX_SHORT: Record<string, string> = { female: "F", male: "M" };
+
+/** Chart demographics: "62F" / "62M", or "62 unknown" when there is no one-letter code. */
+export function formatAgeSex(dateOfBirth: string, sex: string, today: Date = new Date()): string {
+  const age = ageInYears(dateOfBirth, today);
+  const short = SEX_SHORT[sex];
+  return short ? `${age}${short}` : `${age} ${humanize(sex)}`;
+}
+
 export function humanize(value: string): string {
   return value.replace(/_/g, " ");
 }

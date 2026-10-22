@@ -34,7 +34,7 @@ function Section({ id, title, note, children }: { id: string; title: string; not
       id={id}
       tabIndex={-1}
       aria-labelledby={`${id}-title`}
-      className="scroll-mt-below-topbar-stacked rounded-card border border-line-subtle bg-surface px-5 py-4 md:scroll-mt-below-topbar"
+      className="rounded-card border border-line-subtle bg-surface px-5 py-4"
     >
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <h2 id={`${id}-title`} className="text-heading-sm font-semibold text-ink">

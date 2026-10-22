@@ -148,11 +148,11 @@ export function UserMenu({
         <span className="text-right max-xl:sr-only" data-testid="current-user">
           <span className="block text-label font-semibold whitespace-nowrap text-ink">
             {fullName}
-            <span className="sr-only">,</span>
+            <span className="sr-only-inline">,</span>
           </span>{" "}
           <span className="block text-caption text-ink-secondary">
             {roleLabel}
-            <span className="sr-only">, account menu</span>
+            <span className="sr-only-inline">, account menu</span>
           </span>
         </span>
         <Avatar initials={initials} tone="ink" size="sm" />

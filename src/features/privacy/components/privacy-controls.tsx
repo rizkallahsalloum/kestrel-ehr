@@ -5,13 +5,14 @@ import { cn, EyeIcon, EyeOffIcon } from "@/components/ui";
 import { getIdleSettingStore, getPrivacyStore } from "../store";
 import { usePrivacy } from "./privacy-provider";
 
-const LABELS = { off: "Privacy", on: "Privacy mode on" } as const;
+const LABELS = { off: "Privacy", on: "Privacy on" } as const;
 
 /**
- * Top-bar pill. Off: eye icon and "Privacy". On: eye-off icon, green, "Privacy mode on". Both labels
- * share one grid cell, so the pill keeps the width of the longer one and nothing moves on toggle.
- * Icon-only below `lg` (820px): from 761px the top bar is one row and the label does not fit next to
- * the search until 820px. The polite live region next to it announces global and per-field masking.
+ * Top-bar ghost button, between the sync status and the account menu. Off: eye icon and "Privacy" in
+ * the secondary text colour. On: eye-off icon and "Privacy on" in the success colour. No fill or
+ * border at rest; a warm fill on hover only. Both labels share one grid cell, so the button keeps the
+ * width of the longer one and nothing moves on toggle. Icon-only below `lg` (820px). The polite live
+ * region next to it announces global and per-field masking.
  */
 export function PrivacyButton() {
   const { on, toggle, announcement } = usePrivacy();
@@ -25,10 +26,8 @@ export function PrivacyButton() {
         onClick={toggle}
         data-testid="privacy-toggle"
         className={cn(
-          "inline-flex min-h-control-sm shrink-0 items-center gap-1.5 rounded-pill border px-sm text-button-sm font-medium whitespace-nowrap transition-colors duration-150 max-lg:px-2",
-          on
-            ? "border-ok bg-ok-subtle text-ok"
-            : "border-line bg-surface text-ink-secondary hover:border-line-strong hover:text-ink",
+          "inline-flex min-h-control-sm shrink-0 items-center gap-1.5 rounded-control px-2.5 text-button-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-surface-warm max-lg:px-2",
+          on ? "text-ok" : "text-ink-secondary",
         )}
       >
         <Icon />

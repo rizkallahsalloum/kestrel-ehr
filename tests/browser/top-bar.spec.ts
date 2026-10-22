@@ -3,7 +3,7 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { hideDevOverlay, reviewPath } from "./support";
 
-// Phase 8c top bar: cursor rule, account menu, Today's queue, sync status, Privacy pill and the rail.
+// Phase 8c/8d top bar: cursor rule, account menu, Today's queue, sync status, Privacy button and the rail.
 // Runs on the /dev specimens; queue switching against real data is in tests/e2e.
 
 const CHART = "/dev/chart?view=blocking";
@@ -119,10 +119,11 @@ test("Today's queue: chips link to charts, the current patient is marked, View a
   const chips = queue.locator("[data-queue-item]");
   await expect(chips).toHaveCount(6);
   // Ordered by alert severity, then family name.
-  await expect(chips.nth(0)).toHaveAccessibleName(/Rowan Testcase\s*, Critical alert/);
-  await expect(chips.nth(1)).toHaveAccessibleName(/Mira Demoson\s*, Warning/);
-  await expect(chips.nth(2)).toHaveAccessibleName(/Jun Fixture\s*, Warning/);
-  await expect(chips.nth(3)).toHaveAccessibleName(/No alerts/);
+  // The status text sits inline, so the names have no stray space before the comma.
+  await expect(chips.nth(0)).toHaveAccessibleName("Rowan Testcase, Critical alert");
+  await expect(chips.nth(1)).toHaveAccessibleName("Mira Demoson, Warning");
+  await expect(chips.nth(2)).toHaveAccessibleName("Jun Fixture, Warning");
+  await expect(chips.nth(3)).toHaveAccessibleName("Ada Mockridge, No alerts");
   await expect(chips.nth(0)).toHaveAttribute("href", `/patients/${ROWAN}`);
   await expect(chips.nth(0)).toHaveAttribute("aria-current", "page");
   await expect(queue.locator("[aria-current]")).toHaveCount(1);
@@ -217,7 +218,20 @@ test("sync status updates the relative time every minute without announcing it",
   await expect(page.locator("header [aria-live=polite]")).not.toContainText(/min ago|synced|online/i);
 });
 
-test("Privacy pill: eye icon and 'Privacy' when off, a different eye-off icon and 'Privacy mode on' when on", async ({ page }) => {
+/** A token colour as the browser computes it. */
+const tokenColor = (page: Page, name: string) =>
+  page.evaluate((token) => {
+    const probe = document.createElement("span");
+    probe.style.color = `var(--color-${token})`;
+    document.body.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, name);
+const css = (page: Page, property: "color" | "backgroundColor" | "borderTopWidth" | "outlineStyle" | "outlineColor") =>
+  privacy(page).evaluate((el, p) => getComputedStyle(el)[p], property);
+
+test("Privacy button: ghost at rest, warm fill on hover only; eye and 'Privacy' off, eye-off and 'Privacy on' in green", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   const icon = () => privacy(page).locator("svg").first().evaluate((svg) => svg.innerHTML);
@@ -227,33 +241,76 @@ test("Privacy pill: eye icon and 'Privacy' when off, a different eye-off icon an
   const offIcon = await icon();
   const offBox = await privacy(page).boundingBox();
 
+  // At rest: no fill, no border; secondary text colour.
+  await page.mouse.move(0, 0);
+  await expect.poll(() => css(page, "backgroundColor")).toBe("rgba(0, 0, 0, 0)");
+  expect(await css(page, "borderTopWidth")).toBe("0px");
+  await expect.poll(() => css(page, "color")).toBe(await tokenColor(page, "ink-secondary"));
+  // Hover: the surface-hover fill.
+  await privacy(page).hover();
+  await expect.poll(() => css(page, "backgroundColor")).toBe(await tokenColor(page, "surface-warm"));
+
   await expect(async () => {
     await privacy(page).click();
     await expect(privacy(page)).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
-  await expect(privacy(page)).toHaveAccessibleName("Privacy mode on");
+  await expect(privacy(page)).toHaveAccessibleName("Privacy on");
   expect(await icon()).not.toBe(offIcon);
-  // Polled: the pill's colour transition may still be running.
-  await expect
-    .poll(() =>
-      privacy(page).evaluate((el) => {
-        const probe = document.createElement("span");
-        document.body.append(probe);
-        probe.style.color = "var(--color-ok)";
-        const ok = getComputedStyle(probe).color;
-        probe.remove();
-        return getComputedStyle(el).color === ok;
-      }),
-    )
-    .toBe(true);
-  expect(await privacy(page).boundingBox(), "the pill does not change size").toEqual(offBox);
+  // Polled: colour and fill transitions may still be running.
+  await expect.poll(() => css(page, "color")).toBe(await tokenColor(page, "ok"));
+  await page.mouse.move(0, 0);
+  await expect.poll(() => css(page, "backgroundColor")).toBe("rgba(0, 0, 0, 0)");
+  expect(await css(page, "borderTopWidth")).toBe("0px");
+  expect(await privacy(page).boundingBox(), "the button does not change size").toEqual(offBox);
+
+  // Keyboard focus shows the normal focus ring.
+  await trigger(page).focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect(privacy(page)).toBeFocused();
+  expect(await css(page, "outlineStyle")).toBe("solid");
+  expect(await css(page, "outlineColor")).toBe(await tokenColor(page, "focus"));
 
   // Below `lg` (820px) the label is visually hidden; the accessible name stays.
   await page.setViewportSize({ width: 819, height: 900 });
   const labelWidth = await privacy(page).evaluate((el) => el.querySelector(":scope > span")!.getBoundingClientRect().width);
   expect(labelWidth).toBeLessThanOrEqual(1);
-  await expect(privacy(page)).toHaveAccessibleName("Privacy mode on");
+  await expect(privacy(page)).toHaveAccessibleName("Privacy on");
 });
+
+for (const width of [1440, 1024, 760, 390]) {
+  test(`Privacy button at ${width}px: right side, after the sync status, immediately left of the account menu`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await open(page);
+    const button = await privacy(page).boundingBox();
+    const menuButton = await trigger(page).boundingBox();
+    expect(button && menuButton).toBeTruthy();
+    // Same row, to the left of the account menu, with nothing between them.
+    expect(button!.x + button!.width).toBeLessThanOrEqual(menuButton!.x);
+    expect(Math.abs(button!.y + button!.height / 2 - (menuButton!.y + menuButton!.height / 2))).toBeLessThanOrEqual(1);
+    const next = await privacy(page).evaluate((el) => {
+      let sibling = el.nextElementSibling;
+      while (sibling && sibling.matches("[aria-live]")) sibling = sibling.nextElementSibling;
+      return Boolean(sibling?.querySelector("[aria-haspopup=menu]"));
+    });
+    expect(next, "the account menu follows the Privacy button").toBe(true);
+    // The sync status (shown from xl) comes before it.
+    const sync = page.getByTestId("sync-status");
+    if (width >= 1180) {
+      const box = await sync.boundingBox();
+      expect(box!.x + box!.width).toBeLessThanOrEqual(button!.x);
+    } else {
+      await expect(sync).toBeHidden();
+    }
+    // On the right: past the search from 761px; in the right-aligned controls row below.
+    if (width > 760) {
+      const search = await page.getByRole("search").boundingBox();
+      expect(button!.x).toBeGreaterThan(search!.x + search!.width);
+    }
+    const right = await page.locator("[data-topbar]").evaluate((el) => el.getBoundingClientRect().right);
+    expect(right - (menuButton!.x + menuButton!.width)).toBeLessThan(40);
+    await page.screenshot({ path: reviewPath("top-bar", `privacy-${width}.png`), clip: { x: 0, y: 0, width, height: 200 } });
+  });
+}
 
 test("rail: Chart, Schedule, E-Rx, Labs and Billing; targets follow the current patient; placeholder pages", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -308,37 +365,91 @@ test("no circle alert icon is left in the source", () => {
   expect(offenders).toEqual([]);
 });
 
+/** Columns of the queue grid per width (`--queue-cols`): 5 from xl (1180px), 3 from md (761px), else 2. */
+const queueCols = (width: number) => (width >= 1180 ? 5 : width >= 761 ? 3 : 2);
+
 for (const width of [1440, 1024, 760, 390]) {
-  test(`top bar at ${width}px: queue placement, sync visibility, no overflow, no shift when masking`, async ({ page }) => {
+  for (const patients of [1, 3, 7]) {
+    test(`Today's queue at ${width}px with ${patients} patient(s): wraps, never scrolls sideways, nothing under the sticky bar`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, `/dev/prescribing?view=blocking&queue=${patients}`);
+      const bar = page.locator("[data-topbar]");
+      const queue = queueBar(page);
+      await expect(queue).toBeVisible();
+      const chips = queue.locator("[data-queue-item]");
+      await expect(chips).toHaveCount(Math.min(patients, 6));
+      await expect(queue.getByRole("link", { name: /View all/ })).toHaveCount(patients > 6 ? 1 : 0);
+
+      const layout = await page.evaluate(() => {
+        const topbar = document.querySelector<HTMLElement>("[data-topbar]")!;
+        const nav = topbar.querySelector<HTMLElement>("nav[data-queue]")!;
+        const list = nav.querySelector("ul")!;
+        const probe = document.createElement("div");
+        probe.style.height = "var(--topbar-height)";
+        document.body.append(probe);
+        const tokenHeight = probe.getBoundingClientRect().height;
+        probe.remove();
+        const rect = (el: Element) => el.getBoundingClientRect();
+        const items = [...list.children].map(rect);
+        return {
+          barHeight: rect(topbar).height,
+          tokenHeight,
+          pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
+          listOverflow: list.scrollWidth - list.clientWidth,
+          listOverflowX: getComputedStyle(list).overflowX,
+          navTop: rect(nav).top,
+          navLeft: rect(nav).left,
+          navRight: rect(nav).right,
+          controlsBottom: rect(topbar.querySelector(".area-controls")!).bottom,
+          itemTops: [...new Set(items.map((r) => Math.round(r.top)))],
+          outside: items.filter((r) => r.left < rect(nav).left - 0.5 || r.right > rect(nav).right + 0.5).length,
+        };
+      });
+      // No sideways scrolling anywhere; every chip is inside the queue.
+      expect(layout.pageOverflow).toBeLessThanOrEqual(0);
+      expect(layout.listOverflow).toBeLessThanOrEqual(0);
+      expect(["visible", "clip", "hidden"]).toContain(layout.listOverflowX);
+      expect(layout.outside).toBe(0);
+      // Its own row under the controls (a single chip sits inline from 1440px), wrapping onto more lines.
+      const items = Math.min(patients, 6) + (patients > 6 ? 1 : 0);
+      const inline = patients === 1 && width >= 1440;
+      if (inline) expect(layout.navTop).toBeLessThan(layout.controlsBottom);
+      else expect(layout.navTop).toBeGreaterThanOrEqual(layout.controlsBottom);
+      expect(layout.itemTops).toHaveLength(inline ? 1 : Math.ceil(items / queueCols(width)));
+      // The sticky offsets follow the bar: its height is exactly --topbar-height.
+      expect(Math.abs(layout.barHeight - layout.tokenHeight)).toBeLessThanOrEqual(0.5);
+
+      // Tracker jumps and anchors stop below the bar; sticky columns stick below it.
+      const sections = page.locator("main section[id]");
+      const count = await sections.count();
+      expect(count).toBeGreaterThan(0);
+      for (let i = 0; i < count; i++) {
+        await sections.nth(i).evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
+        const barBottom = (await bar.boundingBox())!.y + layout.barHeight;
+        const top = (await sections.nth(i).boundingBox())!.y;
+        expect(top, `section ${i + 1} below the sticky bar`).toBeGreaterThanOrEqual(barBottom - 0.5);
+      }
+      const stickyTops = await page.evaluate(() =>
+        [...document.querySelectorAll("main *")]
+          .filter((el) => getComputedStyle(el).position === "sticky")
+          .map((el) => parseFloat(getComputedStyle(el).top)),
+      );
+      for (const top of stickyTops) expect(top).toBeGreaterThanOrEqual(layout.barHeight - 0.5);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({ path: reviewPath("top-bar", `queue-${patients}-${width}.png`), clip: { x: 0, y: 0, width, height: 360 } });
+    });
+  }
+}
+
+for (const width of [1440, 1024, 760, 390]) {
+  test(`top bar at ${width}px: sync visibility, no overflow, no shift when masking`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await open(page);
-    const bar = page.locator("nav[data-queue=bar]");
-    const row = page.locator("nav[data-queue=row]");
-    if (width > 760) {
-      await expect(bar).toBeVisible();
-      await expect(row).toBeHidden();
-    } else {
-      await expect(row).toBeVisible();
-      await expect(bar).toBeHidden();
-      // The row scrolls sideways inside itself; the page does not.
-      const list = row.locator("ul");
-      expect(await list.evaluate((el) => getComputedStyle(el).overflowX)).toBe("auto");
-    }
     await expect(page.getByTestId("sync-status")).toBeVisible({ visible: width >= 1180 });
     await expect(trigger(page)).toBeVisible();
     await expect(privacy(page)).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(0);
-
-    // Order in the bar: Privacy, queue, sync, account menu.
-    if (width > 760) {
-      const x = async (selector: string) => (await page.locator(selector).boundingBox())?.x ?? -1;
-      const p = await x("[data-testid=privacy-toggle]");
-      const q = await x("nav[data-queue=bar]");
-      const m = (await trigger(page).boundingBox())?.x ?? -1;
-      expect(p).toBeLessThan(q);
-      expect(q).toBeLessThan(m);
-    }
 
     const boxes = () =>
       page.evaluate(() =>
@@ -363,14 +474,66 @@ for (const width of [1440, 1024, 760, 390]) {
   });
 }
 
-test("at 390px the queue row scrolls away and the sticky bar stays inside the 120px section offset", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await open(page, "/dev/prescribing?view=blocking");
-  const sticky = await page.locator("header > div").first().boundingBox();
-  const row = page.locator("nav[data-queue=row]");
-  await expect(row).toBeVisible();
-  expect(await row.evaluate((el) => getComputedStyle(el).position)).not.toBe("sticky");
-  const offset = await page.locator("main section[id]").first().evaluate((el) => parseFloat(getComputedStyle(el).scrollMarginTop));
-  expect(offset).toBe(120);
-  expect(sticky?.height ?? Infinity).toBeLessThanOrEqual(offset);
+test("Today's queue statuses by case: critical, warning and stable chips are told apart by dot and name", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const chips = queueBar(page).locator("[data-queue-item]");
+  const statuses = await chips.evaluateAll((els) => els.map((el) => el.querySelector("[data-status]")?.getAttribute("data-status")));
+  expect(statuses).toEqual(["critical", "warning", "warning", "stable", "stable", "stable"]);
+  const colours = await chips.evaluateAll((els) =>
+    els.map((el) => getComputedStyle(el.querySelector("[data-status]")!).backgroundColor),
+  );
+  expect(new Set(colours).size, "three distinct dot colours").toBe(3);
+  for (const [i, label] of ["Critical alert", "Warning", "Warning", "No alerts", "No alerts", "No alerts"].entries()) {
+    await expect(chips.nth(i)).toHaveAccessibleName(new RegExp(`^[A-Za-zë]+ [A-Za-z]+, ${label}$`));
+  }
+});
+
+test("patient header meta line: age and sex together, then DOB; masked together with Privacy on", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const url of [CHART, "/dev/prescribing?view=blocking"]) {
+    await open(page, url);
+    const meta = page.locator("main p.font-mono").filter({ hasText: "DOB" }).first();
+    await expect(meta.locator("span").first()).toHaveText(/^\d+[FM] · DOB \S.*$/);
+    await expect(meta.locator("abbr")).toHaveCount(0);
+    await expect(async () => {
+      await privacy(page).click();
+      await expect(privacy(page)).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
+    }).toPass({ timeout: 30_000 });
+    const first = meta.locator("span").first();
+    const text = (await first.innerText()).replace(/\s+/g, " ");
+    // One mask for age and sex, a space, then the DOB label: nothing of the sex value leaks.
+    expect(text).toMatch(/^•+ · DOB •+$/);
+    expect(text).not.toMatch(/[FM]\b|unknown|female|male/);
+    await privacy(page).click();
+    await expect(privacy(page)).toHaveAttribute("aria-pressed", "false");
+  }
+});
+
+test("rail: all five labels fit inside their items at 1440px and 761px", async ({ page }) => {
+  for (const width of [1440, 761]) {
+    await page.setViewportSize({ width, height: 900 });
+    await open(page);
+    const labels = await page.getByRole("navigation", { name: "Main" }).getByRole("link").evaluateAll((links) =>
+      links.map((link) => {
+        const label = link.querySelector("span")!;
+        const l = label.getBoundingClientRect();
+        const a = link.getBoundingClientRect();
+        const rail = link.closest("aside")!.getBoundingClientRect();
+        return {
+          text: label.textContent,
+          fits: label.scrollWidth <= label.clientWidth + 0.5 || getComputedStyle(label).display === "inline",
+          inside: l.left >= a.left - 0.5 && l.right <= a.right + 0.5,
+          inRail: a.left >= rail.left && a.right <= rail.right,
+          width: l.width,
+        };
+      }),
+    );
+    expect(labels.map((l) => l.text)).toEqual(["Chart", "Schedule", "E-Rx", "Labs", "Billing"]);
+    for (const label of labels) {
+      expect(label.inside, `${label.text} inside its item at ${width}px`).toBe(true);
+      expect(label.inRail, `${label.text} item inside the rail at ${width}px`).toBe(true);
+      expect(label.width, `${label.text} is visible`).toBeGreaterThan(10);
+    }
+  }
 });

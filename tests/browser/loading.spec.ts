@@ -195,6 +195,8 @@ const layoutShift = (page: Page) =>
 
 for (const [name, url] of [
   ["chart", "/dev/chart?view=blocking&delay=1500"],
+  ["chart, one queue patient", "/dev/chart?view=blocking&delay=1500&queue=1"],
+  ["chart, three queue patients", "/dev/chart?view=blocking&delay=1500&queue=3"],
   ["new prescription", "/dev/prescribing?view=new&delay=1500"],
   ["saved prescription", "/dev/prescribing?view=blocking&delay=1500"],
   ["audit log", "/dev/audit?delay=1500"],

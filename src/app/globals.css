@@ -228,10 +228,18 @@
   --width-context: 340px;
   --width-dialog: min(420px, calc(100vw - 2rem));
   --max-width-footer: 760px; /* dashboard .footer-note */
-  /* sticky offset for the dashboard context column, just below the sticky top bar */
-  --spacing-below-topbar: 78px;
-  /* scroll offset below the top bar at 760px and below, where the search wraps onto its own row */
-  --spacing-below-topbar-stacked: 120px;
+  /* sticky offset for the context and review columns: the sticky top bar's height, which grows with
+     Today's queue (see --topbar-height below) */
+  --spacing-below-topbar: var(--topbar-height);
+  /* sticky top bar without Today's queue: one row of control-md from 761px; search and controls on
+     two rows below (one row when there is no search, for administrators); plus the bottom hairline */
+  --spacing-topbar: calc(var(--spacing-control-md) + 2 * var(--spacing-md) + var(--border-width-hairline));
+  --spacing-topbar-stacked: calc(2 * var(--spacing-control-md) + 3 * var(--spacing-sm) + var(--border-width-hairline));
+  --spacing-topbar-stacked-no-search: calc(var(--spacing-control-md) + 2 * var(--spacing-sm) + var(--border-width-hairline));
+  /* top-bar search width from 761px (dashboard .search) */
+  --spacing-topbar-search: 300px;
+  /* widest Today's queue chip; longer names truncate (the accessible name stays whole) */
+  --spacing-queue-chip: 11rem;
   --shadow-rail-current: inset var(--border-width-emphasis) 0 0 var(--color-on-inverse);
 
   /* ---- Breakpoints from the HTML references (section 5) ---- */
@@ -245,6 +253,9 @@
   /* E-Rx workspace only: one column at max-width 820px, two at max-width 1280px, three above */
   --breakpoint-erx: 821px;
   --breakpoint-erx-wide: 1281px;
+  /* Top bar only: from here a single queue chip (label plus a full-width chip) fits between the
+     search and the controls with the user name shown; below it the queue takes its own row */
+  --breakpoint-queue-inline: 1440px;
   /* E-Rx form column (container queries): its width depends on the side columns, not the viewport */
   --container-fields-2: 22rem;
   --container-fields-4: 40rem;
@@ -272,8 +283,61 @@
 }
 
 @layer base {
+  /*
+   * Height of the sticky top bar, without JS measuring: the bar's own rows (two below md, one from
+   * md) plus Today's queue. The queue lays its chips in --queue-cols fixed columns, so its line count
+   * follows from the chip count (data-queue-items, chips plus "View all") and the breakpoint. A single
+   * chip sits inline beside the controls from queue-inline and adds no row.
+   */
+  :root {
+    --queue-cols: 2;
+    --queue-items: 0;
+    --queue-inline: 0;
+    --topbar-base: var(--spacing-topbar-stacked);
+    --queue-lines: calc(round(up, var(--queue-items) / var(--queue-cols), 1) * (1 - var(--queue-inline)));
+    --queue-row: calc(
+      var(--queue-lines) * var(--spacing-control-sm) + max(var(--queue-lines) - 1, 0) * var(--spacing-xs) +
+        min(var(--queue-lines), 1) * var(--spacing-sm)
+    );
+    --topbar-height: calc(var(--topbar-base) + var(--queue-row));
+  }
+  :root:has([data-topbar]:not([data-topbar-search])) {
+    --topbar-base: var(--spacing-topbar-stacked-no-search);
+  }
+  /* Separate rules: a selector list compiles to :is(), whose :has() specificity would beat xl below. */
+  @variant md {
+    :root {
+      --queue-cols: 3;
+      --topbar-base: var(--spacing-topbar);
+    }
+    :root:has([data-topbar]:not([data-topbar-search])) {
+      --topbar-base: var(--spacing-topbar);
+    }
+  }
+  @variant xl {
+    :root {
+      --queue-cols: 5;
+    }
+  }
+  :root:has([data-queue-items="1"]) { --queue-items: 1; }
+  :root:has([data-queue-items="2"]) { --queue-items: 2; }
+  :root:has([data-queue-items="3"]) { --queue-items: 3; }
+  :root:has([data-queue-items="4"]) { --queue-items: 4; }
+  :root:has([data-queue-items="5"]) { --queue-items: 5; }
+  :root:has([data-queue-items="6"]) { --queue-items: 6; }
+  :root:has([data-queue-items="7"]) { --queue-items: 7; }
+  @variant queue-inline {
+    :root:has([data-queue-items="1"]) {
+      --queue-inline: 1;
+    }
+  }
+
   html {
     scroll-padding-top: var(--spacing-md);
+  }
+  /* Anchors, focus and tracker jumps stop below the sticky top bar, whatever its height. */
+  html:has([data-topbar]) {
+    scroll-padding-top: calc(var(--topbar-height) + var(--spacing-md));
   }
 
   body {
@@ -348,12 +412,45 @@
   user-select: none;
 }
 
-/* Horizontal chip rows (Today's queue): scroll by wheel, touch or keyboard focus without a visible bar. */
-@utility scrollbar-none {
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
+/*
+ * Sticky top bar layout. Below md: search, then the controls, then Today's queue, each on its own
+ * row. From md: search and controls on one row, the queue on its own row below. From queue-inline,
+ * a single queue chip sits between them instead (grid-areas-topbar-inline).
+ */
+@utility grid-areas-topbar {
+  grid-template-areas: "search" "controls" "queue";
+  grid-template-columns: minmax(0, 1fr);
+}
+@utility grid-areas-topbar-wide {
+  grid-template-areas: "search . controls" "queue queue queue";
+  grid-template-columns: var(--spacing-topbar-search) minmax(0, 1fr) auto;
+}
+@utility grid-areas-topbar-inline {
+  grid-template-areas: "search queue controls";
+  grid-template-columns: var(--spacing-topbar-search) minmax(0, 1fr) auto;
+}
+@utility area-search {
+  grid-area: search;
+}
+@utility area-controls {
+  grid-area: controls;
+}
+@utility area-queue {
+  grid-area: queue;
+}
+
+/* Today's queue chips: --queue-cols fixed columns, so the line count (and the bar height) is known. */
+@utility grid-cols-queue {
+  grid-template-columns: repeat(var(--queue-cols), minmax(0, var(--spacing-queue-chip)));
+}
+
+/*
+ * Visually hidden text that stays inline, so it joins the accessible name without the extra spaces
+ * an absolutely positioned sr-only span adds ("Name , Role" instead of "Name, Role").
+ */
+@utility sr-only-inline {
+  font-size: 0;
+  line-height: 0;
 }
 
 /* Uppercase micro-label used for table headers and section labels in the dashboard. */

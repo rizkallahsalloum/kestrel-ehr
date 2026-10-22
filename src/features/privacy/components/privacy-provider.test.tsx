@@ -28,7 +28,7 @@ function Shell({ idleMs, revealMs = 10_000 }: { idleMs?: number; revealMs?: numb
   );
 }
 
-const privacyButton = () => screen.getByRole("button", { name: /^Privacy( mode on)?$/ });
+const privacyButton = () => screen.getByRole("button", { name: /^Privacy( on)?$/ });
 const isOn = () => document.documentElement.getAttribute("data-privacy") === "on";
 const live = () => document.querySelector("[aria-live=polite]")!.textContent;
 const reveal = (label: string) => screen.getByRole("button", { name: `${label} hidden, press to reveal` });
@@ -92,11 +92,11 @@ describe("PrivacyProvider", () => {
     expect(button.querySelector("svg")?.getAttribute("data-icon")).toBe("eye");
     expect(button.getAttribute("aria-keyshortcuts")).toBe("Control+. Meta+.");
     fireEvent.click(button);
-    expect(screen.getByRole("button", { name: "Privacy mode on" })).toBe(button);
+    expect(screen.getByRole("button", { name: "Privacy on" })).toBe(button);
     expect(button.querySelector("svg")?.getAttribute("data-icon")).toBe("eye-off");
     // Both labels stay in the layout so the pill keeps its width; only the current one is exposed.
     const labels = Array.from(button.querySelectorAll("span > span")).map((span) => span.textContent);
-    expect(labels).toEqual(["Privacy", "Privacy mode on"]);
+    expect(labels).toEqual(["Privacy", "Privacy on"]);
   });
 
   it("toggles with Ctrl+. and Cmd+., including from a text field and inside an open dialog", () => {

@@ -25,10 +25,14 @@ const SEVERITY_LABEL = { severe: "Severe", moderate: "Moderate", mild: "Mild" } 
 
 type PanelTone = "default" | "warning" | "critical";
 
-/** Card outline: the blocking tone adds the emphasis width. */
+/**
+ * Card outline: a hairline in every tone. The emphasis width is kept for blocking alerts and the
+ * allergy-conflict banner; a list of severe allergies is a summary, not a blocking alert.
+ */
 const panelOutlines: Record<PanelTone, string> = {
   default: "border border-line-subtle",
-  ...severityOutline,
+  critical: "border border-danger-line",
+  warning: severityOutline.warning,
 };
 
 /** Row dividers stay hairline in every tone. */

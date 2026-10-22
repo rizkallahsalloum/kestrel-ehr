@@ -10,7 +10,7 @@ import { PatientList } from "@/features/patients/components/patient-list";
 import { PatientListSkeleton } from "@/features/patients/components/patient-list-skeleton";
 import type { Allergy, PatientMedication, PatientSummary } from "@/types/domain";
 import { Delayed, delayParam } from "../delayed";
-import { DEMO_QUEUE } from "../demo-queue";
+import { demoQueue } from "../demo-queue";
 import { FixedPrivacyState, PrivacyDialogDemo, PrivacyNotesDemo } from "./dialog-demo";
 
 export const metadata: Metadata = { title: "Privacy mode specimen (development only) | Kestrel EHR" };
@@ -133,7 +133,7 @@ export default async function PrivacySpecimenPage({ searchParams }: PageProps<"/
     <AppShell
       user={CLINICIAN}
       activePath="/patients"
-      queue={DEMO_QUEUE}
+      queue={demoQueue(params.queue)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell"
       searchHiddenFields={{ view: "clinician" }}

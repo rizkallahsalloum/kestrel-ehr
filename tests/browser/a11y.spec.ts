@@ -144,8 +144,32 @@ test("axe: combobox expanded", async ({ page }) => {
   await scan(page, "combobox expanded (prescribing)");
 });
 
+test("axe: top bar with 1, 3 and 7 queue patients, Privacy button hovered off and on", async ({ page }) => {
+  test.setTimeout(300_000);
+  for (const width of [1440, 1024, 760, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const patients of [1, 3, 7]) {
+      await settle(page, `/dev/prescribing?view=blocking&queue=${patients}`);
+      await scan(page, `queue ${patients} at ${width}px`);
+    }
+    const privacy = page.getByTestId("privacy-toggle");
+    await privacy.hover();
+    await scan(page, `privacy off hovered at ${width}px`);
+    await expect(async () => {
+      await privacy.click();
+      await expect(privacy).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
+    }).toPass({ timeout: 30_000 });
+    await scan(page, `privacy on hovered at ${width}px`);
+    await page.mouse.move(0, 0);
+    await scan(page, `privacy on at ${width}px`);
+    await privacy.click();
+  }
+});
+
 test("axe: account menu open, Privacy on with the queue masked, and offline sync status", async ({ page }) => {
-  for (const width of [1440, 390]) {
+  test.setTimeout(180_000);
+  test.setTimeout(180_000);
+  for (const width of [1440, 1024, 760, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await settle(page, "/dev/chart?view=blocking");
     const trigger = page.getByRole("button", { name: /account menu/ });

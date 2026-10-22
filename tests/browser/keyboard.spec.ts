@@ -248,10 +248,10 @@ test.describe("combobox keyboard (real browser)", () => {
 });
 
 test.describe("E-Rx section tracker", () => {
-  for (const width of [1440, 390]) {
-    test(`links are in order, describe progress, and move the reading position at ${width}px`, async ({ page }) => {
+  for (const [width, patients] of [[1440, 1], [1440, 7], [1024, 3], [760, 7], [390, 1], [390, 7]] as const) {
+    test(`links are in order, describe progress, and move the reading position at ${width}px with ${patients} queue patient(s)`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await ready(page, "/dev/prescribing?view=new");
+      await ready(page, `/dev/prescribing?view=new&queue=${patients}`);
       const links = page.getByRole("navigation", { name: "Prescription sections" }).getByRole("link");
       await expect(links).toHaveCount(3);
       await expect(links.nth(0)).toHaveAccessibleName(/Medication.*\(not complete\)/);

@@ -31,14 +31,27 @@ export const QUEUE_STATUS_LABEL: Record<QueueStatus, string> = {
 const RANK: Record<QueueStatus, number> = { critical: 0, warning: 1, stable: 2 };
 
 /**
- * Critical when a draft has a blocking alert on its evaluated current version, warning when one has
- * an unacknowledged advisory, stable otherwise. Same counting rule as `draftSafetyState`; drafts
- * whose current version has not been checked count as stable. Unresolved alerts only.
+ * Inputs to a patient's queue status. Drafts only today; Phase 9 vitals can add a field here and a
+ * case in `queueStatus` without changing the queue components.
  */
-export function queueStatus(drafts: QueueDraftRow[]): QueueStatus {
+export type QueueSignals = { drafts: QueueDraftRow[] };
+
+/**
+ * The one mapping from clinical signals to a queue status. Unresolved alerts only (the query filters
+ * resolved ones); a severe allergy on its own changes nothing.
+ * - critical: a draft has a blocking alert on its current, checked version;
+ * - warning: a draft has an advisory alert without a decision on its current, checked version, or
+ *   its saved version has not been safety-checked;
+ * - stable: neither.
+ */
+export function queueStatus({ drafts }: QueueSignals): QueueStatus {
   let status: QueueStatus = "stable";
   for (const rx of drafts) {
-    if (rx.status !== "draft" || rx.last_evaluated_version !== rx.version) continue;
+    if (rx.status !== "draft") continue;
+    if (rx.last_evaluated_version !== rx.version) {
+      status = "warning";
+      continue;
+    }
     for (const alert of rx.prescription_alerts) {
       if (alert.prescription_version !== rx.version) continue;
       if (alert.severity === "blocking") return "critical";
@@ -65,7 +78,16 @@ export function buildQueue(rows: QueuePatientRow[]): QueuePatient[] {
       id: row.id,
       givenName: row.given_name,
       familyName: row.family_name,
-      status: queueStatus(row.prescriptions),
+      status: queueStatus({ drafts: row.prescriptions }),
     })),
   );
+}
+
+/**
+ * Items in the queue row: chips plus "View all" when there are more than `QUEUE_LIMIT` patients.
+ * "Queue unavailable" takes one item's place. Feeds the top-bar height (`data-queue-items`).
+ */
+export function queueItemCount(queue: QueuePatient[] | null): number {
+  if (queue === null) return 1;
+  return Math.min(queue.length, QUEUE_LIMIT) + (queue.length > QUEUE_LIMIT ? 1 : 0);
 }
