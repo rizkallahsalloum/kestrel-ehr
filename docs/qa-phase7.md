@@ -49,6 +49,25 @@ Run on 21 Oct 2026 on Windows 10, Chromium from Playwright, against the developm
 
 No minor findings. The theme and components contrast tables are excluded from axe because they deliberately render UI-only and "not used" colour pairs as sample text; `contrast.spec.ts` checks each pair against its own threshold.
 
+## Phase 8b note: Privacy mode masks fields in place (22 Oct 2026)
+
+The Phase 8 overlay ("Content hidden" card over a scrim, "Show content" button, inert content area) is gone. Privacy mode now masks patient values in place with `PrivateText` and `PrivateField`; see [theme.md](theme.md#privacy-mode-phase-8-in-place-masking-since-phase-8b). It is still client-side shoulder-surfing protection: values remain in the RSC payload, in server HTML until hydration, and in form control values. The server-rendered alternative is not built.
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 196 passed |
+| `pnpm test:browser` (all specs) | 211 passed, including 12 in `privacy.spec.ts` |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (34 files scanned) |
+| `pnpm test:e2e` (kestrel-test) | 17 passed on the first run, including the updated Privacy sign-out/sign-in case |
+
+`test:db` and `test:int` were not re-run (no database or Server Action changes).
+
+- **axe** on `/dev/privacy` with values shown, masked and one revealed, at 1440 and 390px: no findings of any impact.
+- **Contrast** (`contrast.spec.ts`, rows on `/dev/components`): form-field mask `ink-strong` on `surface-warm` 5.50:1, field edge 3.25:1 (UI), `ink-muted` on `surface` 5.24:1, link `accent` 5.89:1, alert `ink-strong` on `warning-subtle` 5.66:1. All pass.
+- **Found and fixed while testing:** the patient-list search summary showed the query ("1 patient matches “Rowan”") as plain text; it is now masked. Focus could drop to the page body when the focused control became inert; it now moves to the mask.
+- **Unverified, not passed:** screen-reader output of the reveal and re-mask announcements; Privacy mode in browsers other than Chromium, on macOS (⌘+.) and with an input method editor; layout shift on hosted data and for values first rendered while masked (they can move once on reveal, by design).
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.
