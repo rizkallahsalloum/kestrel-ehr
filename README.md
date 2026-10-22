@@ -23,7 +23,7 @@ Two roles exist: `clinician` and `admin`. Access is granted by care-team members
 
 ### Shell
 
-The top bar has the patient search, **Today's queue** (clinicians: up to six care-team patients as chips, most urgent first, with a red, orange or green status dot and its text label, plus "View all"; on its own row under the search, wrapping onto more lines as needed), and on the right a sync line ("Synced with Kestrel Health Network", fictional wording; nothing is transmitted; it shows "Offline" when the browser is offline), the **Privacy** button ("Privacy on" when masking) and an **account menu** (Privacy auto-hide delay and Sign out). The rail has Chart, Schedule, E-Rx, Labs and Billing; Schedule, Labs and Billing are placeholder pages ("Not part of this prototype").
+The top bar has the patient search, **Today's queue** (clinicians: up to six care-team patients as chips, most urgent first, with a red, orange or green status dot and its text label, plus "View all"; on the search row when the chips fit (six chips from 2390px), otherwise on its own row under it, wrapping onto more lines as needed; a severe allergy or blocking alert makes a patient critical, a moderate allergy, advisory alert or unchecked draft a warning), and on the right a sync line ("Synced with Kestrel Health Network", fictional wording; nothing is transmitted; it shows "Offline" when the browser is offline), the **Privacy** button ("Privacy on" when masking), the user's name and "Clinician · Cedar Park" (fictional clinic), and an **account menu** opened from the avatar (Privacy auto-hide delay and Sign out). The rail has Chart, Schedule, E-Rx, Labs and Billing; Schedule, Labs and Billing are placeholder pages ("Not part of this prototype").
 
 ### Privacy mode
 

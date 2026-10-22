@@ -127,6 +127,27 @@ Queue chip avatars are teal, green or blue (decorative; the colour carries no me
 - **Contrast:** white initials at 11px on teal 5.98:1, green 5.93:1, blue 6.46:1; all pass.
 - **Unverified, not passed:** e2e on kestrel-test for this commit; how the colours look to people with colour-vision deficiencies (no simulation run; the colour has no meaning, so nothing depends on telling them apart); colours with hosted patient ids (the assignment is unit-tested and the ids are UUIDs, so the order is arbitrary but stable).
 
+## Phase 8e note: queue statuses with allergies, queue position, page width, account trigger, button states (22 Oct 2026)
+
+Queue dots now also count active allergies (severe makes a patient critical, moderate a warning; mild alone stays stable). The queue sits on the search row when its items fit (measured per item count; six chips from 2390px, so **not at 1280px**), otherwise on its own row as in 8d. Every page is fluid up to 1760px. The Privacy label is 8px (`xs`) from its icon. Only the avatar and chevron open the account menu ("Account menu, <name>"); the name and "Clinician · Cedar Park" are plain text. Buttons, including links styled as buttons, have a visible hover and a darker pressed state. Details in [theme.md](theme.md#phase-8e-queue-statuses-with-allergies-queue-position-page-width-account-trigger-button-states).
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 32 files, 266 passed (4 new allergy cases) |
+| `pnpm test:browser` (all specs) | 283 passed (after one fix below; the first full run had 282 passed, 1 failed) |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (36 files scanned) |
+| `pnpm test:e2e` (kestrel-test) | 20 passed on the first run (new: queue dots for all five seeded patients) |
+
+`test:db` and `test:int` were not re-run (no migrations; the queue query only gained an embedded `allergies` read under the existing RLS, which e2e exercises for both teams).
+
+- **Seeded queue states** (prescriptions are reset before e2e): Rowan Testcase critical (active severe DEMO-ALPHA allergy; her mild allergy is inactive), Jordan Mockridge warning (active moderate DEMO-GAMMA), Elliot Samplewood, Morgan Fixture and Casey Placeholder stable (no allergies). The e2e test computes each expectation with `queueStatus` from what the clinician's own session reads, so drafts made by other e2e tests cannot make it flaky, and it asserts the allergy floors.
+- **New browser tests** (`top-bar-layout.spec.ts`): six chips at 1280, 1440, 1920, 2389, 2390 and 2560px with Privacy off and on; page width, rail and chart columns at 760 to 2560px; the Privacy gap at 820 and 1440px and icon-only at 819px; trigger size, name, children and initials; hover and pressed computed styles on every variant, disabled buttons unchanged, no transition under reduced motion, no hover on a touch device. The queue wrap loop also runs at 2560px.
+- **axe:** top bar at 2560px (inline queue), the account trigger hovered, every button variant hovered and pressed, the button-styled link hovered. No serious or critical findings.
+- **Contrast:** primary hover 7.48:1, pressed 16.24:1; danger hover 4.99:1, pressed 9.75:1; secondary and quiet pressed 11.51:1; link pressed 8.68:1; all pass.
+- **Found and fixed while testing:** axe `label-content-name-mismatch` on the new trigger (the avatar initials were its only visible text and are not in "Account menu, <name>"; they are now CSS generated content of the decorative avatar); the chart skeleton's allergy-badge placeholder was 1px too wide for one row at 761px once the page padding became `lg` (24px), so the skeleton hero wrapped while the chart did not (placeholder narrowed); the Privacy label gap came from the button's centred text inside the shared label cell.
+- **Unverified, not passed:** the inline queue with real names on hosted data at 2390px and up (specimens only; chips truncate rather than overflow if the controls are wider); hover on real touch devices (Playwright touch emulation only); speech-input use of the trigger ("click Account menu") with Dragon or Voice Access; the generated-content initials in Windows forced-colours mode.
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.
