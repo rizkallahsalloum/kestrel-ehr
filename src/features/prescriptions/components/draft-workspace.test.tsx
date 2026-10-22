@@ -86,7 +86,7 @@ function description(element: HTMLElement): string {
 describe("DraftWorkspace", () => {
   it("shows the saved version and enables signing once the review is confirmed", () => {
     renderWorkspace();
-    expect(screen.getByText("Take 1 capsule by mouth twice daily.")).toBeTruthy();
+    expect(screen.getByText("Take 1 capsule by mouth twice daily.", { selector: "dd [data-private-value]" })).toBeTruthy();
     expect(signButton()).toHaveProperty("disabled", true);
     expect(description(signButton())).toBe("Tick the attestation above to confirm your review.");
     fireEvent.click(screen.getByRole("checkbox"));
@@ -135,6 +135,6 @@ describe("DraftWorkspace", () => {
     renderWorkspace();
     fireEvent.change(screen.getByLabelText("Dose amount"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("Frequency"), { target: { value: "at_bedtime" } });
-    expect(screen.getByText("Label preview: Take 2 capsules by mouth at bedtime.")).toBeTruthy();
+    expect(document.getElementById("rx-label-preview")?.textContent).toBe("Label preview: Take 2 capsules by mouth at bedtime.");
   });
 });

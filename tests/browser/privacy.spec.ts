@@ -1,21 +1,54 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { PRIVACY_IDLE_MS } from "../../src/features/privacy/config";
+import { PRIVACY_FIELD_REVEAL_MS, PRIVACY_IDLE_MS } from "../../src/features/privacy/config";
 import { hideDevOverlay, reviewScreenshot } from "./support";
 
-// Privacy mode on the /dev/privacy specimen (and navigation to other specimens). Content must be
-// unreadable while it is on: hidden, inert, out of the accessibility tree and out of selections.
+// Privacy mode masks patient values in place (PrivateText, PrivateField) on the /dev/privacy specimen
+// and on the chart, prescribing and patient list specimens. A masked value must not be in the
+// page text or the accessibility tree; safety alerts stay readable.
 
 const URL = "/dev/privacy";
 const privacyButton = (page: Page) => page.getByRole("button", { name: "Privacy" });
-const showButton = (page: Page) => page.getByRole("button", { name: "Show content" });
 const liveText = (page: Page) => page.locator("header [aria-live=polite]");
-/** The sticky top bar inside the `display: contents` header landmark. */
-const topBar = (page: Page) => page.getByRole("banner").locator(":scope > div");
+/** Visible mask buttons only: the patient list repeats some values in a mobile line hidden at wider widths. */
+const revealButton = (page: Page, label: string) =>
+  page.getByRole("button", { name: `${label} hidden, press to reveal`, exact: true }).filter({ visible: true });
+
+/** Patient values on /dev/privacy that Privacy mode must hide. */
+const PRIVATE_VALUES = ["Testcase", "Rowan", "Demoson", "SYN-000101", "SYN-000102", "Calvexa", "Synthetic condition A"];
+
+/** Text of the content area outside form controls (controls keep their value, hidden and inert). */
+function mainText(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const main = document.querySelector("main")!.cloneNode(true) as HTMLElement;
+    main.querySelectorAll("input, textarea, select").forEach((control) => control.remove());
+    return main.textContent ?? "";
+  });
+}
+
+async function expectMasked(page: Page): Promise<void> {
+  const text = await mainText(page);
+  const tree = await page.getByRole("main").ariaSnapshot();
+  for (const value of PRIVATE_VALUES) {
+    expect(text, `page text contains ${value}`).not.toContain(value);
+    expect(tree, `accessibility tree contains ${value}`).not.toContain(value);
+  }
+}
+
+/** Block-level boxes in the content area plus the top bar and every private value. */
+function boxes(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const selector = "main :is(tr, section, header, h1, h2, p, li, dd, [data-private]), header > div";
+    return [...document.querySelectorAll(selector)].map((el) => {
+      const r = el.getBoundingClientRect();
+      return `${el.tagName} ${r.x.toFixed(2)},${r.y.toFixed(2)} ${r.width.toFixed(2)}x${r.height.toFixed(2)}`;
+    });
+  });
+}
 
 /**
- * Records every animation frame (before paint) in which Privacy mode is stored as on but content
- * in the masked area is visible, and every moment the <html> attribute is missing.
+ * Records every animation frame in which Privacy mode is stored as on but a private value that was
+ * not revealed is painted, and every moment the <html> attribute is missing.
  */
 async function watchForLeaks(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -30,11 +63,13 @@ async function watchForLeaks(page: Page): Promise<void> {
     };
     const frame = () => {
       if (stored()) {
-        if (document.querySelector("[data-privacy-content]") && document.documentElement.getAttribute("data-privacy") !== "on") {
+        if (document.querySelector("main") && document.documentElement.getAttribute("data-privacy") !== "on") {
           w.__leaks.push(`attribute missing on ${location.pathname}${location.search}`);
         }
-        for (const el of document.querySelectorAll("[data-privacy-content]")) {
-          if (getComputedStyle(el).visibility !== "hidden") w.__leaks.push(`visible content on ${location.pathname}${location.search}`);
+        for (const el of document.querySelectorAll("[data-private-value]:not([data-revealed])")) {
+          if (getComputedStyle(el).visibility !== "hidden") {
+            w.__leaks.push(`visible value on ${location.pathname}${location.search}: ${el.textContent?.slice(0, 20)}`);
+          }
         }
       }
       requestAnimationFrame(frame);
@@ -59,87 +94,101 @@ async function turnOn(page: Page): Promise<void> {
   }).toPass({ timeout: 30_000 });
 }
 
-async function focusInsideContent(page: Page): Promise<boolean> {
-  return page.evaluate(() => Boolean(document.activeElement?.closest("[data-privacy-content]")));
-}
-
 for (const width of [1440, 1024, 390]) {
-  test(`button toggles, content is masked and focus hands over both ways at ${width}px`, async ({ page }) => {
+  test(`Privacy masks values in place without moving anything, and keeps alerts readable, at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await open(page);
-    const content = page.locator("[data-privacy-content]");
-    const before = { header: await topBar(page).boundingBox(), content: await content.boundingBox() };
-    expect(before.header).not.toBeNull();
-
-    await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
-    await expect(page.getByRole("link", { name: /Testcase, Rowan/ })).toBeVisible();
-    const label = privacyButton(page).getByText("Privacy");
-    if (width < 820) {
-      expect(await label.evaluate((el) => getComputedStyle(el).position)).toBe("absolute");
-    } else {
-      await expect(label).toBeVisible();
-    }
+    const before = await boxes(page);
+    expect(await mainText(page)).toContain("Testcase, Rowan");
 
     await turnOn(page);
-    await expect(showButton(page)).toBeFocused();
-    await expect(liveText(page)).toHaveText("Content hidden");
-    await expect(page.getByRole("heading", { name: "Content hidden" })).toBeVisible();
-    await expect(content).toHaveAttribute("inert", "");
-    await expect(content).toHaveAttribute("aria-hidden", "true");
-    expect(await content.evaluate((el) => getComputedStyle(el).visibility)).toBe("hidden");
-    await expect(page.getByRole("link", { name: /Testcase, Rowan/ })).toHaveCount(0);
-    await expect(page.getByRole("textbox", { name: "Notes" })).toHaveCount(0);
-
-    // Not in the accessibility tree, not focusable, not selectable.
-    const tree = await page.locator("body").ariaSnapshot();
-    expect(tree).not.toContain("Testcase");
-    expect(tree).not.toContain("SYN-000101");
-    for (let i = 0; i < 6; i++) {
-      await page.keyboard.press("Tab");
-      expect(await focusInsideContent(page)).toBe(false);
-    }
-    const selected = await page.evaluate(() => {
-      getSelection()?.selectAllChildren(document.body);
-      const text = getSelection()?.toString() ?? "";
-      getSelection()?.removeAllRanges();
-      return text;
-    });
-    expect(selected).not.toContain("Testcase");
-    expect(selected).not.toContain("SYN-0001");
-
-    // Zero layout shift: the top bar and the content box do not move.
-    expect(await topBar(page).boundingBox()).toEqual(before.header);
-    expect(await content.boundingBox()).toEqual(before.content);
-    await reviewScreenshot(page, "privacy", `on-${width}`);
-
-    await showButton(page).click();
     await expect(privacyButton(page)).toBeFocused();
-    await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
-    await expect(liveText(page)).toHaveText("Content shown");
-    await expect(page.getByRole("link", { name: /Testcase, Rowan/ })).toBeVisible();
-    await expect(content).not.toHaveAttribute("inert", "");
+    await expect(liveText(page)).toHaveText("Patient details hidden");
+    await expectMasked(page);
+    await expect(revealButton(page, "Patient name").first()).toBeVisible();
+    await expect(revealButton(page, "Notes")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Patient name hidden" })).toHaveCount(2);
+    // No session-lock overlay: the page stays usable.
+    await expect(page.getByRole("button", { name: "Show content" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "chart specimen" })).toBeVisible();
+    // Safety information stays: severity, drug and allergen names.
+    const alert = page.getByText("Blocking demo alert on draft: Zentoril 10 mg tablet");
+    await expect(alert).toBeVisible();
+    await expect(page.getByText(/severe DEMO-ALPHA class allergy/)).toBeVisible();
+    await expect(page.getByRole("list", { name: "Active allergies" })).toContainText("DEMO-ALPHA class (synthetic)");
+    // The masked notes control keeps its value but cannot be focused.
+    const notes = page.locator("#privacy-notes");
+    await expect(notes).toHaveValue(/Synthetic note/);
+    expect(await notes.evaluate((el) => Boolean(el.closest("[inert]")))).toBe(true);
+
+    expect(await boxes(page), "layout after masking").toEqual(before);
+    await reviewScreenshot(page, "privacy", `masked-${width}`);
+
+    await privacyButton(page).click();
+    await expect(liveText(page)).toHaveText("Patient details shown");
+    expect(await mainText(page)).toContain("Testcase, Rowan");
+    expect(await boxes(page), "layout after showing").toEqual(before);
   });
 }
 
-test("Ctrl+. toggles from anywhere, including a text field, and is ignored while a dialog is open", async ({ page }) => {
+test("a masked field reveals by click, Enter or Space, alone, and masks itself again after the reveal period", async ({ page }) => {
+  await page.clock.install();
   await open(page);
-  const notes = page.getByRole("textbox", { name: "Notes" });
+  await turnOn(page);
+
+  const mrn = revealButton(page, "MRN").first();
+  await mrn.click();
+  await expect(liveText(page)).toHaveText("MRN shown");
+  const revealed = page.locator("[data-revealed]");
+  await expect(revealed).toHaveText("SYN-000101");
+  await expect(revealed).toBeFocused();
+  // Only that field: the patient's name and the other MRN stay masked.
+  expect(await mainText(page)).not.toContain("Testcase");
+  expect(await mainText(page)).not.toContain("SYN-000102");
+
+  await page.clock.fastForward(PRIVACY_FIELD_REVEAL_MS - 1_000);
+  await expect(revealed).toHaveText("SYN-000101");
+  await page.clock.fastForward(2_000);
+  await expect(page.locator("[data-revealed]")).toHaveCount(0);
+  await expect(liveText(page)).toHaveText("MRN hidden");
+  await expect(mrn).toBeFocused();
+
+  await revealButton(page, "Date of birth").first().focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[data-revealed]")).toHaveText(/1959/);
+  await revealButton(page, "Medication").focus();
+  await page.keyboard.press("Space");
+  await expect(page.locator("[data-revealed]")).toHaveCount(2);
+  await expect(page.locator("[data-revealed]").nth(1)).toHaveText("Calvexa 250 mg capsule");
+
+  // Turning Privacy off and on again masks every revealed field.
+  await privacyButton(page).click();
+  await privacyButton(page).click();
+  await expect(page.locator("[data-revealed]")).toHaveCount(0);
+  await expectMasked(page);
+});
+
+test("Ctrl+. toggles from anywhere, including a text field and an open dialog; focus stays on the field", async ({ page }) => {
+  await open(page);
+  const notes = page.locator("#privacy-notes");
   await expect(async () => {
     await notes.focus();
     await page.keyboard.press("Control+.");
     await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
-  await expect(showButton(page)).toBeFocused();
+  await expect(revealButton(page, "Notes")).toBeFocused();
   await page.keyboard.press("Control+.");
   await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
-  await expect(privacyButton(page)).toBeFocused();
+  await expect(notes).toBeFocused();
 
   await page.getByRole("button", { name: "Open dialog" }).click();
   const dialog = page.getByRole("dialog", { name: "Cancel this draft?" });
-  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("Testcase, Rowan");
   await page.keyboard.press("Control+.");
-  await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
+  await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
   await expect(dialog).toBeVisible();
+  await expect(dialog).not.toContainText("Testcase");
+  await expect(dialog.getByRole("button", { name: "Patient name hidden, press to reveal" })).toBeVisible();
   expect(await page.evaluate(() => Boolean(document.activeElement?.closest("dialog")))).toBe(true);
 });
 
@@ -150,29 +199,34 @@ test("stays on across client navigation, reloads and loading skeletons without a
 
   // A full page load that streams a loading skeleton first.
   await page.goto(`${URL}?delay=1500`);
-  await expect(showButton(page)).toBeVisible();
   await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
   await page.waitForLoadState("networkidle");
+  await expectMasked(page);
+
+  // Client navigation to the prescribing specimen.
+  await page.getByRole("link", { name: "prescribing specimen" }).click();
+  await expect(page).toHaveURL(/\/dev\/prescribing/);
+  await expect(revealButton(page, "Patient name")).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("Testcase");
 
   // Client navigation from the shell: the top-bar search (next/form) to the patient list specimen.
   const search = page.getByRole("searchbox", { name: /Search patients/ });
   await search.fill("Rowan");
   await search.press("Enter");
   await expect(page).toHaveURL(/\/dev\/shell\?view=clinician$/);
-  await expect(showButton(page)).toBeVisible();
   await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("main").getByRole("heading")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /Testcase, Rowan/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Patient name hidden" }).first()).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("Testcase");
 
   await page.reload();
   await page.waitForLoadState("networkidle");
   await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("main").getByRole("heading")).toHaveCount(0);
+  await expect(page.getByRole("main")).not.toContainText("Testcase");
 
   expect(await leaks(page)).toEqual([]);
 });
 
-test("turning on empties the search field and drops ?q= from the URL; Show content puts the query back", async ({ page }) => {
+test("turning on empties the search field and drops ?q= from the URL; turning off puts the query back", async ({ page }) => {
   await open(page, "/dev/shell?view=clinician&q=Rowan");
   const search = page.getByRole("searchbox", { name: /Search patients/ });
   await expect(search).toHaveValue("Rowan");
@@ -187,7 +241,7 @@ test("turning on empties the search field and drops ?q= from the URL; Show conte
   expect(await page.locator("body").ariaSnapshot()).not.toContain("Rowan");
   expect(requests, "stripping the query does not reload the page").toEqual([]);
 
-  await showButton(page).click();
+  await privacyButton(page).click();
   await expect(page).toHaveURL(/\/dev\/shell\?view=clinician&q=Rowan$/);
   await expect(search).toHaveValue("Rowan");
   await expect(page.getByRole("link", { name: /Testcase, Rowan/ })).toBeVisible();
@@ -197,84 +251,64 @@ test("turning on empties the search field and drops ?q= from the URL; Show conte
   await page.keyboard.press("Control+.");
   await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
   await expect(search).toHaveValue("");
-  await showButton(page).click();
+  await privacyButton(page).click();
   await expect(search).toHaveValue("Rowan");
 });
 
-test("auto-hide closing a prescribing dialog keeps the unsaved draft and the typed cancel reason", async ({ page }) => {
+test("prescribing: auto-hide masks open dialogs in place and keeps the unsaved draft and typed reason", async ({ page }) => {
   await page.clock.install();
   await open(page, "/dev/prescribing?view=ready");
-  const quantity = page.getByLabel("Quantity");
+  const quantity = page.locator("#quantity");
   await quantity.fill("56");
-  const trigger = page.getByRole("button", { name: "Cancel this draft" });
   const dialog = page.getByRole("dialog", { name: "Cancel this draft?" });
-  await trigger.click();
-  await dialog.getByLabel("Reason (optional)").fill("Duplicate order");
+  await page.getByRole("button", { name: "Cancel this draft" }).click();
+  const reason = page.locator("#cancel-reason");
+  await reason.fill("Duplicate order");
 
   await page.clock.fastForward(PRIVACY_IDLE_MS + 1_000);
-  await expect(dialog).toBeHidden();
   await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
-  await expect(showButton(page)).toBeFocused();
+  await expect(dialog).toBeVisible();
+  const reasonMask = dialog.getByRole("button", { name: "Cancel reason hidden, press to reveal" });
+  await expect(reasonMask).toBeVisible();
+  expect(await dialog.ariaSnapshot()).not.toContain("Duplicate order");
+  await reasonMask.click();
+  await expect(reason).toHaveValue("Duplicate order");
+  await expect(reason).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
 
-  await showButton(page).click();
+  // The draft form is masked in place and keeps the unsaved quantity.
+  await expect(revealButton(page, "Quantity")).toBeVisible();
+  expect(await page.getByRole("main").ariaSnapshot()).not.toContain("Testcase");
+  await revealButton(page, "Quantity").click();
   await expect(quantity).toHaveValue("56");
-  await expect(page.getByRole("button", { name: "Cancel this draft" })).toBeVisible();
-  await trigger.click();
-  await expect(dialog.getByLabel("Reason (optional)")).toHaveValue("Duplicate order");
+  await expect(quantity).toBeFocused();
+
+  // Label preview: the label text is masked; the simulated-label notice is not patient data.
+  await page.getByRole("button", { name: "Preview label" }).click();
+  const label = page.getByRole("dialog", { name: "Label preview" });
+  await expect(label).toContainText("Simulated label. Synthetic data, not dispensed.");
+  await expect(label).not.toContainText("Testcase");
+  await expect(label.getByRole("button", { name: "Label text hidden, press to reveal" })).toBeVisible();
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "Preview label" }).click();
-  await expect(page.getByRole("dialog", { name: "Label preview" })).toBeVisible();
-  await page.clock.fastForward(PRIVACY_IDLE_MS + 1_000);
-  await expect(page.getByRole("dialog", { name: "Label preview" })).toBeHidden();
-  await showButton(page).click();
+  await privacyButton(page).click();
   await expect(quantity).toHaveValue("56");
 });
 
-test.describe("auto-hide", () => {
-  test("hides after the idle period, announces it and moves focus to Show content", async ({ page }) => {
-    await page.clock.install();
-    await open(page);
-    await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
-    await page.clock.fastForward(PRIVACY_IDLE_MS - 5_000);
-    await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
-    await page.clock.fastForward(6_000);
-    await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
-    await expect(showButton(page)).toBeFocused();
-    await expect(liveText(page)).toHaveText("Content hidden");
-  });
-
-  test("does not hide while typing in the notes field; hides a full period after the last keystroke", async ({ page }) => {
-    await page.clock.install();
-    await open(page);
-    const notes = page.getByRole("textbox", { name: "Notes" });
-    await notes.click();
-    for (let i = 0; i < 6; i++) {
-      await page.clock.fastForward(PRIVACY_IDLE_MS / 3);
-      await page.keyboard.type("x");
-    }
-    await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
-    await page.clock.fastForward(PRIVACY_IDLE_MS - 2_000);
-    await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
-    await page.clock.fastForward(3_000);
-    await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
-
-    await showButton(page).click();
-    await expect(page.getByRole("textbox", { name: "Notes" })).toHaveValue(/xxxxxx$/);
-  });
-});
-
-test("reduced motion: the overlay card does not fade in", async ({ page }) => {
+test("reduced motion: masking and revealing run no transition or animation", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await open(page);
   await turnOn(page);
-  const card = page.locator("[data-privacy-overlay] > div");
-  expect(await card.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
-
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await showButton(page).click();
-  await privacyButton(page).click();
-  expect(await card.evaluate((el) => getComputedStyle(el).animationName)).toBe("fade-up");
+  const mask = revealButton(page, "MRN").first();
+  const longest = (el: Element) => Math.max(...getComputedStyle(el).transitionDuration.split(",").map(parseFloat));
+  expect(await mask.evaluate(longest)).toBeLessThan(0.001);
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+  await mask.click();
+  const revealed = page.locator("[data-revealed]");
+  await expect(revealed).toHaveText("SYN-000101");
+  expect(await revealed.evaluate(longest)).toBeLessThan(0.001);
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
 });
 
 test("signing out drops the stored state and the sign-in page turns Privacy mode off", async ({ page }) => {
@@ -283,7 +317,7 @@ test("signing out drops the stored state and the sign-in page turns Privacy mode
   await page.getByRole("button", { name: "Sign out" }).click();
   expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy"))).toBeNull();
   // The page stays masked until it is left.
-  await expect(showButton(page)).toBeVisible();
+  await expect(revealButton(page, "MRN").first()).toBeVisible();
 
   await open(page, "/dev/shell?view=login");
   expect(await page.evaluate(() => document.documentElement.getAttribute("data-privacy"))).toBeNull();
@@ -293,24 +327,19 @@ test("signing out drops the stored state and the sign-in page turns Privacy mode
 });
 
 for (const width of [1440, 390]) {
-  test(`axe: overlay shown and hidden at ${width}px`, async ({ page }) => {
+  test(`axe: values shown, masked and one revealed at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await open(page);
-    for (const state of ["hidden", "shown"] as const) {
-      if (state === "shown") {
-        await turnOn(page);
-        // Scan the settled card, not a frame of its fade-in.
-        await page
-          .locator("[data-privacy-overlay] > div")
-          .evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)));
-      }
+    for (const state of ["shown", "masked", "revealed"] as const) {
+      if (state === "masked") await turnOn(page);
+      if (state === "revealed") await revealButton(page, "MRN").first().click();
       const result = await new AxeBuilder({ page }).exclude("nextjs-portal").analyze();
       const blocking = result.violations
         .filter((v) => v.impact === "serious" || v.impact === "critical")
         .map((v) => `${v.impact} ${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
       const other = result.violations.filter((v) => v.impact !== "serious" && v.impact !== "critical").map((v) => `${v.impact} ${v.id}`);
-      console.log(`axe privacy overlay ${state} ${width}px: ${other.join(", ") || "no moderate or minor findings"}`);
-      expect(blocking, `overlay ${state} at ${width}px`).toEqual([]);
+      console.log(`axe privacy ${state} ${width}px: ${other.join(", ") || "no moderate or minor findings"}`);
+      expect(blocking, `${state} at ${width}px`).toEqual([]);
     }
   });
 }

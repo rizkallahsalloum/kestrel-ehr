@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Avatar, Badge, cn, initialsOf, severityIcons, severityOutline, Tag } from "@/components/ui";
+import { Avatar, Badge, cn, initialsOf, PrivateText, severityIcons, severityOutline, Tag } from "@/components/ui";
 import { medicationLabel } from "@/features/chart/alerts";
 import { allergyTone, bySeverity, highestSeverity } from "@/features/chart/allergies";
 import { prescriptionStatusTone } from "@/features/chart/components/clinical-lists";
@@ -31,7 +31,7 @@ export function ErxPageHeading({
   status,
 }: {
   patientId: string;
-  title: string;
+  title: ReactNode;
   status?: PrescriptionStatus;
 }) {
   return (
@@ -107,20 +107,29 @@ export function RxPatientHeader({
       className="grid items-center gap-x-6 gap-y-4 rounded-card border border-line-subtle bg-surface px-5.5 py-4.5 erx-wide:grid-cols-rx-header"
     >
       <div className="flex min-w-0 items-center gap-4">
-        <Avatar initials={initialsOf(patient.given_name, patient.family_name)} size="md" />
+        <Avatar
+          initials={
+            <PrivateText label="Initials" revealable={false} mask="••">
+              {initialsOf(patient.given_name, patient.family_name)}
+            </PrivateText>
+          }
+          size="md"
+        />
         <div className="min-w-0">
           <h2 className="text-heading-md font-semibold text-ink">
-            {patient.family_name}, {patient.given_name}
+            <PrivateText label="Patient name">{`${patient.family_name}, ${patient.given_name}`}</PrivateText>
           </h2>
           <p className="mt-0.5 mb-1.5 flex flex-wrap gap-x-4 font-mono text-code-sm text-ink-strong">
             <span className="whitespace-nowrap">
-              {ageInYears(patient.date_of_birth)}
+              <PrivateText label="Age">{ageInYears(patient.date_of_birth)}</PrivateText>
               <abbr title={patient.sex} className="no-underline">
                 {sex}
               </abbr>{" "}
-              · DOB {formatDate(patient.date_of_birth)}
+              · DOB <PrivateText label="Date of birth" className="whitespace-nowrap">{formatDate(patient.date_of_birth)}</PrivateText>
             </span>
-            <span className="whitespace-nowrap">MRN {patient.mrn}</span>
+            <span className="whitespace-nowrap">
+              MRN <PrivateText label="MRN" className="whitespace-nowrap">{patient.mrn}</PrivateText>
+            </span>
           </p>
           <p className="flex flex-wrap gap-1.5">
             {patient.care_team && <Tag>{patient.care_team.name}</Tag>}
@@ -131,7 +140,13 @@ export function RxPatientHeader({
       <div className="flex flex-wrap gap-3 erx-wide:justify-end">
         <AllergyTile allergies={allergies} />
         <Tile tone="neutral" title="Active medications">
-          {medications.length > 0 ? medications.map(medicationLabel).join("; ") : "None recorded"}
+          {medications.length > 0 ? (
+            <PrivateText label="Active medications" block>
+              {medications.map(medicationLabel).join("; ")}
+            </PrivateText>
+          ) : (
+            "None recorded"
+          )}
         </Tile>
       </div>
     </section>

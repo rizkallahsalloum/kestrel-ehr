@@ -316,17 +316,14 @@
 }
 
 /*
- * Privacy mode (src/features/privacy). One rule for every patient screen: the whole content area
- * is hidden while <html data-privacy="on">, and the overlay shows only then. Unlayered on purpose,
- * so no utility class can override it. The pre-paint script sets the attribute before first paint.
+ * Privacy mode (src/features/privacy, src/components/ui/private-text.tsx). After hydration each
+ * private value is replaced by a mask. This rule covers the server-rendered HTML before that: while
+ * <html data-privacy="on"> (set by the pre-paint script), unrevealed values are not painted or
+ * selectable. Unlayered on purpose, so no utility class can override it.
  */
-:root[data-privacy="on"] [data-privacy-content] {
+:root[data-privacy="on"] [data-private-value]:not([data-revealed]) {
   visibility: hidden;
   user-select: none;
-}
-
-:root:not([data-privacy="on"]) [data-privacy-overlay] {
-  display: none;
 }
 
 /* Uppercase micro-label used for table headers and section labels in the dashboard. */

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { cn } from "./cn";
 
 const tones = {
@@ -25,7 +26,8 @@ export function Avatar({
   label,
   className,
 }: {
-  initials: string;
+  /** Text, or a `PrivateText` for a patient's initials. */
+  initials: ReactNode;
   tone?: AvatarTone;
   size?: keyof typeof sizes;
   label?: string;

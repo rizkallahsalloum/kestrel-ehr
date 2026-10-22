@@ -1,4 +1,4 @@
-import { CheckCircleIcon } from "@/components/ui";
+import { CheckCircleIcon, PrivateText } from "@/components/ui";
 import { medicationLabel } from "@/features/chart/alerts";
 import { AllergyPanel, MedicationPanel } from "@/features/chart/components/clinical-lists";
 import { formatDateTime } from "@/lib/format";
@@ -77,7 +77,11 @@ export function PrescriptionView({ workspace }: { workspace: PrescriptionWorkspa
 
   return (
     <div data-layout="wide" className="flex flex-col gap-4">
-      <ErxPageHeading patientId={patient.id} title={medicationLabel(rx)} status={rx.status} />
+      <ErxPageHeading
+        patientId={patient.id}
+        title={<PrivateText label="Medication">{medicationLabel(rx)}</PrivateText>}
+        status={rx.status}
+      />
       <RxPatientHeader patient={patient} allergies={workspace.allergies} medications={workspace.patientMedications} />
       {editable ? (
         <DraftWorkspace

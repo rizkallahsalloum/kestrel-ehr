@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Avatar, SyntheticBanner, Tag } from "@/components/ui";
-import { PrivacyButton, PrivacyContent, PrivacyOverlay } from "@/features/privacy/components/privacy-controls";
+import { PrivacyButton } from "@/features/privacy/components/privacy-controls";
 import { PrivacyProvider } from "@/features/privacy/components/privacy-provider";
 import type { AppRole } from "@/types/domain";
 import { PatientSearch } from "./patient-search";
@@ -22,7 +22,7 @@ export type ShellUser = { fullName: string; role: AppRole };
 /**
  * App chrome: rail, sticky top bar (search for clinicians, Privacy mode, identity, sign-out) and the
  * synthetic data banner. Presentation only; pages and data functions check the user themselves.
- * Privacy mode masks everything inside the content area below the top bar.
+ * Privacy mode masks the patient values (`PrivateText`, `PrivateField`) inside the content area.
  */
 export function AppShell({
   user,
@@ -77,16 +77,13 @@ export function AppShell({
               </div>
             </div>
           </header>
-          <div className="relative flex flex-1 flex-col">
-            <main
-              id="main"
-              tabIndex={-1}
-              className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 focus-visible:outline-none has-[[data-layout=wide]]:max-w-none md:px-7"
-            >
-              <PrivacyContent>{children}</PrivacyContent>
-            </main>
-            <PrivacyOverlay />
-          </div>
+          <main
+            id="main"
+            tabIndex={-1}
+            className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 focus-visible:outline-none has-[[data-layout=wide]]:max-w-none md:px-7"
+          >
+            {children}
+          </main>
         </div>
       </PrivacyProvider>
     </div>

@@ -8,6 +8,8 @@ import {
   Combobox,
   FormField,
   FormMessage,
+  PrivateField,
+  PrivateText,
   SelectInput,
   TextArea,
   TextInput,
@@ -127,30 +129,32 @@ export function MedicationSection({
           helper="Fictional medications only. Type to filter."
           errors={errors}
         >
-          <Combobox
-            options={medications.map(optionFor)}
-            value={value || null}
-            onValueChange={(next) => {
-              onChange(next ?? "");
-              if (next) {
-                focusTarget.current = "change";
-                setChanging(false);
-              }
-            }}
-            placeholder="Search the synthetic catalog"
-            size="lg"
-          />
+          <PrivateField label="Medication">
+            <Combobox
+              options={medications.map(optionFor)}
+              value={value || null}
+              onValueChange={(next) => {
+                onChange(next ?? "");
+                if (next) {
+                  focusTarget.current = "change";
+                  setChanging(false);
+                }
+              }}
+              placeholder="Search the synthetic catalog"
+              size="lg"
+            />
+          </PrivateField>
         </FormField>
       ) : (
         <div className="flex flex-wrap items-center gap-2.5 rounded-panel border border-accent bg-accent-subtle px-3.5 py-2.5">
           <div className="min-w-0 flex-1">
             <p className="text-label font-semibold text-ink">
-              {selected.name} {selected.strength} {selected.form}
+              <PrivateText label="Medication">{`${selected.name} ${selected.strength} ${selected.form}`}</PrivateText>
             </p>
             <p className="text-label-sm text-ink-strong">Synthetic catalog</p>
           </div>
           <span className="rounded-pill bg-surface-pure px-2.5 py-0.5 font-mono text-label-sm text-ink-strong">
-            {selected.drug_class_code}
+            <PrivateText label="Drug class">{selected.drug_class_code}</PrivateText>
           </span>
           <Button
             ref={changeRef}
@@ -167,10 +171,14 @@ export function MedicationSection({
       )}
       <div className="mt-3.5 grid gap-3 @fields-2:grid-cols-2">
         <FormField id="rx-strength" label="Strength" helper="From the catalog">
-          <TextInput readOnly value={selected?.strength ?? ""} />
+          <PrivateField label="Strength">
+            <TextInput readOnly value={selected?.strength ?? ""} />
+          </PrivateField>
         </FormField>
         <FormField id="rx-form" label="Dose form" helper="From the catalog">
-          <TextInput readOnly value={selected?.form ?? ""} />
+          <PrivateField label="Dose form">
+            <TextInput readOnly value={selected?.form ?? ""} />
+          </PrivateField>
         </FormField>
       </div>
     </Section>
@@ -212,75 +220,77 @@ export function DirectionsSection({
             *
           </span>
         </legend>
-        <div className="flex flex-wrap items-center gap-2 rounded-control border border-line px-3 py-2 text-body">
-          <span aria-hidden="true" className="font-medium text-ink-strong">
-            {ROUTE_WORDING[values.route as keyof typeof ROUTE_WORDING]?.verb ?? "Take"}
-          </span>
-          <label htmlFor="doseAmount" className="sr-only">
-            Dose amount
-          </label>
-          <input
-            {...bind("doseAmount")}
-            id="doseAmount"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            placeholder="Dose"
-            aria-required
-            aria-invalid={Boolean(errors.doseAmount?.length) || undefined}
-            aria-describedby={describe("doseAmount")}
-            className={cn(sentenceControl, "w-24 placeholder:font-normal placeholder:text-ink-placeholder")}
-          />
-          <label htmlFor="doseUnit" className="sr-only">
-            Dose unit
-          </label>
-          <select
-            {...bind("doseUnit")}
-            id="doseUnit"
-            aria-invalid={Boolean(errors.doseUnit?.length) || undefined}
-            aria-describedby={describe("doseUnit")}
-            className={sentenceControl}
-          >
-            {DOSE_UNITS.map((unit) => (
-              <option key={unit} value={unit}>
-                {unit}
-              </option>
-            ))}
-          </select>
-          <label htmlFor="route" className="sr-only">
-            Route
-          </label>
-          <select
-            {...bind("route")}
-            id="route"
-            aria-invalid={Boolean(errors.route?.length) || undefined}
-            aria-describedby={describe("route")}
-            className={sentenceControl}
-          >
-            {ROUTES.map((route) => (
-              <option key={route} value={route}>
-                {ROUTE_WORDING[route].phrase}
-              </option>
-            ))}
-          </select>
-          <label htmlFor="frequency" className="sr-only">
-            Frequency
-          </label>
-          <select
-            {...bind("frequency")}
-            id="frequency"
-            aria-invalid={Boolean(errors.frequency?.length) || undefined}
-            aria-describedby={describe("frequency")}
-            className={sentenceControl}
-          >
-            {FREQUENCIES.map((frequency) => (
-              <option key={frequency} value={frequency}>
-                {FREQUENCY_WORDING[frequency]}
-              </option>
-            ))}
-          </select>
-        </div>
+        <PrivateField label="Dosage directions">
+          <div className="flex flex-wrap items-center gap-2 rounded-control border border-line px-3 py-2 text-body">
+            <span aria-hidden="true" className="font-medium text-ink-strong">
+              {ROUTE_WORDING[values.route as keyof typeof ROUTE_WORDING]?.verb ?? "Take"}
+            </span>
+            <label htmlFor="doseAmount" className="sr-only">
+              Dose amount
+            </label>
+            <input
+              {...bind("doseAmount")}
+              id="doseAmount"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              placeholder="Dose"
+              aria-required
+              aria-invalid={Boolean(errors.doseAmount?.length) || undefined}
+              aria-describedby={describe("doseAmount")}
+              className={cn(sentenceControl, "w-24 placeholder:font-normal placeholder:text-ink-placeholder")}
+            />
+            <label htmlFor="doseUnit" className="sr-only">
+              Dose unit
+            </label>
+            <select
+              {...bind("doseUnit")}
+              id="doseUnit"
+              aria-invalid={Boolean(errors.doseUnit?.length) || undefined}
+              aria-describedby={describe("doseUnit")}
+              className={sentenceControl}
+            >
+              {DOSE_UNITS.map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="route" className="sr-only">
+              Route
+            </label>
+            <select
+              {...bind("route")}
+              id="route"
+              aria-invalid={Boolean(errors.route?.length) || undefined}
+              aria-describedby={describe("route")}
+              className={sentenceControl}
+            >
+              {ROUTES.map((route) => (
+                <option key={route} value={route}>
+                  {ROUTE_WORDING[route].phrase}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="frequency" className="sr-only">
+              Frequency
+            </label>
+            <select
+              {...bind("frequency")}
+              id="frequency"
+              aria-invalid={Boolean(errors.frequency?.length) || undefined}
+              aria-describedby={describe("frequency")}
+              className={sentenceControl}
+            >
+              {FREQUENCIES.map((frequency) => (
+                <option key={frequency} value={frequency}>
+                  {FREQUENCY_WORDING[frequency]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </PrivateField>
       </fieldset>
       {sigErrors.map((field) => (
         <FormMessage key={field} id={`${field}-message`} tone="error" className="mt-1.5">
@@ -288,21 +298,26 @@ export function DirectionsSection({
         </FormMessage>
       ))}
       <p id="rx-label-preview" className="mt-1.5 text-label text-ok">
-        Label preview: {sentence ?? "enter a dose amount to see the directions."}
+        Label preview:{" "}
+        {sentence ? <PrivateText label="Directions">{sentence}</PrivateText> : "enter a dose amount to see the directions."}
       </p>
 
       <div className="mt-3.5 grid gap-3 @fields-2:grid-cols-2 @fields-4:grid-cols-4">
         <FormField id="quantity" label="Quantity" required errors={errors.quantity}>
-          <TextInput {...bind("quantity")} type="number" inputMode="numeric" min="1" step="1" />
+          <PrivateField label="Quantity">
+            <TextInput {...bind("quantity")} type="number" inputMode="numeric" min="1" step="1" />
+          </PrivateField>
         </FormField>
         <FormField id="refills" label="Refills" helper="0 to 5" errors={errors.refills}>
-          <SelectInput {...bind("refills")}>
-            {[0, 1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={String(n)}>
-                {n}
-              </option>
-            ))}
-          </SelectInput>
+          <PrivateField label="Refills">
+            <SelectInput {...bind("refills")}>
+              {[0, 1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={String(n)}>
+                  {n}
+                </option>
+              ))}
+            </SelectInput>
+          </PrivateField>
         </FormField>
         <FormField
           id="durationDays"
@@ -310,7 +325,9 @@ export function DirectionsSection({
           helper={days ? `About ${days} days at this dose.` : "Optional."}
           errors={errors.durationDays}
         >
-          <TextInput {...bind("durationDays")} type="number" inputMode="numeric" min="1" step="1" />
+          <PrivateField label="Duration in days">
+            <TextInput {...bind("durationDays")} type="number" inputMode="numeric" min="1" step="1" />
+          </PrivateField>
         </FormField>
         <FormField
           id="startDate"
@@ -319,12 +336,14 @@ export function DirectionsSection({
           helper={`Within ${START_DATE_WINDOW_DAYS} days of today.`}
           errors={errors.startDate}
         >
-          <TextInput
-            {...bind("startDate")}
-            type="date"
-            min={dateOffset(-START_DATE_WINDOW_DAYS)}
-            max={dateOffset(START_DATE_WINDOW_DAYS)}
-          />
+          <PrivateField label="Start date">
+            <TextInput
+              {...bind("startDate")}
+              type="date"
+              min={dateOffset(-START_DATE_WINDOW_DAYS)}
+              max={dateOffset(START_DATE_WINDOW_DAYS)}
+            />
+          </PrivateField>
         </FormField>
       </div>
     </Section>
@@ -340,7 +359,9 @@ export function InstructionsSection({ bind, errors }: { bind: Bind; errors: Fiel
         helper="Shown in the label preview. Nothing is sent to a pharmacy."
         errors={errors.instructions}
       >
-        <TextArea {...bind("instructions")} rows={3} maxLength={500} />
+        <PrivateField label="Instructions">
+          <TextArea {...bind("instructions")} rows={3} maxLength={500} />
+        </PrivateField>
       </FormField>
     </Section>
   );

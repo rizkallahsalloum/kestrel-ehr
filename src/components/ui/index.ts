@@ -19,5 +19,14 @@ export {
   type FieldSize,
 } from "./field";
 export * from "./icons";
+export {
+  PRIVACY_MASK,
+  PRIVACY_MEASURE_EVENT,
+  PRIVATE_FOCUS_SELECTOR,
+  PrivacyMaskContext,
+  PrivateField,
+  PrivateText,
+  type PrivacyMaskState,
+} from "./private-text";
 export { severityIcons, severityOutline } from "./severity";
 export { LoadingRegion, SkeletonBlock, SkeletonLine } from "./skeleton";

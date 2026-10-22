@@ -4,10 +4,13 @@
  */
 export const PRIVACY_IDLE_MS = 60_000;
 
+/** A field revealed on its own while Privacy mode is on is masked again after this long. */
+export const PRIVACY_FIELD_REVEAL_MS = 10_000;
+
 /** sessionStorage key: per tab, cleared when the tab closes, never sent to the server. */
 export const PRIVACY_STORAGE_KEY = "kestrel.privacy";
 
-/** Attribute on <html> that the CSS masking rule reads (globals.css, "Privacy mode"). */
+/** Attribute on <html> that the pre-hydration CSS rule reads (globals.css, "Privacy mode"). */
 export const PRIVACY_ATTRIBUTE = "data-privacy";
 
 /**

@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { Avatar, Card, EmptyState, initialsOf, Tag } from "@/components/ui";
+import { Avatar, Card, EmptyState, initialsOf, PrivateText, Tag } from "@/components/ui";
 import { ageInYears, formatDate } from "@/lib/format";
 import type { PatientSummary } from "@/types/domain";
 
-function resultSummary(count: number, query: string): string {
-  if (count === 0) return `No patients match “${query}”.`;
-  return `${count} ${count === 1 ? "patient matches" : "patients match"} “${query}”.`;
+/** The query is usually a name or MRN, so it is masked like one. */
+function resultSummary(count: number, query: string) {
+  const matches = count === 0 ? "No patients match" : `${count} ${count === 1 ? "patient matches" : "patients match"}`;
+  return (
+    <>
+      {matches} “<PrivateText label="Search text">{query}</PrivateText>”.
+    </>
+  );
 }
 
 /** Care-team patient table (dashboard table-card pattern), optionally narrowed by a search query. */
@@ -55,22 +60,39 @@ export function PatientList({
                   <tr key={patient.id} className="border-t border-line-subtle">
                     <td className="py-2.5 pr-4">
                       <div className="flex items-center gap-3">
-                        <Avatar initials={initialsOf(patient.given_name, patient.family_name)} size="sm" />
+                        <Avatar
+                          initials={
+                            <PrivateText label="Initials" revealable={false} mask="••">
+                              {initialsOf(patient.given_name, patient.family_name)}
+                            </PrivateText>
+                          }
+                          size="sm"
+                        />
                         <div className="min-w-0">
+                          {/* A mask inside a link cannot be a button; the MRN and date of birth can be revealed. */}
                           <Link
                             href={`/patients/${patient.id}`}
                             className="font-medium text-accent underline-offset-2 hover:underline"
                           >
-                            {patient.family_name}, {patient.given_name}
+                            <PrivateText label="Patient name" revealable={false}>
+                              {`${patient.family_name}, ${patient.given_name}`}
+                            </PrivateText>
                           </Link>
                           <p className="text-label-sm text-ink-secondary md:hidden">
-                            <span className="font-mono">{patient.mrn}</span> · {dob}
+                            <span className="font-mono">
+                              <PrivateText label="MRN">{patient.mrn}</PrivateText>
+                            </span>{" "}
+                            · <PrivateText label="Date of birth" className="whitespace-nowrap">{dob}</PrivateText>
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="hidden py-2.5 pr-4 font-mono text-code-sm md:table-cell">{patient.mrn}</td>
-                    <td className="hidden py-2.5 pr-4 md:table-cell">{dob}</td>
+                    <td className="hidden py-2.5 pr-4 font-mono text-code-sm md:table-cell">
+                      <PrivateText label="MRN">{patient.mrn}</PrivateText>
+                    </td>
+                    <td className="hidden py-2.5 pr-4 md:table-cell">
+                      <PrivateText label="Date of birth">{dob}</PrivateText>
+                    </td>
                     <td className="hidden py-2.5 lg:table-cell">
                       {patient.care_team && <Tag>{patient.care_team.name}</Tag>}
                     </td>

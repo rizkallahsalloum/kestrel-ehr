@@ -8,6 +8,7 @@ import {
   EmptyState,
   PanelTitle,
   PillIcon,
+  PrivateText,
   SeverityTag,
   severityIcons,
   severityOutline,
@@ -103,9 +104,12 @@ export function MedicationPanel({ medications }: { medications: PatientMedicatio
         <ul aria-label="Active medications" className="pb-1">
           {medications.map((item) => (
             <li key={item.id} className="border-t border-line-subtle px-5 py-3.25 first:border-t-0">
-              <p className="text-label font-semibold text-ink">{medicationLabel(item)}</p>
+              <p className="text-label font-semibold text-ink">
+                <PrivateText label="Medication">{medicationLabel(item)}</PrivateText>
+              </p>
               <p className="mt-0.5 font-mono text-code-sm text-ink-muted">
-                {item.dose_text} · since {formatDate(item.start_date)}
+                <PrivateText label="Dose">{item.dose_text}</PrivateText> · since{" "}
+                <PrivateText label="Start date" className="whitespace-nowrap">{formatDate(item.start_date)}</PrivateText>
               </p>
               {item.source_prescription_id && <Badge tone="accent" className="mt-1.5">from signed prescription</Badge>}
             </li>
@@ -180,14 +184,21 @@ export function PrescriptionsCard({
                       href={`/patients/${patientId}/prescriptions/${rx.id}`}
                       className="font-medium text-accent underline-offset-2 hover:underline"
                     >
-                      {medicationLabel(rx)}
+                      <PrivateText label="Medication" revealable={false}>
+                        {medicationLabel(rx)}
+                      </PrivateText>
                     </Link>
                     <p className="text-label-sm text-ink-secondary md:hidden">
-                      Qty {rx.quantity} · start {formatDate(rx.start_date)}
+                      Qty <PrivateText label="Quantity" className="whitespace-nowrap">{rx.quantity}</PrivateText> · start{" "}
+                      <PrivateText label="Start date" className="whitespace-nowrap">{formatDate(rx.start_date)}</PrivateText>
                     </p>
                   </td>
-                  <td className="hidden py-3 pr-4 font-mono text-code-sm md:table-cell">{rx.quantity}</td>
-                  <td className="hidden py-3 pr-4 whitespace-nowrap md:table-cell">{formatDate(rx.start_date)}</td>
+                  <td className="hidden py-3 pr-4 font-mono text-code-sm md:table-cell">
+                    <PrivateText label="Quantity" className="whitespace-nowrap">{rx.quantity}</PrivateText>
+                  </td>
+                  <td className="hidden py-3 pr-4 whitespace-nowrap md:table-cell">
+                    <PrivateText label="Start date" className="whitespace-nowrap">{formatDate(rx.start_date)}</PrivateText>
+                  </td>
                   <td className="py-3">
                     <Badge tone={prescriptionStatusTone[rx.status]} className="capitalize">
                       {rx.status}

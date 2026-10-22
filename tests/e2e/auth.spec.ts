@@ -55,11 +55,15 @@ test("Privacy mode stays on across navigation and is off after signing out and i
     await privacy.click();
     await expect(privacy).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
-  await expect(page.getByRole("button", { name: "Show content" })).toBeFocused();
+  await expect(privacy).toBeFocused();
+  await expect(page.getByRole("link", { name: /Patient name hidden/ }).first()).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("Testcase");
 
   await page.goto(`/patients/${PATIENTS.northOne}`);
-  await expect(page.getByRole("button", { name: "Show content" })).toBeVisible();
-  await expect(page.getByRole("main").getByRole("heading")).toHaveCount(0);
+  const heading = page.getByRole("main").getByRole("heading", { level: 1 });
+  await expect(heading.getByRole("button", { name: "Patient name hidden, press to reveal" })).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("Testcase");
+  expect(await page.getByRole("main").ariaSnapshot()).not.toContain("SYN-");
 
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/login$/);

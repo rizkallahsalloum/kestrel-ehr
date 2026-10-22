@@ -80,9 +80,9 @@ function CurrentSearch(props: SearchProps) {
 const currentUrl = () => window.location.pathname + window.location.search + window.location.hash;
 
 /**
- * The search field and `?q=` stay outside the Privacy mask, so Privacy mode empties the field and
- * drops `q` from the address bar (history.replaceState: no request, the masked list is unchanged).
- * Show content puts `q` back if the URL is still the stripped one. Unsubmitted text is not restored.
+ * The search field and `?q=` are not masked in place, so Privacy mode empties the field and drops
+ * `q` from the address bar (history.replaceState: no request, the masked list is unchanged).
+ * Turning Privacy off puts `q` back if the URL is still the stripped one. Unsubmitted text is not restored.
  */
 function usePrivacyQueryReset(search: string) {
   const { on } = usePrivacy();

@@ -11,21 +11,24 @@ import {
   useState,
   useSyncExternalStore,
   type ReactNode,
-  type RefObject,
 } from "react";
-import { PRIVACY_IDLE_MS } from "../config";
+import {
+  PRIVACY_MEASURE_EVENT,
+  PRIVATE_FOCUS_SELECTOR,
+  PrivacyMaskContext,
+  type PrivacyMaskState,
+} from "@/components/ui";
+import { PRIVACY_FIELD_REVEAL_MS, PRIVACY_IDLE_MS } from "../config";
 import { createIdleTimer } from "../idle-timer";
 import { getPrivacyStore } from "../store";
 
+type Announcement = { text: string; id: number };
+
 type PrivacyContextValue = {
   on: boolean;
-  hide: () => void;
-  show: () => void;
   toggle: () => void;
-  /** Polite announcement for the live region next to the Privacy button. */
-  message: string;
-  privacyButtonRef: RefObject<HTMLButtonElement | null>;
-  showButtonRef: RefObject<HTMLButtonElement | null>;
+  /** Polite announcement for the live region next to the Privacy button; `id` changes on every call. */
+  announcement: Announcement;
 };
 
 const PrivacyContext = createContext<PrivacyContextValue | null>(null);
@@ -38,48 +41,76 @@ export function usePrivacy(): PrivacyContextValue {
 
 const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown", "input", "touchstart", "wheel", "scroll"] as const;
 
+function focusedPrivateField(): Element | null {
+  return document.activeElement?.closest("[data-private]") ?? null;
+}
+
 /** Ctrl+. on Windows and Linux, Cmd+. on macOS. */
 function isShortcut(event: KeyboardEvent): boolean {
   return event.key === "." && (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey;
 }
 
 /**
- * Privacy mode for the signed-in shell: hides the content area on demand (button or Ctrl/Cmd+.)
- * and after `idleMs` without activity. Client-side shoulder-surfing protection only: the data is
- * already in the page.
+ * Privacy mode for the signed-in shell: masks every `PrivateText` and `PrivateField` in place, on
+ * demand (button or Ctrl/Cmd+.) and after `idleMs` without activity, which also re-masks fields
+ * revealed one by one. Client-side shoulder-surfing protection only: the data is already in the page.
  */
-export function PrivacyProvider({ idleMs = PRIVACY_IDLE_MS, children }: { idleMs?: number; children: ReactNode }) {
+export function PrivacyProvider({
+  idleMs = PRIVACY_IDLE_MS,
+  revealMs = PRIVACY_FIELD_REVEAL_MS,
+  children,
+}: {
+  idleMs?: number;
+  revealMs?: number;
+  children: ReactNode;
+}) {
   const store = getPrivacyStoreSafe();
   const on = useSyncExternalStore(store.subscribe, store.get, () => false);
-  const [message, setMessage] = useState("");
-  const privacyButtonRef = useRef<HTMLButtonElement>(null);
-  const showButtonRef = useRef<HTMLButtonElement>(null);
+  const [epoch, setEpoch] = useState(0);
+  const [announcement, setAnnouncement] = useState<Announcement>({ text: "", id: 0 });
+  const revealed = useRef(0);
+  const focusedField = useRef<Element | null>(null);
 
   // The pre-paint script sets the attribute; React's development remount of <html> clears it.
   useLayoutEffect(() => store.applyAttribute(), [store]);
 
+  const announce = useCallback((text: string) => setAnnouncement((a) => ({ text, id: a.id + 1 })), []);
+  const trackReveal = useCallback((delta: 1 | -1) => {
+    revealed.current += delta;
+  }, []);
+
+  // Focus stays where it is: if it was on a private value or its mask, it moves to the element that
+  // replaced it in the same field.
+  useLayoutEffect(() => {
+    const field = focusedField.current;
+    focusedField.current = null;
+    const active = document.activeElement;
+    // A control that just became inert still reports focus until the browser's next focus fixup.
+    if (field?.isConnected && (!field.contains(active) || active?.closest("[inert]"))) {
+      field.querySelector<HTMLElement>(PRIVATE_FOCUS_SELECTOR)?.focus();
+    }
+  }, [on, epoch]);
+
   const hide = useCallback(() => {
-    if (store.get()) return;
-    store.set(true);
-    setMessage("Content hidden");
-    // The overlay is shown by the attribute the store just set, so it can take focus now.
-    showButtonRef.current?.focus();
-  }, [store]);
+    focusedField.current = focusedPrivateField();
+    window.dispatchEvent(new Event(PRIVACY_MEASURE_EVENT));
+    if (!store.get()) store.set(true);
+    setEpoch((e) => e + 1);
+    announce("Patient details hidden");
+  }, [store, announce]);
 
   const show = useCallback(() => {
     if (!store.get()) return;
+    focusedField.current = focusedPrivateField();
     store.set(false);
-    setMessage("Content shown");
-    privacyButtonRef.current?.focus();
-  }, [store]);
+    announce("Patient details shown");
+  }, [store, announce]);
 
   const toggle = useCallback(() => (store.get() ? show() : hide()), [store, show, hide]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!isShortcut(event)) return;
-      // A modal dialog keeps focus inside itself; hiding the page under it would leave focus nowhere.
-      if (document.querySelector("dialog[open]")) return;
       event.preventDefault();
       toggle();
     };
@@ -88,15 +119,12 @@ export function PrivacyProvider({ idleMs = PRIVACY_IDLE_MS, children }: { idleMs
   }, [toggle]);
 
   useEffect(() => {
-    if (on) return;
     const timer = createIdleTimer({
       idleMs,
       onIdle: () => {
-        const dialogs = document.querySelectorAll("dialog[open]");
-        dialogs.forEach((dialog) => (dialog as HTMLDialogElement).close());
-        // Dialogs return focus to their trigger in the close event; hide after that has run.
-        if (dialogs.length > 0) setTimeout(hide, 0);
-        else hide();
+        // Off: mask everything. On: mask again any field revealed on its own.
+        if (!store.get() || revealed.current > 0) hide();
+        timer.start();
       },
     });
     const activity = () => timer.activity();
@@ -109,13 +137,18 @@ export function PrivacyProvider({ idleMs = PRIVACY_IDLE_MS, children }: { idleMs
       ACTIVITY_EVENTS.forEach((type) => document.removeEventListener(type, activity, options));
       document.removeEventListener("visibilitychange", timer.check);
     };
-  }, [on, idleMs, hide]);
+  }, [idleMs, hide, store]);
 
-  const value = useMemo(
-    () => ({ on, hide, show, toggle, message, privacyButtonRef, showButtonRef }),
-    [on, hide, show, toggle, message],
+  const mask = useMemo<PrivacyMaskState>(
+    () => ({ masked: on, epoch, revealMs, announce, trackReveal }),
+    [on, epoch, revealMs, announce, trackReveal],
   );
-  return <PrivacyContext.Provider value={value}>{children}</PrivacyContext.Provider>;
+  const value = useMemo(() => ({ on, toggle, announcement }), [on, toggle, announcement]);
+  return (
+    <PrivacyContext.Provider value={value}>
+      <PrivacyMaskContext.Provider value={mask}>{children}</PrivacyMaskContext.Provider>
+    </PrivacyContext.Provider>
+  );
 }
 
 /** Server render has no window; a no-op store keeps the server snapshot (off). */

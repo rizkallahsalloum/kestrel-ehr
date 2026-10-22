@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { AttestationCheck, Button, Dialog, FormField, TextInput } from "@/components/ui";
+import { AttestationCheck, Button, Dialog, FormField, PrivateField, TextInput } from "@/components/ui";
 import {
   acknowledgeFormAction,
   cancelFormAction,
@@ -72,7 +72,9 @@ export function AlertAcknowledgeForm({ disabledReason, ...props }: Ids & { alert
       <HiddenIds {...props} />
       <input type="hidden" name="alertId" value={props.alertId} />
       <FormField id={`reason-${props.alertId}`} label="Acknowledgement note (optional)" errors={fieldErrors.reason}>
-        <TextInput name="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} />
+        <PrivateField label="Acknowledgement note">
+          <TextInput name="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} />
+        </PrivateField>
       </FormField>
       <ActionFeedback state={state} visibleFields={["reason"]} />
       <Button
@@ -175,7 +177,9 @@ export function CancelDraftDialog(props: Ids & { expectedVersion: number }) {
           <HiddenIds {...props} />
           <input type="hidden" name="expectedVersion" value={props.expectedVersion} />
           <FormField id="cancel-reason" label="Reason (optional)">
-            <TextInput name="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} />
+            <PrivateField label="Cancel reason">
+              <TextInput name="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} />
+            </PrivateField>
           </FormField>
           <ActionFeedback state={state} />
           <div className="flex justify-end gap-2">
