@@ -1,4 +1,10 @@
-import { PRIVACY_ATTRIBUTE, PRIVACY_STORAGE_KEY } from "./config";
+import {
+  PRIVACY_ATTRIBUTE,
+  PRIVACY_IDLE_MS,
+  PRIVACY_IDLE_OPTIONS,
+  PRIVACY_IDLE_STORAGE_KEY,
+  PRIVACY_STORAGE_KEY,
+} from "./config";
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type RootLike = Pick<Element, "setAttribute" | "removeAttribute">;
@@ -71,18 +77,78 @@ export function createPrivacyStore(storage: StorageLike | null, root: RootLike |
   };
 }
 
+export type IdleSettingStore = {
+  get: () => number;
+  set: (ms: number) => void;
+  clear: () => void;
+  subscribe: (listener: () => void) => () => void;
+};
+
+function isIdleOption(ms: number): boolean {
+  return PRIVACY_IDLE_OPTIONS.some((option) => option.ms === ms);
+}
+
+/** The "Privacy auto-hide" choice: one of `PRIVACY_IDLE_OPTIONS`, `PRIVACY_IDLE_MS` when unset or invalid. */
+export function createIdleSettingStore(storage: StorageLike | null): IdleSettingStore {
+  // Used only when storage is unavailable; otherwise storage is read each time, so a value written
+  // elsewhere in the tab (another store instance, a test) is picked up.
+  let memory: number | null = null;
+  const listeners = new Set<() => void>();
+
+  const read = (): number => {
+    let stored = memory ?? Number.NaN;
+    try {
+      if (storage) stored = Number(storage.getItem(PRIVACY_IDLE_STORAGE_KEY));
+    } catch {
+      // Falls back to the in-memory value.
+    }
+    return isIdleOption(stored) ? stored : PRIVACY_IDLE_MS;
+  };
+
+  const write = (ms: number | null) => {
+    memory = ms;
+    try {
+      if (ms === null) storage?.removeItem(PRIVACY_IDLE_STORAGE_KEY);
+      else storage?.setItem(PRIVACY_IDLE_STORAGE_KEY, String(ms));
+    } catch {
+      // The in-memory value still applies to this page.
+    }
+    listeners.forEach((listener) => listener());
+  };
+
+  return {
+    get: read,
+    set: (ms) => {
+      if (isIdleOption(ms)) write(ms);
+    },
+    clear: () => write(null),
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+function sessionStorageOrNull(): StorageLike | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+let browserIdleStore: IdleSettingStore | null = null;
+
+/** The auto-hide setting for this browser tab. Only call it in the browser. */
+export function getIdleSettingStore(): IdleSettingStore {
+  browserIdleStore ??= createIdleSettingStore(sessionStorageOrNull());
+  return browserIdleStore;
+}
+
 let browserStore: PrivacyStore | null = null;
 
 /** The store for this browser tab. Only call it in the browser. */
 export function getPrivacyStore(): PrivacyStore {
-  if (!browserStore) {
-    let storage: StorageLike | null = null;
-    try {
-      storage = window.sessionStorage;
-    } catch {
-      storage = null;
-    }
-    browserStore = createPrivacyStore(storage, document.documentElement);
-  }
+  browserStore ??= createPrivacyStore(sessionStorageOrNull(), document.documentElement);
   return browserStore;
 }

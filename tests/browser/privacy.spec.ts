@@ -8,7 +8,7 @@ import { hideDevOverlay, reviewScreenshot } from "./support";
 // page text or the accessibility tree; safety alerts stay readable.
 
 const URL = "/dev/privacy";
-const privacyButton = (page: Page) => page.getByRole("button", { name: "Privacy" });
+const privacyButton = (page: Page) => page.getByTestId("privacy-toggle");
 const liveText = (page: Page) => page.locator("header [aria-live=polite]");
 /** Visible mask buttons only: the patient list repeats some values in a mobile line hidden at wider widths. */
 const revealButton = (page: Page, label: string) =>
@@ -105,6 +105,12 @@ for (const width of [1440, 1024, 390]) {
     await expect(privacyButton(page)).toBeFocused();
     await expect(liveText(page)).toHaveText("Patient details hidden");
     await expectMasked(page);
+    // Today's queue: names and initials masked, status kept, each chip still distinguishable.
+    const queue = page.getByRole("navigation", { name: "Today's queue" }).filter({ visible: true });
+    const queueTree = await queue.ariaSnapshot();
+    for (const name of ["Rowan", "Testcase", "Mira", "Demoson", "RT", "MD"]) expect(queueTree).not.toContain(name);
+    await expect(queue.getByRole("link", { name: "Patient 1 of 6, name hidden, Critical alert" })).toBeVisible();
+    await expect(queue.getByRole("link", { name: "Patient 2 of 6, name hidden, Warning" })).toBeVisible();
     await expect(revealButton(page, "Patient name").first()).toBeVisible();
     await expect(revealButton(page, "Notes")).toBeVisible();
     await expect(page.getByRole("link", { name: "Patient name hidden" })).toHaveCount(2);
@@ -311,11 +317,16 @@ test("reduced motion: masking and revealing run no transition or animation", asy
   expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
 });
 
-test("signing out drops the stored state and the sign-in page turns Privacy mode off", async ({ page }) => {
+test("signing out from the account menu drops the stored state and the sign-in page turns Privacy mode off", async ({ page }) => {
   await open(page);
   await turnOn(page);
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: /account menu/ }).click();
+  await page.getByRole("menuitemradio", { name: "2 minutes" }).click();
+  expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy.idle"))).toBe("120000");
+  await page.getByRole("button", { name: /account menu/ }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
   expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy"))).toBeNull();
+  expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy.idle"))).toBeNull();
   // The page stays masked until it is left.
   await expect(revealButton(page, "MRN").first()).toBeVisible();
 
@@ -343,3 +354,26 @@ for (const width of [1440, 390]) {
     }
   });
 }
+
+test("the auto-hide delay comes from the account menu choice", async ({ page }) => {
+  await page.clock.install();
+  await open(page);
+  await expect(async () => {
+    await page.getByRole("button", { name: /account menu/ }).click();
+    await expect(page.getByRole("menu", { name: "Account" })).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await expect(page.getByRole("menuitemradio", { name: "1 minute" })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("menuitemradio", { name: "30 seconds" }).click();
+  await expect(page.getByRole("menu", { name: "Account" })).toBeHidden();
+  expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy.idle"))).toBe("30000");
+
+  await page.clock.fastForward(29_000);
+  await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "false");
+  await page.clock.fastForward(2_000);
+  await expect(privacyButton(page)).toHaveAttribute("aria-pressed", "true");
+
+  // The choice survives a reload in the same tab.
+  await page.reload();
+  await page.getByRole("button", { name: /account menu/ }).click();
+  await expect(page.getByRole("menuitemradio", { name: "30 seconds" })).toHaveAttribute("aria-checked", "true");
+});

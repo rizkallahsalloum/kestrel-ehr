@@ -1,8 +1,18 @@
 /**
  * Privacy mode hides patient content after this much inactivity (pointer, key, touch, scroll).
- * Change this one value to adjust it, for example to 30_000 for 30 seconds.
+ * The user picks one of `PRIVACY_IDLE_OPTIONS` in the user menu ("Privacy auto-hide"); this is the default.
  */
 export const PRIVACY_IDLE_MS = 60_000;
+
+/** Choices in the user menu, in display order. */
+export const PRIVACY_IDLE_OPTIONS = [
+  { ms: 30_000, label: "30 seconds" },
+  { ms: 60_000, label: "1 minute" },
+  { ms: 120_000, label: "2 minutes" },
+] as const;
+
+/** sessionStorage key for the chosen auto-hide delay, in milliseconds. */
+export const PRIVACY_IDLE_STORAGE_KEY = "kestrel.privacy.idle";
 
 /** A field revealed on its own while Privacy mode is on is masked again after this long. */
 export const PRIVACY_FIELD_REVEAL_MS = 10_000;

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Avatar, Card, EmptyState, initialsOf, PrivateText, Tag } from "@/components/ui";
+import { Avatar, Card, EmptyState, PrivateText, Tag } from "@/components/ui";
 import { ageInYears, formatDate } from "@/lib/format";
+import { getInitials } from "@/lib/initials";
 import type { PatientSummary } from "@/types/domain";
 
 /** The query is usually a name or MRN, so it is masked like one. */
@@ -63,7 +64,7 @@ export function PatientList({
                         <Avatar
                           initials={
                             <PrivateText label="Initials" revealable={false} mask="••">
-                              {initialsOf(patient.given_name, patient.family_name)}
+                              {getInitials(`${patient.given_name} ${patient.family_name}`)}
                             </PrivateText>
                           }
                           size="sm"

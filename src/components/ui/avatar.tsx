@@ -7,6 +7,7 @@ const tones = {
   ink: "bg-ink text-page",
 } as const;
 const sizes = {
+  xs: "size-5.5 text-caption",
   sm: "size-7.5 text-caption",
   md: "size-13 text-heading-sm",
   lg: "size-14 text-heading-md",
@@ -14,11 +15,7 @@ const sizes = {
 
 export type AvatarTone = keyof typeof tones;
 
-export function initialsOf(givenName: string, familyName: string): string {
-  return `${givenName.trim().charAt(0)}${familyName.trim().charAt(0)}`.toUpperCase();
-}
-
-/** Initials in mono. Decorative unless `label` is given; the name should be visible next to it. */
+/** Initials (from `getInitials` in `src/lib/initials.ts`) in mono. Decorative unless `label` is given; the name should be visible next to it. */
 export function Avatar({
   initials,
   tone = "teal",

@@ -38,6 +38,8 @@ function formToObject(formData: FormData): Record<string, FormDataEntryValue> {
 function revalidatePrescription(patientId: string, prescriptionId?: string): void {
   revalidatePath(`/patients/${patientId}`);
   if (prescriptionId) revalidatePath(`/patients/${patientId}/prescriptions/${prescriptionId}`);
+  // The (app) layout renders Today's queue, whose status dots come from draft alerts.
+  revalidatePath("/", "layout");
 }
 
 async function prescriptionBelongsToPatient(

@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { LAYOUT_WIDTHS, reviewPath } from "./support";
 
 const WIDTHS = LAYOUT_WIDTHS;
-const VIEWS = ["clinician", "admin", "login", "not-found", "error"] as const;
+const VIEWS = ["clinician", "admin", "login", "not-found", "error", "placeholder"] as const;
 
 const searchBox = (page: Page) => page.getByRole("searchbox", { name: "Search patients by name or MRN" });
 const patientRows = (page: Page) => page.locator("main table tbody tr");
@@ -32,7 +32,7 @@ for (const width of WIDTHS) {
     await page.goto("/dev/shell?view=clinician");
     const rail = page.locator("aside");
     expect((await rail.boundingBox())?.width).toBe(width > 760 ? 76 : 60);
-    const label = page.getByRole("link", { name: "Patients" }).locator("span");
+    const label = page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Chart" }).locator("span");
     expect(await label.evaluate((el) => el.getBoundingClientRect().width > 1)).toBe(width > 760);
 
     const search = await page.getByRole("search", { name: "Patients" }).boundingBox();
@@ -43,20 +43,22 @@ for (const width of WIDTHS) {
   });
 }
 
-test("rail marks the current section and the identity block names the user", async ({ page }) => {
+test("rail marks the current section and the account menu names the user", async ({ page }) => {
   await page.goto("/dev/shell?view=clinician");
-  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Patients" })).toHaveAttribute(
+  // The patient list is part of the Chart section; Chart itself opens a patient, so the list is "true", not "page".
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Chart" })).toHaveAttribute(
     "aria-current",
-    "page",
+    "true",
   );
-  const current = page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Patients" });
+  const current = page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Chart" });
   const { color, shadow } = await current.evaluate((el) => {
     const style = getComputedStyle(el);
     return { color: style.color, shadow: style.boxShadow };
   });
   expect(shadow).toContain(color);
   await expect(page.getByTestId("current-user")).toContainText("Dr. Demo Clinician");
-  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Dr\. Demo Clinician\s*, Clinician\s*, account menu/ })).toBeVisible();
 
   await page.goto("/dev/shell?view=admin");
   await expect(page.getByRole("link", { name: "Audit" })).toHaveAttribute("aria-current", "page");

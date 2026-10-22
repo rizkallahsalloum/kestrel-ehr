@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { LAYOUT_WIDTHS, reviewPath } from "./support";
+import { LAYOUT_WIDTHS, reviewPath, severityColourViolations } from "./support";
 
 const WIDTHS = LAYOUT_WIDTHS;
 const VIEWS = ["blocking", "advisory", "mixed", "no-drafts", "no-allergies"] as const;
@@ -56,7 +56,8 @@ for (const width of WIDTHS) {
     } else {
       expect(side.y).toBeGreaterThan(hero.y + hero.height);
     }
-    await expect(page.getByText("Synthetic data", { exact: true })).toBeVisible({ visible: width >= 1180 });
+    await expect(page.getByRole("link", { name: "Back to patients" })).toHaveCount(0);
+    await expect(page.getByTestId("sync-status")).toBeVisible({ visible: width >= 1180 });
   });
 }
 
@@ -94,22 +95,27 @@ test("advisory draft: warning banner, plus a note for a draft without a safety c
   await expect(page.getByRole("list", { name: "Active medications" }).getByText("from signed prescription")).toBeVisible();
 });
 
-test("allergies are orange; severe gets the 2px emphasis outline and circle icon; the card follows the highest", async ({ page }) => {
+test("severe allergies are red with the 2px outline, mild and moderate orange; every icon is the triangle", async ({ page }) => {
   await open(page, "blocking");
   const card = allergyCard(page);
-  expect(await borderColor(card)).toBe(await tokenColor(page, "warning-stroke"));
+  expect(await borderColor(card)).toBe(await tokenColor(page, "danger"));
   expect(await borderWidth(card)).toBe("2px");
-  await expect(card.getByRole("heading", { name: "Allergies" }).locator("svg")).toHaveAttribute("data-icon", "alert-circle");
-  for (const text of ["Demo class Alpha agents", "Severe", "Demo class Delta agents", "Mild"]) {
-    expect(await textColor(card.getByText(text)), text).toBe(await tokenColor(page, "warning"));
-  }
+  const cardIcon = card.getByRole("heading", { name: "Allergies" }).locator("svg");
+  await expect(cardIcon).toHaveAttribute("data-icon", "alert-triangle");
+  expect(await textColor(cardIcon)).toBe(await tokenColor(page, "danger"));
+  expect(await textColor(card.getByText("Demo class Alpha agents"))).toBe(await tokenColor(page, "danger-ink"));
+  expect(await textColor(card.getByText("Demo class Delta agents"))).toBe(await tokenColor(page, "warning"));
   const severeTag = card.getByText("Severe");
+  expect(await textColor(severeTag)).toBe(await tokenColor(page, "danger"));
   expect(await borderWidth(severeTag)).toBe("2px");
-  expect(await borderColor(severeTag)).toBe(await tokenColor(page, "warning-stroke"));
-  expect(await borderWidth(card.getByText("Mild"))).toBe("1px");
+  expect(await borderColor(severeTag)).toBe(await tokenColor(page, "danger"));
+  const mildTag = card.getByText("Mild");
+  expect(await textColor(mildTag)).toBe(await tokenColor(page, "warning"));
+  expect(await borderWidth(mildTag)).toBe("1px");
   const badge = page.getByText("2 allergies · highest severe");
-  expect(await textColor(badge)).toBe(await tokenColor(page, "warning"));
-  await expect(badge.locator("svg")).toHaveAttribute("data-icon", "alert-circle");
+  expect(await textColor(badge)).toBe(await tokenColor(page, "danger-ink"));
+  expect(await style(badge, "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
+  await expect(badge.locator("svg")).toHaveAttribute("data-icon", "alert-triangle");
 
   await open(page, "no-drafts");
   const advisoryCard = allergyCard(page);
@@ -124,28 +130,47 @@ test("allergies are orange; severe gets the 2px emphasis outline and circle icon
   }
   const advisoryBadge = page.getByText("2 allergies · highest moderate");
   expect(await textColor(advisoryBadge)).toBe(await tokenColor(page, "warning"));
+  expect(await style(advisoryBadge, "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
   await expect(advisoryBadge.locator("svg")).toHaveAttribute("data-icon", "alert-triangle");
 });
 
-test("no detection state on the chart is red", async ({ page }) => {
+test("severe and critical map to error tokens, moderate and warning to warning tokens, on every chart view", async ({ page }) => {
   for (const view of VIEWS) {
     await open(page, view);
-    const red = await page.evaluate((tokens) => {
-      const probe = document.createElement("div");
-      document.body.append(probe);
-      const resolved = tokens.map((t) => {
-        probe.style.color = `var(--color-${t})`;
-        return getComputedStyle(probe).color;
-      });
-      probe.remove();
-      return [...document.querySelectorAll("main *")]
-        .filter((el) => {
-          const s = getComputedStyle(el);
-          return [s.color, s.backgroundColor, s.borderTopColor].some((c) => resolved.includes(c));
-        })
-        .map((el) => el.outerHTML.slice(0, 80));
-    }, ["danger", "danger-ink", "danger-subtle", "danger-line", "status-critical"]);
-    expect(red, view).toEqual([]);
+    const found = await severityColourViolations(page);
+    expect(found.redOutsideCritical, `${view}: red outside a severe or critical state`).toEqual([]);
+    expect(found.orangeInCritical, `${view}: orange inside a severe or critical state`).toEqual([]);
+  }
+  // Red is used: the blocking view has red on the banner, allergy card, pill and severe tag.
+  await open(page, "blocking");
+  await expect(page.locator("main [data-severity=critical]")).toHaveCount(5);
+});
+
+test("the allergy pill reads as a pill: one line, at least 28px tall, 12px medium text, spaced icon", async ({ page }) => {
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await open(page, "blocking");
+    const pill = page.getByText("2 allergies · highest severe");
+    const box = await pill.boundingBox();
+    if (!box) throw new Error("missing pill");
+    expect(box.height, `${width}px height`).toBeGreaterThanOrEqual(28);
+    expect(box.height, `${width}px one line`).toBeLessThan(40);
+    const metrics = await pill.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { size: s.fontSize, weight: s.fontWeight, gap: s.columnGap, padX: s.paddingLeft, padY: s.paddingTop, wrap: s.whiteSpace };
+    });
+    expect(metrics).toEqual({ size: "12px", weight: "500", gap: "6px", padX: "12px", padY: "4px", wrap: "nowrap" });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+
+    // Privacy mode does not mask the allergy summary and does not move the pill.
+    await page.getByTestId("privacy-toggle").click();
+    await expect(page.locator("html")).toHaveAttribute("data-privacy", "on");
+    // Sub-pixel tolerance: the masked name above can round the hero's line boxes by a fraction of a pixel.
+    const masked = await pill.boundingBox();
+    for (const key of ["x", "y", "width", "height"] as const) expect(Math.abs(masked![key] - box[key])).toBeLessThan(0.5);
+    await page.screenshot({ path: reviewPath("chart", `allergy-pill-privacy-${width}.png`), caret: "initial" });
+    await page.getByTestId("privacy-toggle").click();
   }
 });
 
@@ -156,13 +181,15 @@ test("mixed: blocking banner first, allergies most severe first, draft badges ne
   await expect(banners.nth(0)).toContainText("Blocking demo alert on draft: Zentoril 10 mg tablet");
   await expect(banners.nth(1)).toContainText("Advisory demo alert to acknowledge on draft: Calvexa 250 mg capsule");
   expect(await borderWidth(banners.nth(0))).toBe("2px");
-  expect(await borderColor(banners.nth(0))).toBe(await tokenColor(page, "warning-stroke"));
+  expect(await borderColor(banners.nth(0))).toBe(await tokenColor(page, "danger"));
+  expect(await borderColor(banners.nth(1))).toBe(await tokenColor(page, "warning-line"));
   expect(await borderWidth(banners.nth(1))).toBe("1px");
-  await expect(banners.nth(0).locator("svg").first()).toHaveAttribute("data-icon", "alert-circle");
+  await expect(banners.nth(0).locator("svg").first()).toHaveAttribute("data-icon", "alert-triangle");
   await expect(banners.nth(1).locator("svg").first()).toHaveAttribute("data-icon", "alert-triangle");
-  for (const banner of [banners.nth(0), banners.nth(1)]) {
-    expect(await style(banner, "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
-  }
+  expect(await style(banners.nth(0), "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
+  expect(await style(banners.nth(1), "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
+  expect(await textColor(banners.nth(0).locator("p").first())).toBe(await tokenColor(page, "danger-ink"));
+  expect(await textColor(banners.nth(1).locator("p").first())).toBe(await tokenColor(page, "warning"));
 
   const names = await allergyCard(page).getByRole("list", { name: "Active allergies" }).locator("li p:first-child").allTextContents();
   expect(names).toEqual(["Demo class Alpha agents", "Demo class Gamma agents", "Demo class Beta agents"]);

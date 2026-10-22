@@ -6,6 +6,7 @@ import { AppShell, type ShellUser } from "@/components/shell/app-shell";
 import { ChartSkeleton } from "@/features/chart/components/chart-skeleton";
 import { PatientChartView } from "@/features/chart/components/patient-chart-view";
 import { Delayed, delayParam } from "../delayed";
+import { DEMO_QUEUE } from "../demo-queue";
 import type { PatientChart } from "@/features/chart/queries";
 import type { DraftAlertRow, PatientSummary, PrescriptionListItem } from "@/types/domain";
 
@@ -141,7 +142,7 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
 
   const content = (
     <>
-      <PatientChartView chart={CHARTS[view]} backHref="/dev/shell?view=clinician" />
+      <PatientChartView chart={CHARTS[view]} />
       <p className="mt-6 text-label-sm text-ink-muted">
         Development specimen. Views:{" "}
         {VIEWS.map((v, i) => (
@@ -161,7 +162,12 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
   );
 
   return (
-    <AppShell user={CLINICIAN} activePath="/patients" searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
+    <AppShell
+      user={CLINICIAN}
+      activePath={`/patients/${CHARTS[view].patient.id}`}
+      queue={DEMO_QUEUE}
+      renderedAt={new Date().toISOString()}
+      searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
       {params.skeleton ? (
         <ChartSkeleton />
       ) : delay ? (

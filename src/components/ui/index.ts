@@ -1,6 +1,6 @@
 export { AlertBanner, NoAlert } from "./alert-banner";
-export { Avatar, initialsOf, type AvatarTone } from "./avatar";
-export { Badge, SeverityTag, StatusDot, Tag, type Tone } from "./badge";
+export { Avatar, type AvatarTone } from "./avatar";
+export { Badge, SeverityTag, StatusDot, Tag, type StatusTone, type Tone } from "./badge";
 export { Button, buttonStyles, type ButtonProps, type ButtonSize, type ButtonVariant } from "./button";
 export { Card, CardHeader, PanelTitle } from "./card";
 export { AttestationCheck, Checkbox, RadioOption } from "./choice";
@@ -28,5 +28,12 @@ export {
   PrivateText,
   type PrivacyMaskState,
 } from "./private-text";
-export { severityIcons, severityOutline } from "./severity";
+export {
+  severityDivider,
+  severityFill,
+  severityIconText,
+  severityOutline,
+  severityText,
+  type Severity,
+} from "./severity";
 export { LoadingRegion, SkeletonBlock, SkeletonLine } from "./skeleton";

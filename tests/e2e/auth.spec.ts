@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { PATIENTS } from "../../scripts/fixtures.ts";
 import { loadTestEnv } from "../../scripts/test-env.ts";
-import { signIn } from "./helpers";
+import { signIn, signOut } from "./helpers";
 
 test("unauthenticated visitors are redirected to login", async ({ page }) => {
   await page.goto("/patients");
@@ -41,14 +41,14 @@ test("an inactive account cannot sign in", async ({ page }) => {
 
 test("sign out ends the session", async ({ page }) => {
   await signIn(page, "clinicianA");
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await signOut(page);
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/patients");
   await expect(page).toHaveURL(/\/login$/);
 });
 
 test("Privacy mode stays on across navigation and is off after signing out and in again", async ({ page }) => {
-  const privacy = page.getByRole("button", { name: "Privacy" });
+  const privacy = page.getByTestId("privacy-toggle");
   await signIn(page, "clinicianA");
   await expect(privacy).toHaveAttribute("aria-pressed", "false");
   await expect(async () => {
@@ -65,9 +65,11 @@ test("Privacy mode stays on across navigation and is off after signing out and i
   await expect(page.getByRole("main")).not.toContainText("Testcase");
   expect(await page.getByRole("main").ariaSnapshot()).not.toContain("SYN-");
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await signOut(page);
   await expect(page).toHaveURL(/\/login$/);
   expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy"))).toBeNull();
+  expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy.idle"))).toBeNull();
+  expect(await page.evaluate(() => sessionStorage.getItem("kestrel.lastPatient"))).toBeNull();
 
   await signIn(page, "clinicianA");
   await expect(privacy).toHaveAttribute("aria-pressed", "false");

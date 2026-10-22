@@ -78,7 +78,7 @@ export default async function AuditSpecimenPage({ searchParams }: PageProps<"/de
   );
 
   return (
-    <AppShell user={ADMIN} activePath="/admin/audit">
+    <AppShell user={ADMIN} activePath="/admin/audit" renderedAt={new Date().toISOString()}>
       {params.skeleton ? (
         <AuditSkeleton />
       ) : delay ? (

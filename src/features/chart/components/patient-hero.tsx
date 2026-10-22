@@ -1,19 +1,19 @@
-import { Avatar, Badge, initialsOf, PrivateText, severityIcons, Tag } from "@/components/ui";
+import { AlertTriangleIcon, Avatar, Badge, PrivateText, Tag } from "@/components/ui";
 import { allergyTone, highestSeverity } from "@/features/chart/allergies";
 import { ageInYears, formatDate } from "@/lib/format";
+import { getInitials } from "@/lib/initials";
 import type { Allergy, PatientSummary } from "@/types/domain";
 
 const SEX_SHORT: Record<string, string> = { female: "F", male: "M" };
 
 function AllergyBadge({ allergies }: { allergies: Pick<Allergy, "severity">[] }) {
   const highest = highestSeverity(allergies);
-  if (!highest) return <Badge tone="neutral">No active allergies recorded</Badge>;
+  if (!highest) return <Badge tone="neutral" size="md">No active allergies recorded</Badge>;
   const count = allergies.length;
   const tone = allergyTone(highest);
-  const Icon = severityIcons[tone];
   return (
-    <Badge tone={tone} className="gap-1">
-      <Icon className="size-3.5" />
+    <Badge tone={tone} size="md" className="shrink-0">
+      <AlertTriangleIcon className="size-3.5" />
       {count === 1 ? `1 allergy · ${highest}` : `${count} allergies · highest ${highest}`}
     </Badge>
   );
@@ -28,7 +28,7 @@ export function PatientHero({ patient, allergies }: { patient: PatientSummary; a
         <Avatar
           initials={
             <PrivateText label="Initials" revealable={false} mask="••">
-              {initialsOf(patient.given_name, patient.family_name)}
+              {getInitials(`${patient.given_name} ${patient.family_name}`)}
             </PrivateText>
           }
           size="lg"

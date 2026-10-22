@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { LAYOUT_WIDTHS, reviewPath } from "./support";
+import { LAYOUT_WIDTHS, reviewPath, severityColourViolations } from "./support";
 
 const WIDTHS = LAYOUT_WIDTHS;
 const VIEWS = ["new", "unevaluated", "blocking", "advisory", "mixed", "ready", "signed", "cancelled", "other-prescriber"] as const;
@@ -129,16 +129,17 @@ test("unsaved changes: notice, saved summary unchanged, signing disabled", async
   await page.screenshot({ path: reviewPath("prescribing", "rx-unsaved-1280.png"), fullPage: true, caret: "initial" });
 });
 
-test("blocking alert: orange card with the emphasis outline, no acknowledgement, link to the medication section", async ({ page }) => {
+test("blocking alert: red card with the emphasis outline, no acknowledgement, link to the medication section", async ({ page }) => {
   await open(page, "blocking");
   const alerts = page.getByRole("list", { name: "Safety alerts" });
   const card = alerts.getByRole("listitem");
   await expect(alerts.getByText("Blocking", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /acknowledge/i })).toHaveCount(0);
-  expect(await style(card, "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
-  expect(await style(card, "borderTopColor")).toBe(await tokenColor(page, "warning-stroke"));
+  expect(await style(card, "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
+  expect(await style(card, "borderTopColor")).toBe(await tokenColor(page, "danger"));
   expect(await style(card, "borderTopWidth")).toBe("2px");
-  await expect(icon(card)).toHaveAttribute("data-icon", "alert-circle");
+  await expect(icon(card)).toHaveAttribute("data-icon", "alert-triangle");
+  expect(await style(icon(card), "color")).toBe(await tokenColor(page, "danger"));
   await expect(card.getByRole("link", { name: "Go to medication" })).toHaveAttribute("href", "#rx-medication");
   await expect(page.getByRole("list", { name: "Signing prerequisites" })).toContainText("blocking demo alert");
   await expect(signButton(page)).toHaveText("Blocking alert: change or cancel the draft");
@@ -146,23 +147,26 @@ test("blocking alert: orange card with the emphasis outline, no acknowledgement,
   await expect(signButton(page)).toBeDisabled();
   const pill = review(page).getByText("1 blocking", { exact: true });
   await expect(pill).toBeVisible();
-  expect(await style(pill, "color")).toBe(await tokenColor(page, "warning"));
-  expect(await style(pill, "borderTopColor")).toBe(await tokenColor(page, "warning-stroke"));
-  await expect(icon(pill)).toHaveAttribute("data-icon", "alert-circle");
+  expect(await style(pill, "color")).toBe(await tokenColor(page, "danger-ink"));
+  expect(await style(pill, "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
+  expect(await style(pill, "borderTopColor")).toBe(await tokenColor(page, "danger"));
+  await expect(icon(pill)).toHaveAttribute("data-icon", "alert-triangle");
   const summary = context(page).getByText("1 blocking alert", { exact: true });
   await expect(summary).toBeVisible();
   const summaryBox = summary.locator("xpath=..");
   expect(await style(summaryBox, "borderTopWidth")).toBe("2px");
-  expect(await style(summaryBox, "borderTopColor")).toBe(await tokenColor(page, "warning-stroke"));
-  await expect(icon(summary)).toHaveAttribute("data-icon", "alert-circle");
+  expect(await style(summaryBox, "borderTopColor")).toBe(await tokenColor(page, "danger"));
+  expect(await style(summaryBox, "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
+  await expect(icon(summary)).toHaveAttribute("data-icon", "alert-triangle");
 
   const tile = page.getByRole("region", { name: "Patient", exact: true }).getByText("Severe allergy", { exact: true }).locator("xpath=..");
   expect(await style(tile, "borderTopWidth")).toBe("2px");
-  expect(await style(tile, "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
-  await expect(icon(tile)).toHaveAttribute("data-icon", "alert-circle");
+  expect(await style(tile, "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
+  expect(await style(tile, "borderTopColor")).toBe(await tokenColor(page, "danger"));
+  await expect(icon(tile)).toHaveAttribute("data-icon", "alert-triangle");
 });
 
-test("mixed alerts: blocking first, then advisory, then acknowledged; advisory has the hairline and triangle", async ({ page }) => {
+test("mixed alerts: blocking first (red), then advisory (orange hairline), then acknowledged; all triangles", async ({ page }) => {
   await open(page, "mixed");
   const cards = page.getByRole("list", { name: "Safety alerts" }).getByRole("listitem");
   await expect(cards).toHaveCount(3);
@@ -173,33 +177,20 @@ test("mixed alerts: blocking first, then advisory, then acknowledged; advisory h
   expect(await style(cards.nth(0), "borderTopWidth")).toBe("2px");
   expect(await style(cards.nth(1), "borderTopWidth")).toBe("1px");
   expect(await style(cards.nth(1), "borderTopColor")).toBe(await tokenColor(page, "warning-line"));
-  await expect(icon(cards.nth(0))).toHaveAttribute("data-icon", "alert-circle");
+  await expect(icon(cards.nth(0))).toHaveAttribute("data-icon", "alert-triangle");
   await expect(icon(cards.nth(1))).toHaveAttribute("data-icon", "alert-triangle");
-  for (const i of [0, 1]) expect(await style(cards.nth(i), "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
+  expect(await style(cards.nth(0), "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
+  expect(await style(cards.nth(0), "borderTopColor")).toBe(await tokenColor(page, "danger"));
+  expect(await style(cards.nth(1), "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
   await page.screenshot({ path: reviewPath("prescribing", "rx-mixed-1440.png"), fullPage: true, caret: "initial" });
 });
 
-test("no detection state in the workspace is red; only the cancel confirm is", async ({ page }) => {
-  const redTokens = ["danger", "danger-ink", "danger-subtle", "danger-line", "status-critical"];
+test("severe and critical map to error tokens, moderate and warning to warning tokens, in every workspace view", async ({ page }) => {
   for (const view of VIEWS) {
     await open(page, view);
-    const red = await workspace(page).evaluate((root, tokens) => {
-      const probe = document.createElement("div");
-      document.body.append(probe);
-      const resolved = tokens.map((t) => {
-        probe.style.color = `var(--color-${t})`;
-        return getComputedStyle(probe).color;
-      });
-      probe.remove();
-      return [...root.querySelectorAll("*")]
-        .filter((el) => !el.closest("dialog"))
-        .filter((el) => {
-          const s = getComputedStyle(el);
-          return [s.color, s.backgroundColor, s.borderTopColor].some((c) => resolved.includes(c));
-        })
-        .map((el) => el.outerHTML.slice(0, 80));
-    }, redTokens);
-    expect(red, view).toEqual([]);
+    const found = await severityColourViolations(page);
+    expect(found.redOutsideCritical, `${view}: red outside a severe or critical state`).toEqual([]);
+    expect(found.orangeInCritical, `${view}: orange inside a severe or critical state`).toEqual([]);
   }
 });
 

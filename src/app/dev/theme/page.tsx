@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { AlertCircleIcon, AlertTriangleIcon, severityOutline } from "@/components/ui";
+import { AlertTriangleIcon, severityFill, severityIconText, severityOutline, severityText } from "@/components/ui";
 import { ContrastTable, type ContrastPair } from "./contrast-table";
 
 export const metadata: Metadata = { title: "Theme specimen (development only) | Kestrel EHR" };
@@ -63,10 +63,10 @@ const SWATCH_GROUPS: { title: string; swatches: Swatch[] }[] = [
       { name: "warning-subtle", token: "fallback", note: "overrides warning.subtle (C7)" },
       { name: "warning-line", token: "fallback", note: "overrides border.warning (C7)" },
       { name: "warning-stroke", token: "warning.border-strong", note: "field error stroke" },
-      { name: "danger", token: "error.default", note: "destructive confirm only" },
-      { name: "danger-ink", token: "error.hover", note: "destructive confirm hover" },
-      { name: "danger-subtle", token: "alert.critical.bg", note: "not used" },
-      { name: "danger-line", token: "border.warning-strong", note: "C8, not used" },
+      { name: "danger", token: "error.default", note: "severe/critical outline, icon, tag; destructive confirm" },
+      { name: "danger-ink", token: "error.hover", note: "severe/critical title text; destructive hover" },
+      { name: "danger-subtle", token: "alert.critical.bg", note: "severe/critical fill" },
+      { name: "danger-line", token: "border.warning-strong", note: "C8, severe allergy row dividers" },
     ],
   },
 ];
@@ -89,8 +89,8 @@ const CONTRAST_PAIRS: ContrastPair[] = [
   { label: "ok on ok-subtle", fg: "var(--color-ok)", bg: "var(--color-ok-subtle)", kind: "text" },
   { label: "warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
   { label: "warning-stroke on surface (field error text)", fg: "var(--color-warning-stroke)", bg: "var(--color-surface)", kind: "text" },
-  { label: "danger on danger-subtle (not used)", fg: "var(--color-danger)", bg: "var(--color-danger-subtle)", kind: "text" },
-  { label: "danger-ink on danger-subtle (not used)", fg: "var(--color-danger-ink)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "danger on danger-subtle", fg: "var(--color-danger)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "danger-ink on danger-subtle", fg: "var(--color-danger-ink)", bg: "var(--color-danger-subtle)", kind: "text" },
   { label: "on-accent on danger (danger button)", fg: "var(--color-on-accent)", bg: "var(--color-danger)", kind: "text" },
   { label: "line-field vs surface (input boundary)", fg: "var(--color-line-field)", bg: "var(--color-surface)", kind: "ui" },
   { label: "warning-stroke vs surface (error boundary)", fg: "var(--color-warning-stroke)", bg: "var(--color-surface)", kind: "ui" },
@@ -298,16 +298,16 @@ export default function ThemeSpecimenPage() {
 
       <Section title="Status surfaces (illustrative, synthetic text)">
         <div className="grid gap-4 md:grid-cols-3">
-          <div className={`rounded-card bg-warning-subtle p-4 ${severityOutline.critical}`}>
-            <p className="flex items-center gap-1.5 text-body-sm font-semibold text-warning">
-              <AlertCircleIcon />
+          <div className={`rounded-card p-4 ${severityFill.critical} ${severityOutline.critical}`}>
+            <p className={`flex items-center gap-1.5 text-body-sm font-semibold ${severityText.critical}`}>
+              <AlertTriangleIcon className={severityIconText.critical} />
               Blocking demo alert
             </p>
-            <p className="text-body-sm text-ink-strong">DEMO RULE sample text: emphasis outline, circle icon.</p>
+            <p className="text-body-sm text-ink-strong">DEMO RULE sample text: red, emphasis outline.</p>
           </div>
-          <div className={`rounded-card bg-warning-subtle p-4 ${severityOutline.warning}`}>
-            <p className="flex items-center gap-1.5 text-body-sm font-semibold text-warning">
-              <AlertTriangleIcon />
+          <div className={`rounded-card p-4 ${severityFill.warning} ${severityOutline.warning}`}>
+            <p className={`flex items-center gap-1.5 text-body-sm font-semibold ${severityText.warning}`}>
+              <AlertTriangleIcon className={severityIconText.warning} />
               Advisory demo alert
             </p>
             <p className="text-body-sm text-ink-strong">DEMO RULE sample text on the warning surface.</p>
@@ -325,7 +325,7 @@ export default function ThemeSpecimenPage() {
           {(["status-stable", "status-warning", "status-critical"] as const).map((name) => (
             <span key={name} className="flex items-center gap-2 text-label">
               <span className="size-2 rounded-full" style={{ background: `var(--color-${name})` }} aria-hidden="true" />
-              {name === "status-critical" ? `${name} (not used)` : name}
+              {name}
             </span>
           ))}
         </div>

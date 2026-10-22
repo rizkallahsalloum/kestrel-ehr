@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "./cn";
-import { severityOutline } from "./severity";
+import { severityIconText, severityOutline } from "./severity";
 
 type HeadingLevel = 2 | 3;
 
@@ -49,6 +49,7 @@ export function Card({
 }) {
   return (
     <section
+      data-severity={tone === "critical" ? tone : undefined}
       className={cn(
         "rounded-card bg-surface p-5",
         tone === "critical" ? severityOutline.critical : "border border-line-subtle",
@@ -64,7 +65,7 @@ export function Card({
   );
 }
 
-const panelIconTones = { default: "text-ink-muted", warning: "text-warning", critical: "text-warning" } as const;
+const panelIconTones = { default: "text-ink-muted", ...severityIconText } as const;
 
 /** Small icon-led panel heading (dashboard `.panel-title`). */
 export function PanelTitle({

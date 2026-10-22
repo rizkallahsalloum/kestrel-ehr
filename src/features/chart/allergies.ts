@@ -18,8 +18,8 @@ export function bySeverity<T extends Pick<Allergy, "severity">>(allergies: T[]):
 }
 
 /**
- * Severe allergies get the blocking ("critical") treatment, mild and moderate the advisory one.
- * Both are orange; blocking adds the emphasis border and circle icon. See docs/theme.md, "Red and orange".
+ * Severe allergies get the blocking ("critical") treatment in red, mild and moderate the advisory one
+ * in orange. See docs/theme.md, "Severity colours".
  */
 export function allergyTone(severity: Severity): "critical" | "warning" {
   return severity === "severe" ? "critical" : "warning";

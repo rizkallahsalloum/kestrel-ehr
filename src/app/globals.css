@@ -303,6 +303,28 @@
     accent-color: var(--color-accent);
   }
 
+  /* Interactive elements show the pointer; text fields keep the text cursor. Disabled controls show
+     not-allowed. Base layer, so a cursor-* utility can still override one element. */
+  button,
+  [role="button"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="tab"],
+  [role="option"],
+  a[href],
+  summary,
+  select,
+  label:has(> input:is([type="checkbox"], [type="radio"])),
+  input:is([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="range"], [type="color"]) {
+    cursor: pointer;
+  }
+
+  :disabled,
+  [aria-disabled="true"],
+  label:has(> input:disabled) {
+    cursor: not-allowed;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -324,6 +346,14 @@
 :root[data-privacy="on"] [data-private-value]:not([data-revealed]) {
   visibility: hidden;
   user-select: none;
+}
+
+/* Horizontal chip rows (Today's queue): scroll by wheel, touch or keyboard focus without a visible bar. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Uppercase micro-label used for table headers and section labels in the dashboard. */

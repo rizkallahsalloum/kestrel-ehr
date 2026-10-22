@@ -9,9 +9,11 @@ import {
   PanelTitle,
   PillIcon,
   PrivateText,
+  AlertTriangleIcon,
   SeverityTag,
-  severityIcons,
+  severityDivider,
   severityOutline,
+  severityText,
   type Tone,
 } from "@/components/ui";
 import { allergyTone, bySeverity, highestSeverity } from "@/features/chart/allergies";
@@ -32,8 +34,7 @@ const panelOutlines: Record<PanelTone, string> = {
 /** Row dividers stay hairline in every tone. */
 const panelDividers: Record<PanelTone, string> = {
   default: "border-line-subtle",
-  warning: "border-warning-line",
-  critical: "border-warning-line",
+  ...severityDivider,
 };
 
 /** Dashboard context-column card: flush rows under an icon-led title. */
@@ -49,7 +50,10 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className={cn("rounded-card bg-surface shadow-level-1", panelOutlines[tone])}>
+    <section
+      data-severity={tone === "default" ? undefined : tone}
+      className={cn("rounded-card bg-surface shadow-level-1", panelOutlines[tone])}
+    >
       <div className="px-5 pt-4 pb-3">
         <PanelTitle as="h2" icon={icon} tone={tone}>
           {title}
@@ -63,9 +67,8 @@ function Panel({
 export function AllergyPanel({ allergies }: { allergies: Allergy[] }) {
   const highest = highestSeverity(allergies);
   const tone: PanelTone = highest ? allergyTone(highest) : "default";
-  const Icon = tone === "critical" ? severityIcons.critical : severityIcons.warning;
   return (
-    <Panel title="Allergies" icon={<Icon className="size-3.75" />} tone={tone}>
+    <Panel title="Allergies" icon={<AlertTriangleIcon className="size-3.75" />} tone={tone}>
       {highest ? (
         <ul aria-label="Active allergies" className="pb-1">
           {bySeverity(allergies).map((allergy) => {
@@ -78,8 +81,8 @@ export function AllergyPanel({ allergies }: { allergies: Allergy[] }) {
                   panelDividers[tone],
                 )}
               >
-                <div className="min-w-0">
-                  <p className="text-label font-semibold text-warning">{allergy.substance_text}</p>
+                <div className="min-w-0" data-severity={rowTone}>
+                  <p className={cn("text-label font-semibold", severityText[rowTone])}>{allergy.substance_text}</p>
                   {allergy.reaction && <p className="mt-0.5 text-label-sm text-ink-strong">{allergy.reaction}</p>}
                   {allergy.drug_class_code && (
                     <p className="mt-0.5 font-mono text-code-sm text-ink-muted">{allergy.drug_class_code}</p>

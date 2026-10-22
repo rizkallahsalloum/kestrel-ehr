@@ -21,7 +21,10 @@ function record(state: string, width: number, findings: Finding[]): void {
 const PAGES: [string, string][] = [
   ["theme", "/dev/theme"],
   ["components", "/dev/components"],
-  ...["clinician", "admin", "login", "not-found", "error"].map((v): [string, string] => [`shell ${v}`, `/dev/shell?view=${v}`]),
+  ...["clinician", "admin", "login", "not-found", "error", "placeholder"].map((v): [string, string] => [
+    `shell ${v}`,
+    `/dev/shell?view=${v}`,
+  ]),
   ...["blocking", "advisory", "no-drafts", "mixed", "no-allergies"].map((v): [string, string] => [`chart ${v}`, `/dev/chart?view=${v}`]),
   ["chart skeleton", "/dev/chart?skeleton=1"],
   ...["new", "unevaluated", "blocking", "advisory", "mixed", "ready", "signed", "cancelled", "other-prescriber"].map(
@@ -37,7 +40,7 @@ const PAGES: [string, string][] = [
 ];
 
 /** Pages that are layout-sensitive enough to scan at the narrow width as well. */
-const NARROW = new Set(["shell clinician", "shell admin", "chart blocking", "prescribing blocking", "prescribing new", "audit"]);
+const NARROW = new Set(["shell clinician", "shell admin", "shell placeholder", "chart blocking", "prescribing blocking", "prescribing new", "audit"]);
 
 async function scan(page: Page, state: string): Promise<void> {
   const width = page.viewportSize()?.width ?? 0;
@@ -139,4 +142,28 @@ test("axe: combobox expanded", async ({ page }) => {
     await expect(medication).toHaveAttribute("aria-expanded", "true", { timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
   await scan(page, "combobox expanded (prescribing)");
+});
+
+test("axe: account menu open, Privacy on with the queue masked, and offline sync status", async ({ page }) => {
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await settle(page, "/dev/chart?view=blocking");
+    const trigger = page.getByRole("button", { name: /account menu/ });
+    await expect(async () => {
+      await trigger.click();
+      await expect(page.getByRole("menu", { name: "Account" })).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 30_000 });
+    await scan(page, "account menu open");
+    await page.keyboard.press("Escape");
+
+    await page.getByTestId("privacy-toggle").click();
+    await expect(page.getByTestId("privacy-toggle")).toHaveAttribute("aria-pressed", "true");
+    await scan(page, "privacy on with queue");
+    await page.getByTestId("privacy-toggle").click();
+
+    await page.context().setOffline(true);
+    await expect(page.getByTestId("sync-status")).toHaveAttribute("data-online", "false");
+    await scan(page, "sync offline");
+    await page.context().setOffline(false);
+  }
 });

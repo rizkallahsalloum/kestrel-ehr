@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { countUncheckedDrafts, summarizeDraftAlerts } from "@/features/chart/alerts";
 import type { PatientChart } from "@/features/chart/queries";
 import { ChartAlertSlot } from "./chart-alert-slot";
@@ -6,13 +5,10 @@ import { AllergyPanel, MedicationPanel, PrescriptionsCard } from "./clinical-lis
 import { PatientHero } from "./patient-hero";
 
 /** Dashboard workspace: chart column plus a sticky allergy and medication column on wide screens. */
-export function PatientChartView({ chart, backHref = "/patients" }: { chart: PatientChart; backHref?: string }) {
+export function PatientChartView({ chart }: { chart: PatientChart }) {
   const { patient } = chart;
   return (
     <div className="flex flex-col gap-4">
-      <Link href={backHref} className="self-start text-label text-ink-secondary underline underline-offset-2">
-        Back to patients
-      </Link>
       <div className="grid items-start gap-5.5 workspace:grid-cols-workspace">
         <div className="flex min-w-0 flex-col gap-4.5">
           <div className="animate-fade-up">

@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { PRIVACY_ATTRIBUTE, PRIVACY_BOOT_SCRIPT, PRIVACY_STORAGE_KEY } from "./config";
-import { createPrivacyStore } from "./store";
+import {
+  PRIVACY_ATTRIBUTE,
+  PRIVACY_BOOT_SCRIPT,
+  PRIVACY_IDLE_MS,
+  PRIVACY_IDLE_OPTIONS,
+  PRIVACY_IDLE_STORAGE_KEY,
+  PRIVACY_STORAGE_KEY,
+} from "./config";
+import { createIdleSettingStore, createPrivacyStore } from "./store";
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial));
@@ -88,5 +95,45 @@ describe("privacy store", () => {
     expect(PRIVACY_BOOT_SCRIPT).toContain(JSON.stringify(PRIVACY_STORAGE_KEY));
     expect(PRIVACY_BOOT_SCRIPT).toContain(JSON.stringify(PRIVACY_ATTRIBUTE));
     expect(PRIVACY_BOOT_SCRIPT).toContain("sessionStorage");
+  });
+});
+
+describe("privacy auto-hide setting", () => {
+  it("offers 30 seconds, 1 minute and 2 minutes, defaulting to 1 minute", () => {
+    expect(PRIVACY_IDLE_OPTIONS.map((o) => [o.ms, o.label])).toEqual([
+      [30_000, "30 seconds"],
+      [60_000, "1 minute"],
+      [120_000, "2 minutes"],
+    ]);
+    expect(PRIVACY_IDLE_MS).toBe(60_000);
+    expect(createIdleSettingStore(memoryStorage()).get()).toBe(60_000);
+  });
+
+  it("stores a choice in sessionStorage and notifies subscribers", () => {
+    const storage = memoryStorage();
+    const store = createIdleSettingStore(storage);
+    const listener = vi.fn();
+    store.subscribe(listener);
+    store.set(30_000);
+    expect(storage.data.get(PRIVACY_IDLE_STORAGE_KEY)).toBe("30000");
+    expect(store.get()).toBe(30_000);
+    expect(listener).toHaveBeenCalledTimes(1);
+    store.clear();
+    expect(storage.data.has(PRIVACY_IDLE_STORAGE_KEY)).toBe(false);
+    expect(store.get()).toBe(60_000);
+  });
+
+  it("ignores values that are not offered, stored or set", () => {
+    expect(createIdleSettingStore(memoryStorage({ [PRIVACY_IDLE_STORAGE_KEY]: "1000" })).get()).toBe(60_000);
+    expect(createIdleSettingStore(memoryStorage({ [PRIVACY_IDLE_STORAGE_KEY]: "abc" })).get()).toBe(60_000);
+    const store = createIdleSettingStore(memoryStorage());
+    store.set(5);
+    expect(store.get()).toBe(60_000);
+  });
+
+  it("keeps the choice in memory when storage is unavailable", () => {
+    const store = createIdleSettingStore(null);
+    store.set(120_000);
+    expect(store.get()).toBe(120_000);
   });
 });

@@ -38,8 +38,8 @@ export function HeroSkeleton() {
           </p>
         </div>
       </div>
-      <span className="inline-flex rounded-pill px-2.5 py-0.5 text-caption">
-        <SkeletonLine width="w-40" />
+      <span className="inline-flex min-h-7 shrink-0 items-center rounded-pill px-3 py-1 text-label-sm">
+        <SkeletonLine width="w-48" />
       </span>
     </div>
   );
@@ -93,7 +93,6 @@ function PrescriptionsCardSkeleton() {
 export function ChartSkeleton() {
   return (
     <LoadingRegion label="Loading patient chart" className="flex flex-col gap-4">
-      <SkeletonLine className="text-label" width="w-28" />
       <div className="grid items-start gap-5.5 workspace:grid-cols-workspace">
         <div data-skeleton="main-column" className="flex min-w-0 flex-col gap-4.5">
           <HeroSkeleton />

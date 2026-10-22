@@ -4,11 +4,13 @@ import { notFound } from "next/navigation";
 import { LoginForm } from "@/app/(auth)/login/login-form";
 import NotFound from "@/app/not-found";
 import { AppShell, type ShellUser } from "@/components/shell/app-shell";
+import { PlaceholderPage } from "@/components/shell/placeholder-page";
 import { Card, EmptyState } from "@/components/ui";
 import { LoginCard } from "@/features/auth/components/login-card";
 import { PatientList } from "@/features/patients/components/patient-list";
 import { filterPatients, parsePatientQuery } from "@/features/patients/search";
 import type { PatientSummary } from "@/types/domain";
+import { DEMO_QUEUE } from "../demo-queue";
 import { ErrorDemo } from "./demos";
 
 export const metadata: Metadata = { title: "Shell specimen (development only) | Kestrel EHR" };
@@ -26,7 +28,7 @@ const DEMO_PATIENTS: PatientSummary[] = [
   { id: "00000000-0000-4000-8000-000000000104", mrn: "SYN-000104", given_name: "Zoë", family_name: "Sampleton", date_of_birth: "2001-01-09", sex: "female", care_team: team },
 ];
 
-const VIEWS = ["clinician", "admin", "login", "not-found", "error"] as const;
+const VIEWS = ["clinician", "admin", "login", "not-found", "error", "placeholder"] as const;
 type View = (typeof VIEWS)[number];
 
 export default async function ShellSpecimenPage({ searchParams }: PageProps<"/dev/shell">) {
@@ -46,9 +48,17 @@ export default async function ShellSpecimenPage({ searchParams }: PageProps<"/de
   if (view === "not-found") return <NotFound />;
   if (view === "error") return <ErrorDemo />;
 
+  if (view === "placeholder") {
+    return (
+      <AppShell user={CLINICIAN} activePath="/schedule" queue={DEMO_QUEUE} renderedAt={new Date().toISOString()}>
+        <PlaceholderPage title="Schedule" />
+      </AppShell>
+    );
+  }
+
   if (view === "admin") {
     return (
-      <AppShell user={ADMIN} activePath="/admin/audit">
+      <AppShell user={ADMIN} activePath="/admin/audit" renderedAt={new Date().toISOString()}>
         <div className="flex flex-col gap-4">
           <h1 className="font-display text-heading-xl font-medium tracking-tight">Audit log</h1>
           <Card>
@@ -69,6 +79,8 @@ export default async function ShellSpecimenPage({ searchParams }: PageProps<"/de
     <AppShell
       user={CLINICIAN}
       activePath="/patients"
+      queue={DEMO_QUEUE}
+      renderedAt={new Date().toISOString()}
       searchAction="/dev/shell"
       searchHiddenFields={{ view: "clinician" }}
     >

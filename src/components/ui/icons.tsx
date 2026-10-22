@@ -7,7 +7,7 @@ import { cn } from "./cn";
 export type IconProps = Omit<SVGProps<SVGSVGElement>, "children"> & { title?: string };
 
 function createIcon(displayName: string, paths: ReactNode) {
-  // "AlertCircleIcon" -> "alert-circle": tells shapes apart where meaning depends on them (blocking vs advisory).
+  // "AlertTriangleIcon" -> "alert-triangle": lets tests tell icon shapes apart.
   const slug = displayName
     .replace(/Icon$/, "")
     .replace(/([a-z])([A-Z])/g, "$1-$2")
@@ -63,14 +63,6 @@ export const AlertTriangleIcon = createIcon(
   </>,
 );
 
-export const AlertCircleIcon = createIcon(
-  "AlertCircleIcon",
-  <>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7.5v5.5M12 16.5h.01" />
-  </>,
-);
-
 export const InfoIcon = createIcon(
   "InfoIcon",
   <>
@@ -119,6 +111,29 @@ export const AuditIcon = createIcon(
   <>
     <rect x="5" y="4" width="14" height="17" rx="2" />
     <path d="M9 4h6v3H9zM9 11.5h6M9 15.5h4" />
+  </>,
+);
+
+export const RxIcon = createIcon("RxIcon", <path d="M7 4h5.5a3.5 3.5 0 0 1 0 7H9v9M9 11h5l5 9" />);
+
+export const FlaskIcon = createIcon(
+  "FlaskIcon",
+  <path d="M9 3h6M10 3v6.5L5.5 18a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 9.5V3" />,
+);
+
+export const BillingIcon = createIcon(
+  "BillingIcon",
+  <>
+    <rect x="3" y="6" width="18" height="13" rx="2" />
+    <path d="M3 10h18M7 15h4" />
+  </>,
+);
+
+export const EyeIcon = createIcon(
+  "EyeIcon",
+  <>
+    <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+    <circle cx="12" cy="12" r="3" />
   </>,
 );
 

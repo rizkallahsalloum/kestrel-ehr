@@ -28,15 +28,22 @@ import {
   Tag,
   TextArea,
   TextInput,
-  AlertCircleIcon,
   AlertTriangleIcon,
+  BillingIcon,
   CheckCircleIcon,
   CheckIcon,
   ChevronDownIcon,
   ClockIcon,
   InfoIcon,
   LockIcon,
+  ChartIcon,
+  EyeIcon,
+  EyeOffIcon,
+  FlaskIcon,
+  RxIcon,
 } from "@/components/ui";
+import { PatientQueueItem } from "@/features/patients/components/patient-queue-item";
+import { DEMO_QUEUE } from "../demo-queue";
 import { ContrastTable, type ContrastPair } from "../theme/contrast-table";
 import { ComboboxDemo, ComboboxStatusDemo, DialogDemo, SubmitErrorsDemo } from "./demos";
 
@@ -49,37 +56,52 @@ const PAIRS: ContrastPair[] = [
   { label: "Privacy mask field edge: line-field vs surface", fg: "var(--color-line-field)", bg: "var(--color-surface)", kind: "ui" },
   { label: "Privacy mask, lightest inline use: ink-muted on surface (medication dose)", fg: "var(--color-ink-muted)", bg: "var(--color-surface)", kind: "text" },
   { label: "Privacy mask in a link: accent on surface (patient list)", fg: "var(--color-accent)", bg: "var(--color-surface)", kind: "text" },
-  { label: "Privacy mask in an alert: ink-strong on warning-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "Privacy button: ink-secondary on page (top bar)", fg: "var(--color-ink-secondary)", bg: "var(--color-page)", kind: "text" },
-  { label: "Privacy button pressed: ink on surface-warm", fg: "var(--color-ink)", bg: "var(--color-surface-warm)", kind: "text" },
+  { label: "Privacy mask in an advisory alert: ink-strong on warning-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-warning-subtle)", kind: "text" },
+  { label: "Privacy mask in a blocking alert: ink-strong on danger-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "Privacy pill off (12px): ink-secondary on surface", fg: "var(--color-ink-secondary)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Privacy pill off edge: line vs page (text label carries the meaning)", fg: "var(--color-line)", bg: "var(--color-page)", kind: "decorative" },
+  { label: "Privacy pill on (12px): ok on ok-subtle", fg: "var(--color-ok)", bg: "var(--color-ok-subtle)", kind: "text" },
+  { label: "Privacy pill on edge: ok vs page", fg: "var(--color-ok)", bg: "var(--color-page)", kind: "ui" },
   { label: "Badge accent: accent on accent-subtle", fg: "var(--color-accent)", bg: "var(--color-accent-subtle)", kind: "text" },
   { label: "Badge/Tag neutral: ink-secondary on surface-warm", fg: "var(--color-ink-secondary)", bg: "var(--color-surface-warm)", kind: "text" },
-  { label: "Badge critical and warning: warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "Badge critical ring: warning-stroke on warning-subtle", fg: "var(--color-warning-stroke)", bg: "var(--color-warning-subtle)", kind: "ui" },
-  { label: "Badge critical ring: warning-stroke on surface (hero)", fg: "var(--color-warning-stroke)", bg: "var(--color-surface)", kind: "ui" },
-  { label: "SeverityTag critical and warning: warning on surface-pure", fg: "var(--color-warning)", bg: "var(--color-surface-pure)", kind: "text" },
-  { label: "SeverityTag critical outline: warning-stroke on surface-pure", fg: "var(--color-warning-stroke)", bg: "var(--color-surface-pure)", kind: "ui" },
-  { label: "SeverityTag critical outline: warning-stroke on surface (chart rows)", fg: "var(--color-warning-stroke)", bg: "var(--color-surface)", kind: "ui" },
-  { label: "StatusDot critical ring: status-warning on surface", fg: "var(--color-status-warning)", bg: "var(--color-surface)", kind: "ui" },
-  { label: "Cancel draft confirm (only red): on-accent on danger", fg: "var(--color-on-accent)", bg: "var(--color-danger)", kind: "text" },
+  { label: "Badge warning (12px): warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
+  { label: "Badge critical and allergy pill (12px): danger-ink on danger-subtle", fg: "var(--color-danger-ink)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "Allergy pill icon (critical): danger-ink on danger-subtle", fg: "var(--color-danger-ink)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "Badge critical ring (2px): danger on danger-subtle", fg: "var(--color-danger)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "Badge critical ring (2px): danger on surface (hero)", fg: "var(--color-danger)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "SeverityTag warning (11px): warning on surface-pure", fg: "var(--color-warning)", bg: "var(--color-surface-pure)", kind: "text" },
+  { label: "SeverityTag critical (11px): danger on surface-pure", fg: "var(--color-danger)", bg: "var(--color-surface-pure)", kind: "text" },
+  { label: "SeverityTag critical outline: danger on surface (chart rows)", fg: "var(--color-danger)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "SeverityTag critical outline: danger on danger-subtle (E-Rx alert cards)", fg: "var(--color-danger)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "StatusDot critical: status-critical on surface", fg: "var(--color-status-critical)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "StatusDot warning: status-warning on surface", fg: "var(--color-status-warning)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "StatusDot stable: status-stable on surface", fg: "var(--color-status-stable)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "Cancel draft confirm: on-accent on danger", fg: "var(--color-on-accent)", bg: "var(--color-danger)", kind: "text" },
   { label: "Cancel draft confirm hover: on-accent on danger-ink", fg: "var(--color-on-accent)", bg: "var(--color-danger-ink)", kind: "text" },
   { label: "Form error text: warning on surface", fg: "var(--color-warning)", bg: "var(--color-surface)", kind: "text" },
   { label: "Form error text: warning on page", fg: "var(--color-warning)", bg: "var(--color-page)", kind: "text" },
   { label: "warning-stroke text on warning-subtle (not used for text)", fg: "var(--color-warning-stroke)", bg: "var(--color-warning-subtle)", kind: "text" },
   { label: "warning-stroke text on page (not used for text)", fg: "var(--color-warning-stroke)", bg: "var(--color-page)", kind: "text" },
   { label: "Error stroke vs warning-subtle (field inside advisory)", fg: "var(--color-warning-stroke)", bg: "var(--color-warning-subtle)", kind: "ui" },
-  { label: "Blocking banner/card/tile title: warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "Blocking fill: ink on warning-subtle", fg: "var(--color-ink)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "Blocking fill: warning icon on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "ui" },
-  { label: "Blocking fill: focus ring on warning-subtle", fg: "var(--color-focus)", bg: "var(--color-warning-subtle)", kind: "ui" },
-  { label: "Blocking outline (2px): warning-stroke on warning-subtle", fg: "var(--color-warning-stroke)", bg: "var(--color-warning-subtle)", kind: "ui" },
-  { label: "Blocking outline (2px): warning-stroke on surface", fg: "var(--color-warning-stroke)", bg: "var(--color-surface)", kind: "ui" },
-  { label: "Blocking outline (2px): warning-stroke on page", fg: "var(--color-warning-stroke)", bg: "var(--color-page)", kind: "ui" },
-  { label: "Blocking banner icon: warning on surface-pure", fg: "var(--color-warning)", bg: "var(--color-surface-pure)", kind: "ui" },
-  { label: "Blocking banner icon ring: warning-stroke on warning-subtle", fg: "var(--color-warning-stroke)", bg: "var(--color-warning-subtle)", kind: "ui" },
+  { label: "Error stroke vs danger-subtle (field inside blocking)", fg: "var(--color-warning-stroke)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "Blocking banner/card/tile title (12px+): danger-ink on danger-subtle", fg: "var(--color-danger-ink)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "Blocking fill: ink on danger-subtle", fg: "var(--color-ink)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "Blocking fill: danger icon on danger-subtle", fg: "var(--color-danger)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "Blocking fill: focus ring on danger-subtle", fg: "var(--color-focus)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "Blocking outline (2px): danger on danger-subtle", fg: "var(--color-danger)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "Blocking outline (2px): danger on surface", fg: "var(--color-danger)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "Blocking outline (2px): danger on page", fg: "var(--color-danger)", bg: "var(--color-page)", kind: "ui" },
+  { label: "Blocking banner icon: danger on surface-pure", fg: "var(--color-danger)", bg: "var(--color-surface-pure)", kind: "ui" },
+  { label: "Blocking banner icon ring: danger on danger-subtle", fg: "var(--color-danger)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "Blocking fill vs surface (alert inside a card)", fg: "var(--color-danger-subtle)", bg: "var(--color-surface)", kind: "decorative" },
+  { label: "Banner body (blocking): ink-strong on danger-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "Advisory banner/card/tile title (12px+): warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
+  { label: "Advisory fill: warning icon on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "ui" },
+  { label: "Advisory fill: focus ring on warning-subtle", fg: "var(--color-focus)", bg: "var(--color-warning-subtle)", kind: "ui" },
+  { label: "Advisory banner icon: warning on surface-pure", fg: "var(--color-warning)", bg: "var(--color-surface-pure)", kind: "ui" },
   { label: "Advisory outline (1px): warning-line on warning-subtle", fg: "var(--color-warning-line)", bg: "var(--color-warning-subtle)", kind: "decorative" },
-  { label: "Advisory/blocking fill vs surface (alert inside a card)", fg: "var(--color-warning-subtle)", bg: "var(--color-surface)", kind: "decorative" },
-  { label: "Banner body: ink-strong on warning-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-warning-subtle)", kind: "text" },
+  { label: "Advisory fill vs surface (alert inside a card)", fg: "var(--color-warning-subtle)", bg: "var(--color-surface)", kind: "decorative" },
+  { label: "Banner body (advisory): ink-strong on warning-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-warning-subtle)", kind: "text" },
   { label: "Attestation note: ink-strong on ok-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-ok-subtle)", kind: "text" },
   { label: "Option note: ink-strong on accent-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-accent-subtle)", kind: "text" },
   { label: "Suffix/placeholder on read-only: ink-secondary on surface-warm", fg: "var(--color-ink-secondary)", bg: "var(--color-surface-warm)", kind: "text" },
@@ -98,33 +120,56 @@ const PAIRS: ContrastPair[] = [
   { label: "Rail current marker: on-inverse on inverse", fg: "var(--color-on-inverse)", bg: "var(--color-inverse)", kind: "ui" },
   { label: "Rail current marker: on-inverse on inverse + 10% white", fg: "var(--color-on-inverse)", bg: "color-mix(in srgb, var(--color-on-inverse) 10%, var(--color-inverse))", kind: "ui" },
   { label: "Accent on inverse (not used for the rail marker)", fg: "var(--color-accent)", bg: "var(--color-inverse)", kind: "ui" },
-  { label: "Identity avatar: page on ink", fg: "var(--color-page)", bg: "var(--color-ink)", kind: "text" },
-  { label: "Identity role: ink-muted on page", fg: "var(--color-ink-muted)", bg: "var(--color-page)", kind: "text" },
+  { label: "User menu trigger avatar: page on ink", fg: "var(--color-page)", bg: "var(--color-ink)", kind: "text" },
+  { label: "User menu trigger role (11px): ink-secondary on page", fg: "var(--color-ink-secondary)", bg: "var(--color-page)", kind: "text" },
+  { label: "User menu trigger role on hover: ink-secondary on surface-warm", fg: "var(--color-ink-secondary)", bg: "var(--color-surface-warm)", kind: "text" },
+  { label: "User menu trigger hover: ink on surface-warm", fg: "var(--color-ink)", bg: "var(--color-surface-warm)", kind: "text" },
+  { label: "User menu items (13px): ink on surface-pure", fg: "var(--color-ink)", bg: "var(--color-surface-pure)", kind: "text" },
+  { label: "User menu focused item: ink on surface-warm", fg: "var(--color-ink)", bg: "var(--color-surface-warm)", kind: "text" },
+  { label: "User menu group label (11px): ink-muted on surface-pure", fg: "var(--color-ink-muted)", bg: "var(--color-surface-pure)", kind: "text" },
+  { label: "User menu checked mark: accent on surface-pure", fg: "var(--color-accent)", bg: "var(--color-surface-pure)", kind: "ui" },
+  { label: "Queue chip name (12px): ink-strong on surface", fg: "var(--color-ink-strong)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Queue chip current (12px): ink on accent-subtle", fg: "var(--color-ink)", bg: "var(--color-accent-subtle)", kind: "text" },
+  { label: "Queue chip current border: accent vs page", fg: "var(--color-accent)", bg: "var(--color-page)", kind: "ui" },
+  { label: "Queue chip edge: line-subtle vs page (name carries the meaning)", fg: "var(--color-line-subtle)", bg: "var(--color-page)", kind: "decorative" },
+  { label: "Queue status dot critical: status-critical on accent-subtle (current chip)", fg: "var(--color-status-critical)", bg: "var(--color-accent-subtle)", kind: "ui" },
+  { label: "Queue status dot warning: status-warning on accent-subtle (current chip)", fg: "var(--color-status-warning)", bg: "var(--color-accent-subtle)", kind: "ui" },
+  { label: "Queue status dot stable: status-stable on accent-subtle (current chip)", fg: "var(--color-status-stable)", bg: "var(--color-accent-subtle)", kind: "ui" },
+  { label: "Queue View all (12px): accent on surface", fg: "var(--color-accent)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Queue label (11px): ink-muted on page", fg: "var(--color-ink-muted)", bg: "var(--color-page)", kind: "text" },
+  { label: "Sync status (11px): ink-muted on page", fg: "var(--color-ink-muted)", bg: "var(--color-page)", kind: "text" },
+  { label: "Sync status Offline (11px): danger on page", fg: "var(--color-danger)", bg: "var(--color-page)", kind: "text" },
+  { label: "Sync dot online: status-stable on page", fg: "var(--color-status-stable)", bg: "var(--color-page)", kind: "ui" },
+  { label: "Sync dot offline: status-critical on page", fg: "var(--color-status-critical)", bg: "var(--color-page)", kind: "ui" },
   { label: "Synthetic banner: warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "Chart allergy name (all severities): warning on surface", fg: "var(--color-warning)", bg: "var(--color-surface)", kind: "text" },
-  { label: "Chart allergy card icon (all severities): warning on surface", fg: "var(--color-warning)", bg: "var(--color-surface)", kind: "ui" },
-  { label: "Chart allergy card outline (severe, 2px): warning-stroke on surface", fg: "var(--color-warning-stroke)", bg: "var(--color-surface)", kind: "ui" },
-  { label: "Chart allergy card outline (severe, 2px): warning-stroke on page", fg: "var(--color-warning-stroke)", bg: "var(--color-page)", kind: "ui" },
-  { label: "Chart hero allergy badge: warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "Chart banner body: ink-strong on warning-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "Chart banner Review draft link: page on ink (primary)", fg: "var(--color-page)", bg: "var(--color-ink)", kind: "text" },
-  { label: "Chart banner Review draft link vs warning-subtle (primary edge)", fg: "var(--color-ink)", bg: "var(--color-warning-subtle)", kind: "ui" },
+  { label: "Chart allergy name (severe): danger-ink on surface", fg: "var(--color-danger-ink)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Chart allergy name (mild/moderate): warning on surface", fg: "var(--color-warning)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Chart allergy card icon (severe): danger on surface", fg: "var(--color-danger)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "Chart allergy card icon (mild/moderate): warning on surface", fg: "var(--color-warning)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "Chart allergy card outline (severe, 2px): danger on surface", fg: "var(--color-danger)", bg: "var(--color-surface)", kind: "ui" },
+  { label: "Chart allergy card outline (severe, 2px): danger on page", fg: "var(--color-danger)", bg: "var(--color-page)", kind: "ui" },
   { label: "Chart allergy card outline (mild/moderate): warning-line on surface", fg: "var(--color-warning-line)", bg: "var(--color-surface)", kind: "decorative" },
+  { label: "Chart allergy row divider (severe): danger-line on surface", fg: "var(--color-danger-line)", bg: "var(--color-surface)", kind: "decorative" },
+  { label: "Chart allergy row divider (mild/moderate): warning-line on surface", fg: "var(--color-warning-line)", bg: "var(--color-surface)", kind: "decorative" },
+  { label: "Chart banner Review draft link: page on ink (primary)", fg: "var(--color-page)", bg: "var(--color-ink)", kind: "text" },
+  { label: "Chart banner Review draft link vs danger-subtle (primary edge)", fg: "var(--color-ink)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "Chart banner Review draft link vs warning-subtle (primary edge)", fg: "var(--color-ink)", bg: "var(--color-warning-subtle)", kind: "ui" },
   { label: "Chart hero meta and allergy reaction: ink-strong on surface", fg: "var(--color-ink-strong)", bg: "var(--color-surface)", kind: "text" },
   { label: "Chart medication dose and drug class: ink-muted on surface", fg: "var(--color-ink-muted)", bg: "var(--color-surface)", kind: "text" },
   { label: "Chart prescription link: accent on surface", fg: "var(--color-accent)", bg: "var(--color-surface)", kind: "text" },
   { label: "Chart status note: ink-secondary on surface", fg: "var(--color-ink-secondary)", bg: "var(--color-surface)", kind: "text" },
-  { label: "Chart back link: ink-secondary on page", fg: "var(--color-ink-secondary)", bg: "var(--color-page)", kind: "text" },
   { label: "Chart footer note: ink-muted on page", fg: "var(--color-ink-muted)", bg: "var(--color-page)", kind: "text" },
-  { label: "Chart allergy row divider (all severities): warning-line on surface", fg: "var(--color-warning-line)", bg: "var(--color-surface)", kind: "decorative" },
   { label: "Draft status badge (neutral): ink-secondary on surface-warm", fg: "var(--color-ink-secondary)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "E-Rx review title: on-inverse on inverse", fg: "var(--color-on-inverse)", bg: "var(--color-inverse)", kind: "text" },
   { label: "E-Rx review subtitle: on-inverse-muted on inverse", fg: "var(--color-on-inverse-muted)", bg: "var(--color-inverse)", kind: "text" },
   { label: "E-Rx review count (neutral): on-inverse on inverse + 12% white", fg: "var(--color-on-inverse)", bg: "color-mix(in srgb, var(--color-on-inverse) 12%, var(--color-inverse))", kind: "text" },
   { label: "E-Rx review count (all addressed): on-accent on ok", fg: "var(--color-on-accent)", bg: "var(--color-ok)", kind: "text" },
-  { label: "E-Rx review count (blocking and advisory): warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "E-Rx review count blocking outline (2px): warning-stroke on inverse", fg: "var(--color-warning-stroke)", bg: "var(--color-inverse)", kind: "ui" },
-  { label: "E-Rx review count fill vs inverse header", fg: "var(--color-warning-subtle)", bg: "var(--color-inverse)", kind: "ui" },
+  { label: "E-Rx review count (advisory, 12px): warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
+  { label: "E-Rx review count (blocking, 12px): danger-ink on danger-subtle", fg: "var(--color-danger-ink)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "E-Rx review count blocking outline (2px): danger on danger-subtle (inner edge)", fg: "var(--color-danger)", bg: "var(--color-danger-subtle)", kind: "ui" },
+  { label: "E-Rx review count blocking outline vs inverse header (not used as the boundary; the light fill is)", fg: "var(--color-danger)", bg: "var(--color-inverse)", kind: "ui" },
+  { label: "E-Rx review count fill vs inverse header (blocking)", fg: "var(--color-danger-subtle)", bg: "var(--color-inverse)", kind: "ui" },
+  { label: "E-Rx review count fill vs inverse header (advisory)", fg: "var(--color-warning-subtle)", bg: "var(--color-inverse)", kind: "ui" },
   { label: "E-Rx saved summary labels: ink-strong on surface-warm", fg: "var(--color-ink-strong)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "E-Rx saved summary values: ink on surface-warm", fg: "var(--color-ink)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "E-Rx selected medication: ink on accent-subtle", fg: "var(--color-ink)", bg: "var(--color-accent-subtle)", kind: "text" },
@@ -135,10 +180,11 @@ const PAIRS: ContrastPair[] = [
   { label: "E-Rx tracker done dot: ok on surface", fg: "var(--color-ok)", bg: "var(--color-surface)", kind: "ui" },
   { label: "E-Rx tracker open dot and SIG controls: line-field on surface", fg: "var(--color-line-field)", bg: "var(--color-surface)", kind: "ui" },
   { label: "E-Rx safety summary (clear): ok on ok-subtle", fg: "var(--color-ok)", bg: "var(--color-ok-subtle)", kind: "text" },
-  { label: "E-Rx blocking card link: accent on warning-subtle", fg: "var(--color-accent)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "E-Rx alert card guidance: ink-strong on warning-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "E-Rx severe allergy tile and safety summary: warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
-  { label: "E-Rx tile and summary detail: ink-strong on warning-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-warning-subtle)", kind: "text" },
+  { label: "E-Rx blocking card link: accent on danger-subtle", fg: "var(--color-accent)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "E-Rx alert card guidance (blocking): ink-strong on danger-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "E-Rx alert card guidance (advisory): ink-strong on warning-subtle", fg: "var(--color-ink-strong)", bg: "var(--color-warning-subtle)", kind: "text" },
+  { label: "E-Rx severe allergy tile and blocking summary: danger-ink on danger-subtle", fg: "var(--color-danger-ink)", bg: "var(--color-danger-subtle)", kind: "text" },
+  { label: "E-Rx moderate allergy tile and advisory summary: warning on warning-subtle", fg: "var(--color-warning)", bg: "var(--color-warning-subtle)", kind: "text" },
   { label: "E-Rx neutral tile: ink-strong on surface-warm", fg: "var(--color-ink-strong)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "E-Rx label preview text: ok on surface", fg: "var(--color-ok)", bg: "var(--color-surface)", kind: "text" },
 ];
@@ -148,7 +194,6 @@ const ICONS = {
   LockIcon,
   CloseIcon,
   AlertTriangleIcon,
-  AlertCircleIcon,
   InfoIcon,
   ChevronDownIcon,
   CalendarIcon,
@@ -156,6 +201,12 @@ const ICONS = {
   PillIcon,
   CheckIcon,
   CheckCircleIcon,
+  ChartIcon,
+  RxIcon,
+  FlaskIcon,
+  BillingIcon,
+  EyeIcon,
+  EyeOffIcon,
 };
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -369,9 +420,32 @@ export default function ComponentSpecimenPage() {
                 </span>
               ))}
             </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Label>Badge size md (hero allergy pill)</Label>
+              <Badge tone="critical" size="md">
+                <AlertTriangleIcon className="size-3.5" />1 allergy · severe
+              </Badge>
+              <Badge tone="warning" size="md">
+                <AlertTriangleIcon className="size-3.5" />2 allergies · highest moderate
+              </Badge>
+              <Badge tone="neutral" size="md">
+                No active allergies recorded
+              </Badge>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Label>PatientQueueItem</Label>
+              <ul className="flex flex-wrap gap-2">
+                {DEMO_QUEUE.slice(0, 3).map((patient, index) => (
+                  <li key={patient.id}>
+                    <PatientQueueItem patient={patient} current={index === 0 ? "page" : undefined} />
+                  </li>
+                ))}
+              </ul>
+            </div>
             <p className="text-label-sm text-ink-strong">
-              Blocking and advisory share the orange palette. Blocking adds the emphasis border width, the circle
-              icon and its label, and is listed first. Red is reserved for destructive confirms.
+              Severe and critical use the red (danger) tokens; moderate and warning use orange; stable uses green.
+              Blocking also has the emphasis border width, its label and comes first. Every severity uses the
+              triangle icon; status dots stay dots.
             </p>
           </div>
         </Section>
@@ -387,11 +461,11 @@ export default function ComponentSpecimenPage() {
                 <p className="mt-2 text-body-sm text-ink-strong">Elevated card with shadow level-1.</p>
               </Card>
               <Card tone="critical">
-                <PanelTitle icon={<AlertCircleIcon />} tone="critical">
+                <PanelTitle icon={<AlertTriangleIcon />} tone="critical">
                   Allergies
                 </PanelTitle>
                 <p className="mt-2 text-body-sm text-ink-strong">
-                  Critical-tone card: blocking emphasis outline (2px warning-stroke) and circle icon.
+                  Critical-tone card: blocking emphasis outline (2px danger) and the triangle icon in danger.
                 </p>
               </Card>
             </div>
@@ -407,6 +481,7 @@ export default function ComponentSpecimenPage() {
               </AlertBanner>
               <NoAlert>No demo alerts for this version.</NoAlert>
               <div className="flex items-center gap-3">
+                <Avatar initials="RT" tone="teal" size="xs" />
                 <Avatar initials="RT" tone="teal" size="sm" />
                 <Avatar initials="RT" tone="teal" />
                 <Avatar initials="MG" tone="green" />

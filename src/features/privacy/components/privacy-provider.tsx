@@ -20,7 +20,7 @@ import {
 } from "@/components/ui";
 import { PRIVACY_FIELD_REVEAL_MS, PRIVACY_IDLE_MS } from "../config";
 import { createIdleTimer } from "../idle-timer";
-import { getPrivacyStore } from "../store";
+import { getIdleSettingStore, getPrivacyStore } from "../store";
 
 type Announcement = { text: string; id: number };
 
@@ -29,6 +29,11 @@ type PrivacyContextValue = {
   toggle: () => void;
   /** Polite announcement for the live region next to the Privacy button; `id` changes on every call. */
   announcement: Announcement;
+  /** Queues a polite announcement in that live region. */
+  announce: (text: string) => void;
+  /** Auto-hide delay in use ("Privacy auto-hide" in the user menu). */
+  idleMs: number;
+  setIdleMs: (ms: number) => void;
 };
 
 const PrivacyContext = createContext<PrivacyContextValue | null>(null);
@@ -52,11 +57,12 @@ function isShortcut(event: KeyboardEvent): boolean {
 
 /**
  * Privacy mode for the signed-in shell: masks every `PrivateText` and `PrivateField` in place, on
- * demand (button or Ctrl/Cmd+.) and after `idleMs` without activity, which also re-masks fields
- * revealed one by one. Client-side shoulder-surfing protection only: the data is already in the page.
+ * demand (button or Ctrl/Cmd+.) and after the auto-hide delay without activity, which also re-masks
+ * fields revealed one by one. The delay is the user's sessionStorage choice unless `idleMs` is passed.
+ * Client-side shoulder-surfing protection only: the data is already in the page.
  */
 export function PrivacyProvider({
-  idleMs = PRIVACY_IDLE_MS,
+  idleMs: idleMsOverride,
   revealMs = PRIVACY_FIELD_REVEAL_MS,
   children,
 }: {
@@ -66,6 +72,9 @@ export function PrivacyProvider({
 }) {
   const store = getPrivacyStoreSafe();
   const on = useSyncExternalStore(store.subscribe, store.get, () => false);
+  const idleStore = getIdleSettingStoreSafe();
+  const storedIdleMs = useSyncExternalStore(idleStore.subscribe, idleStore.get, () => PRIVACY_IDLE_MS);
+  const idleMs = idleMsOverride ?? storedIdleMs;
   const [epoch, setEpoch] = useState(0);
   const [announcement, setAnnouncement] = useState<Announcement>({ text: "", id: 0 });
   const revealed = useRef(0);
@@ -143,7 +152,10 @@ export function PrivacyProvider({
     () => ({ masked: on, epoch, revealMs, announce, trackReveal }),
     [on, epoch, revealMs, announce, trackReveal],
   );
-  const value = useMemo(() => ({ on, toggle, announcement }), [on, toggle, announcement]);
+  const value = useMemo(
+    () => ({ on, toggle, announcement, announce, idleMs, setIdleMs: idleStore.set }),
+    [on, toggle, announcement, announce, idleMs, idleStore],
+  );
   return (
     <PrivacyContext.Provider value={value}>
       <PrivacyMaskContext.Provider value={mask}>{children}</PrivacyMaskContext.Provider>
@@ -163,4 +175,15 @@ const SERVER_STORE = {
 
 function getPrivacyStoreSafe() {
   return typeof window === "undefined" ? SERVER_STORE : getPrivacyStore();
+}
+
+const SERVER_IDLE_STORE = {
+  get: () => PRIVACY_IDLE_MS,
+  set: () => {},
+  clear: () => {},
+  subscribe: () => () => {},
+};
+
+function getIdleSettingStoreSafe() {
+  return typeof window === "undefined" ? SERVER_IDLE_STORE : getIdleSettingStore();
 }

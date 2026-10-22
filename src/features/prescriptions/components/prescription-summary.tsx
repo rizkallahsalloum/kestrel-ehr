@@ -1,5 +1,16 @@
 import type { ReactNode } from "react";
-import { Badge, CheckCircleIcon, cn, PrivateText, SeverityTag, severityIcons, severityOutline } from "@/components/ui";
+import {
+  AlertTriangleIcon,
+  Badge,
+  CheckCircleIcon,
+  cn,
+  PrivateText,
+  SeverityTag,
+  severityFill,
+  severityIconText,
+  severityOutline,
+  severityText,
+} from "@/components/ui";
 import { medicationLabel } from "@/features/chart/alerts";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Prescription, PrescriptionAlert } from "@/types/domain";
@@ -89,25 +100,26 @@ export function SafetyDecisionList({
       {orderAlerts(alerts).map((alert) => {
         const blocking = alert.severity === "blocking";
         const done = !blocking && Boolean(alert.decision);
-        const Icon = severityIcons[blocking ? "critical" : "warning"];
+        const severity = blocking ? "critical" : "warning";
         return (
           <li
             key={alert.id}
+            data-severity={done ? undefined : severity}
             className={cn(
               "rounded-panel px-3.5 py-3",
               blocking
-                ? `${severityOutline.critical} bg-warning-subtle`
+                ? `${severityOutline.critical} ${severityFill.critical}`
                 : done
                   ? "border border-line-subtle bg-surface"
-                  : `${severityOutline.warning} bg-warning-subtle`,
+                  : `${severityOutline.warning} ${severityFill.warning}`,
             )}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p
-                className={cn("flex items-center gap-1.5 text-label font-semibold", done ? "text-ink" : "text-warning")}
+                className={cn("flex items-center gap-1.5 text-label font-semibold", done ? "text-ink" : severityText[severity])}
               >
-                {done ? <CheckCircleIcon className="text-ok" /> : <Icon />}
-                <SeverityTag severity={blocking ? "critical" : "warning"}>{blocking ? "Blocking" : "Advisory"}</SeverityTag>
+                {done ? <CheckCircleIcon className="text-ok" /> : <AlertTriangleIcon className={severityIconText[severity]} />}
+                <SeverityTag severity={severity}>{blocking ? "Blocking" : "Advisory"}</SeverityTag>
               </p>
               {done && <Badge tone="ok">Acknowledged</Badge>}
             </div>

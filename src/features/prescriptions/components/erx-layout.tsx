@@ -1,10 +1,22 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Avatar, Badge, cn, initialsOf, PrivateText, severityIcons, severityOutline, Tag } from "@/components/ui";
+import {
+  AlertTriangleIcon,
+  Avatar,
+  Badge,
+  cn,
+  PrivateText,
+  severityFill,
+  severityIconText,
+  severityOutline,
+  severityText,
+  Tag,
+} from "@/components/ui";
 import { medicationLabel } from "@/features/chart/alerts";
 import { allergyTone, bySeverity, highestSeverity } from "@/features/chart/allergies";
 import { prescriptionStatusTone } from "@/features/chart/components/clinical-lists";
 import { ageInYears, formatDate } from "@/lib/format";
+import { getInitials } from "@/lib/initials";
 import type { Allergy, PatientMedication, PatientSummary, PrescriptionStatus } from "@/types/domain";
 import type { SafetyState } from "../workspace";
 
@@ -58,16 +70,18 @@ const SEX_SHORT: Record<string, string> = { female: "F", male: "M" };
 
 const tileTones = {
   neutral: { box: "border border-line-subtle bg-surface-warm", title: "text-ink" },
-  warning: { box: `${severityOutline.warning} bg-warning-subtle`, title: "text-warning" },
-  critical: { box: `${severityOutline.critical} bg-warning-subtle`, title: "text-warning" },
+  warning: { box: `${severityOutline.warning} ${severityFill.warning}`, title: severityText.warning },
+  critical: { box: `${severityOutline.critical} ${severityFill.critical}`, title: severityText.critical },
 } as const;
 
 function Tile({ tone, title, children }: { tone: keyof typeof tileTones; title: string; children: ReactNode }) {
-  const Icon = tone === "neutral" ? null : severityIcons[tone];
   return (
-    <div className={cn("max-w-75 min-w-0 flex-1 basis-55 rounded-panel px-3.5 py-2.5", tileTones[tone].box)}>
+    <div
+      data-severity={tone === "neutral" ? undefined : tone}
+      className={cn("max-w-75 min-w-0 flex-1 basis-55 rounded-panel px-3.5 py-2.5", tileTones[tone].box)}
+    >
       <p className={cn("flex items-center gap-1.5 text-label font-semibold", tileTones[tone].title)}>
-        {Icon && <Icon />}
+        {tone !== "neutral" && <AlertTriangleIcon className={severityIconText[tone]} />}
         {title}
       </p>
       <p className="mt-0.5 text-label text-ink-strong">{children}</p>
@@ -110,7 +124,7 @@ export function RxPatientHeader({
         <Avatar
           initials={
             <PrivateText label="Initials" revealable={false} mask="••">
-              {initialsOf(patient.given_name, patient.family_name)}
+              {getInitials(`${patient.given_name} ${patient.family_name}`)}
             </PrivateText>
           }
           size="md"
@@ -160,8 +174,8 @@ function plural(count: number, word: string): string {
 const summaryTones = {
   neutral: "border border-line bg-surface-warm text-ink",
   ok: "border border-ok bg-ok-subtle text-ok",
-  warning: `${severityOutline.warning} bg-warning-subtle text-warning`,
-  critical: `${severityOutline.critical} bg-warning-subtle text-warning`,
+  warning: `${severityOutline.warning} ${severityFill.warning} ${severityText.warning}`,
+  critical: `${severityOutline.critical} ${severityFill.critical} ${severityText.critical}`,
 } as const;
 
 function summaryOf(state: SafetyState): { tone: keyof typeof summaryTones; title: string; detail: string } {
@@ -184,16 +198,16 @@ function summaryOf(state: SafetyState): { tone: keyof typeof summaryTones; title
 /** Left-column "Medication safety" card: real unresolved alerts on the saved version. */
 export function RxSafetySummary({ state }: { state: SafetyState }) {
   const summary = summaryOf(state);
-  const Icon = summary.tone === "critical" || summary.tone === "warning" ? severityIcons[summary.tone] : null;
+  const severe = summary.tone === "critical" || summary.tone === "warning" ? summary.tone : null;
   return (
     <section className="rounded-card border border-line-subtle bg-surface px-5 py-4">
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <h2 className="text-heading-sm font-semibold text-ink">Medication safety</h2>
         <span className="text-label-sm text-ink-muted">Saved version</span>
       </div>
-      <div className={cn("rounded-panel px-4 py-3 text-label", summaryTones[summary.tone])}>
+      <div data-severity={severe ?? undefined} className={cn("rounded-panel px-4 py-3 text-label", summaryTones[summary.tone])}>
         <p className="flex items-center gap-1.5 font-semibold">
-          {Icon && <Icon />}
+          {severe && <AlertTriangleIcon className={severityIconText[severe]} />}
           {summary.title}
         </p>
         <p className="text-ink-strong">{summary.detail}</p>
@@ -207,7 +221,7 @@ const countTones = {
   neutral: "border-transparent bg-on-inverse/12 text-on-inverse",
   ok: "border-transparent bg-ok text-on-accent",
   warning: "border-transparent bg-warning-subtle text-warning",
-  critical: "border-warning-stroke bg-warning-subtle text-warning",
+  critical: "border-danger bg-danger-subtle text-danger-ink",
 } as const;
 
 export function reviewCount(state: SafetyState): { tone: keyof typeof countTones; text: string } {
@@ -230,7 +244,6 @@ export function ReviewShell({
   count: { tone: keyof typeof countTones; text: string };
   children: ReactNode;
 }) {
-  const CountIcon = count.tone === "critical" || count.tone === "warning" ? severityIcons[count.tone] : null;
   return (
     <section
       id="rx-review"
@@ -246,12 +259,13 @@ export function ReviewShell({
           <p className="text-label-sm text-on-inverse-muted">{subtitle}</p>
         </div>
         <span
+          data-severity={count.tone === "critical" || count.tone === "warning" ? count.tone : undefined}
           className={cn(
             "inline-flex items-center gap-1 rounded-pill border-(length:--border-width-emphasis) px-2.5 py-0.5 text-label-sm font-medium whitespace-nowrap",
             countTones[count.tone],
           )}
         >
-          {CountIcon && <CountIcon className="size-3.5" />}
+          {(count.tone === "critical" || count.tone === "warning") && <AlertTriangleIcon className="size-3.5" />}
           {count.text}
         </span>
       </header>

@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FormField, PrivateField, PrivateText, TextArea } from "@/components/ui";
-import { PRIVACY_FIELD_REVEAL_MS, PRIVACY_IDLE_MS, PRIVACY_STORAGE_KEY } from "../config";
-import { getPrivacyStore } from "../store";
+import { PRIVACY_FIELD_REVEAL_MS, PRIVACY_IDLE_MS, PRIVACY_IDLE_STORAGE_KEY, PRIVACY_STORAGE_KEY } from "../config";
+import { getIdleSettingStore, getPrivacyStore } from "../store";
 import { PrivacyButton } from "./privacy-controls";
 import { PrivacyProvider } from "./privacy-provider";
 
-function Shell({ idleMs = 60_000, revealMs = 10_000 }: { idleMs?: number; revealMs?: number }) {
+function Shell({ idleMs, revealMs = 10_000 }: { idleMs?: number; revealMs?: number }) {
   return (
     <PrivacyProvider idleMs={idleMs} revealMs={revealMs}>
       <PrivacyButton />
@@ -28,7 +28,7 @@ function Shell({ idleMs = 60_000, revealMs = 10_000 }: { idleMs?: number; reveal
   );
 }
 
-const privacyButton = () => screen.getByRole("button", { name: "Privacy" });
+const privacyButton = () => screen.getByRole("button", { name: /^Privacy( mode on)?$/ });
 const isOn = () => document.documentElement.getAttribute("data-privacy") === "on";
 const live = () => document.querySelector("[aria-live=polite]")!.textContent;
 const reveal = (label: string) => screen.getByRole("button", { name: `${label} hidden, press to reveal` });
@@ -36,11 +36,13 @@ const bodyText = () => document.body.textContent ?? "";
 
 beforeEach(() => {
   getPrivacyStore().clear();
+  getIdleSettingStore().clear();
 });
 
 afterEach(() => {
   vi.useRealTimers();
   getPrivacyStore().clear();
+  getIdleSettingStore().clear();
 });
 
 describe("Privacy config", () => {
@@ -81,6 +83,20 @@ describe("PrivacyProvider", () => {
     expect(notes.closest("[inert]")).toBeNull();
     expect(document.activeElement).toBe(privacyButton());
     expect(live()).toBe("Patient details shown");
+  });
+
+  it("names the pill after its visible label and swaps the eye icon for eye-off when on", () => {
+    render(<Shell />);
+    const button = privacyButton();
+    expect(screen.getByRole("button", { name: "Privacy" })).toBe(button);
+    expect(button.querySelector("svg")?.getAttribute("data-icon")).toBe("eye");
+    expect(button.getAttribute("aria-keyshortcuts")).toBe("Control+. Meta+.");
+    fireEvent.click(button);
+    expect(screen.getByRole("button", { name: "Privacy mode on" })).toBe(button);
+    expect(button.querySelector("svg")?.getAttribute("data-icon")).toBe("eye-off");
+    // Both labels stay in the layout so the pill keeps its width; only the current one is exposed.
+    const labels = Array.from(button.querySelectorAll("span > span")).map((span) => span.textContent);
+    expect(labels).toEqual(["Privacy", "Privacy mode on"]);
   });
 
   it("toggles with Ctrl+. and Cmd+., including from a text field and inside an open dialog", () => {
@@ -157,6 +173,27 @@ describe("PrivacyProvider", () => {
 
   describe("auto-hide", () => {
     beforeEach(() => vi.useFakeTimers());
+
+    it("uses the auto-hide choice stored for the tab, 1 minute by default", () => {
+      sessionStorage.setItem(PRIVACY_IDLE_STORAGE_KEY, "30000");
+      render(<Shell />);
+      act(() => vi.advanceTimersByTime(29_999));
+      expect(isOn()).toBe(false);
+      act(() => vi.advanceTimersByTime(1));
+      expect(isOn()).toBe(true);
+    });
+
+    it("picks up a new choice without a reload, and ignores values that are not offered", () => {
+      sessionStorage.setItem(PRIVACY_IDLE_STORAGE_KEY, "5000");
+      render(<Shell />);
+      expect(getIdleSettingStore().get()).toBe(PRIVACY_IDLE_MS);
+      act(() => getIdleSettingStore().set(120_000));
+      expect(sessionStorage.getItem(PRIVACY_IDLE_STORAGE_KEY)).toBe("120000");
+      act(() => vi.advanceTimersByTime(119_999));
+      expect(isOn()).toBe(false);
+      act(() => vi.advanceTimersByTime(1));
+      expect(isOn()).toBe(true);
+    });
 
     it("masks after the idle period and resets on pointer, scroll and touch activity", () => {
       render(<Shell idleMs={60_000} />);

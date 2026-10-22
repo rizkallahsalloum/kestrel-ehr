@@ -1,24 +1,17 @@
 import type { ReactNode } from "react";
 import { cn } from "./cn";
-import { CheckCircleIcon } from "./icons";
-import { severityIcons, severityOutline } from "./severity";
+import { AlertTriangleIcon, CheckCircleIcon } from "./icons";
+import { severityFill, severityIconText, severityOutline, severityText, type Severity } from "./severity";
 
-const tones = {
-  critical: {
-    box: severityOutline.critical,
-    icon: "ring-(length:--border-width-emphasis) ring-warning-stroke",
-    Icon: severityIcons.critical,
-  },
-  warning: {
-    box: severityOutline.warning,
-    icon: "ring-1 ring-warning-line",
-    Icon: severityIcons.warning,
-  },
-} as const;
+const iconRings: Record<Severity, string> = {
+  critical: "ring-(length:--border-width-emphasis) ring-danger",
+  warning: "ring-1 ring-warning-line",
+};
 
 /**
- * Chart-level alert (dashboard `.alert-banner`). Static by default; pass `role="alert"` only
- * when the banner appears in response to a user action.
+ * Chart-level alert (dashboard `.alert-banner`). Critical (blocking, for example an allergy conflict)
+ * is red with the emphasis border; warning (advisory) is orange with a hairline. Static by default;
+ * pass `role="alert"` only when the banner appears in response to a user action.
  */
 export function AlertBanner({
   tone,
@@ -28,23 +21,30 @@ export function AlertBanner({
   className,
   children,
 }: {
-  tone: keyof typeof tones;
+  tone: Severity;
   title: ReactNode;
   actions?: ReactNode;
   role?: "alert" | "region";
   className?: string;
   children?: ReactNode;
 }) {
-  const t = tones[tone];
   return (
-    <div role={role} className={cn("flex items-start gap-3.5 rounded-card bg-warning-subtle px-5 py-4", t.box, className)}>
+    <div
+      role={role}
+      data-severity={tone}
+      className={cn("flex items-start gap-3.5 rounded-card px-5 py-4", severityFill[tone], severityOutline[tone], className)}
+    >
       <span
-        className={cn("grid size-8.5 shrink-0 place-items-center rounded-full bg-surface-pure text-warning", t.icon)}
+        className={cn(
+          "grid size-8.5 shrink-0 place-items-center rounded-full bg-surface-pure",
+          severityIconText[tone],
+          iconRings[tone],
+        )}
       >
-        <t.Icon />
+        <AlertTriangleIcon />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-label font-semibold text-warning">{title}</p>
+        <p className={cn("text-label font-semibold", severityText[tone])}>{title}</p>
         {children && <div className="mt-0.5 text-body-sm text-ink-strong">{children}</div>}
         {actions && <div className="mt-3 flex flex-wrap gap-2.5">{actions}</div>}
       </div>

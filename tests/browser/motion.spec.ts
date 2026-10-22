@@ -80,7 +80,7 @@ test.describe("prefers-reduced-motion: reduce", () => {
   test("critical status dot has no animation", async ({ page }) => {
     await open(page, "/dev/components");
     const dots = await page
-      .locator("span[aria-hidden=true].rounded-full.bg-status-warning.outline-status-warning")
+      .locator("[data-status=critical]")
       .evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName));
     expect(dots.length).toBeGreaterThan(0);
     expect(dots.every((name) => name === "none")).toBe(true);
