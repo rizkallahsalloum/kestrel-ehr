@@ -474,6 +474,60 @@ for (const width of [1440, 1024, 760, 390]) {
   });
 }
 
+test("queue chip avatars: teal, green and blue by patient id, stable across reloads, reordering and masking, never named", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const id = (n: number) => `00000000-0000-4000-8000-00000000010${n}`;
+  const chips = () => queueBar(page).locator("[data-queue-item]");
+  const avatarColours = () =>
+    chips().evaluateAll((els) =>
+      Object.fromEntries(
+        els.map((el) => [el.getAttribute("data-queue-item")!, getComputedStyle(el.querySelector(":scope > span")!).backgroundColor]),
+      ),
+    );
+  const names = () => chips().evaluateAll((els) => els.map((el) => el.getAttribute("aria-label") ?? el.textContent ?? ""));
+
+  await open(page);
+  const [teal, green, blue] = await Promise.all(["avatar-teal", "avatar-green", "avatar-blue"].map((t) => tokenColor(page, t)));
+  // Sorted ids 101…107 over the whole queue (seven patients; 107 is behind "View all"): index mod 3.
+  const expected = { [id(1)]: teal, [id(2)]: green, [id(3)]: blue, [id(4)]: teal, [id(5)]: green, [id(6)]: blue };
+  expect(await avatarColours()).toEqual(expected);
+  expect(new Set(Object.values(expected)).size).toBe(3);
+  for (const name of await chips().evaluateAll((els) => els.map((el) => el.textContent ?? ""))) {
+    expect(name).not.toMatch(/teal|green|blue|red|colou?r/i);
+  }
+  for (const i of [0, 1, 2]) await expect(chips().nth(i)).not.toHaveAccessibleName(/teal|green|blue|red|colou?r/i);
+
+  // Reload: same colours.
+  await page.reload();
+  await hideDevOverlay(page);
+  expect(await avatarColours()).toEqual(expected);
+
+  // Reordered (every status moved to the next patient): different order and a different hidden
+  // patient, same colour per patient.
+  await open(page, `${CHART}&queueOrder=rotated`);
+  const rotated = await avatarColours();
+  expect(Object.keys(rotated)).not.toEqual(Object.keys(expected));
+  expect(rotated[id(7)]).toBe(teal);
+  for (const [patient, colour] of Object.entries(rotated)) {
+    if (patient in expected) expect(colour, patient).toBe(expected[patient]);
+  }
+
+  // Masked: initials become "••" and keep their colour; names never mention a colour.
+  await open(page);
+  await expect(async () => {
+    await privacy(page).click();
+    await expect(privacy(page)).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await expect(chips().first().locator(":scope > span").first()).toHaveText("••");
+  expect(await avatarColours()).toEqual(expected);
+  for (const name of await names()) expect(name).not.toMatch(/teal|green|blue|red|colou?r/i);
+  expect(await queueBar(page).ariaSnapshot()).not.toMatch(/teal|green|blue|red|colou?r/i);
+
+  // One patient: teal.
+  await open(page, `${CHART}&queue=1`);
+  expect(await avatarColours()).toEqual({ [id(1)]: teal });
+});
+
 test("Today's queue statuses by case: critical, warning and stable chips are told apart by dot and name", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);

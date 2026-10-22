@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/components/ui";
 import { usePrivacy } from "@/features/privacy/components/privacy-provider";
-import { QUEUE_LIMIT, QUEUE_STATUS_LABEL, type QueuePatient } from "../queue";
+import { QUEUE_LIMIT, QUEUE_STATUS_LABEL, queueAvatarTones, type QueuePatient } from "../queue";
 import { PatientQueueItem, queueChipClass } from "./patient-queue-item";
 
 /** "page" on the chart itself, true on the patient's deeper pages, so the chip shows where you are. */
@@ -36,6 +36,8 @@ export function PatientQueue({
   if (queue?.length === 0) return null;
   const current = activePath ?? pathname;
   const shown = queue?.slice(0, QUEUE_LIMIT) ?? [];
+  // From the whole queue, so a colour stays put when a patient enters or leaves the visible six.
+  const tones = queueAvatarTones(queue ?? []);
   return (
     <nav
       aria-label="Today's queue"
@@ -56,6 +58,7 @@ export function PatientQueue({
             <li key={patient.id} className="min-w-0 max-w-queue-chip">
               <PatientQueueItem
                 patient={patient}
+                avatarTone={tones.get(patient.id)}
                 current={currentFor(current, patient.id)}
                 maskedLabel={
                   masked

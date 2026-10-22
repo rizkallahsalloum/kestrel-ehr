@@ -50,7 +50,7 @@ export default async function ShellSpecimenPage({ searchParams }: PageProps<"/de
 
   if (view === "placeholder") {
     return (
-      <AppShell user={CLINICIAN} activePath="/schedule" queue={demoQueue(params.queue)} renderedAt={new Date().toISOString()}>
+      <AppShell user={CLINICIAN} activePath="/schedule" queue={demoQueue(params.queue, params.queueOrder)} renderedAt={new Date().toISOString()}>
         <PlaceholderPage title="Schedule" />
       </AppShell>
     );
@@ -79,7 +79,7 @@ export default async function ShellSpecimenPage({ searchParams }: PageProps<"/de
     <AppShell
       user={CLINICIAN}
       activePath="/patients"
-      queue={demoQueue(params.queue)}
+      queue={demoQueue(params.queue, params.queueOrder)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell"
       searchHiddenFields={{ view: "clinician" }}

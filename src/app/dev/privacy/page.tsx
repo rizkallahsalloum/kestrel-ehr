@@ -133,7 +133,7 @@ export default async function PrivacySpecimenPage({ searchParams }: PageProps<"/
     <AppShell
       user={CLINICIAN}
       activePath="/patients"
-      queue={demoQueue(params.queue)}
+      queue={demoQueue(params.queue, params.queueOrder)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell"
       searchHiddenFields={{ view: "clinician" }}

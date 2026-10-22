@@ -1,3 +1,4 @@
+import type { AvatarTone } from "@/components/ui";
 import type { AlertSeverity, PrescriptionStatus } from "@/types/domain";
 
 /** Status dot of a queue chip: red, orange or green, always with `QUEUE_STATUS_LABEL` text. */
@@ -90,4 +91,20 @@ export function buildQueue(rows: QueuePatientRow[]): QueuePatient[] {
 export function queueItemCount(queue: QueuePatient[] | null): number {
   if (queue === null) return 1;
   return Math.min(queue.length, QUEUE_LIMIT) + (queue.length > QUEUE_LIMIT ? 1 : 0);
+}
+
+/** Chip avatar palette slots, in assignment order (colours in `--color-queue-avatar-*`). */
+export const QUEUE_AVATAR_TONES = ["queue-1", "queue-2", "queue-3"] as const satisfies readonly AvatarTone[];
+
+export type QueueAvatarTone = (typeof QUEUE_AVATAR_TONES)[number];
+
+/**
+ * Decorative avatar colour per queue patient, keyed by id. Pass every queue patient, not only the
+ * chips shown, so a colour does not change when someone moves in or out of the visible six. Ids are
+ * sorted and the index mod 3 picks the slot, so the colour ignores alert ordering. One patient gets
+ * the first slot (teal). The colour carries no meaning; status is the dot and its text.
+ */
+export function queueAvatarTones(patients: readonly Pick<QueuePatient, "id">[]): Map<string, QueueAvatarTone> {
+  const ids = [...new Set(patients.map((p) => p.id))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  return new Map(ids.map((id, index) => [id, QUEUE_AVATAR_TONES[index % QUEUE_AVATAR_TONES.length]!]));
 }

@@ -110,6 +110,23 @@ Code commit `d4ed977`. Today's queue has its own row under the search and contro
 - **Known limitation, not fixed (accepted):** with Privacy on, wrapped medication names in the chart prescriptions table at 390px collapse to a one-line mask, so the table gets shorter. See theme.md "Known issues".
 - **Unverified, not passed:** screen-reader output of the new inline hidden text (`sr-only-inline`, font size 0) in NVDA, JAWS and VoiceOver; the top bar in browsers other than Chromium (CSS `round()` and `:has()` are required for the height calculation); top-bar height with real user names much longer than the demo names; hosted-data queue statuses beyond the e2e regex check.
 
+### Phase 8d item C: queue chip avatar colours (22 Oct 2026)
+
+Queue chip avatars are teal, green or blue (decorative; the colour carries no meaning). Red was excluded because kestrel.mdc reserves it for severe and critical states. The colour comes from `queueAvatarTones`: ids of **all** patients the queue query returns (before the six-chip cap) sorted, index mod 3; one patient is teal. Details in [theme.md](theme.md#phase-8d-top-bar-layout-privacy-button-queue-statuses).
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 32 files, 262 passed (5 new for `queueAvatarTones`) |
+| `pnpm test:browser` (all specs) | 259 passed |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (36 files scanned) |
+| `pnpm test:e2e` | not run: the shell structure and sign-in/out did not change (unverified, not passed for this commit; 19 passed on `d4ed977`) |
+
+- **Browser test:** per-patient colours match the sorted-id assignment, survive a reload, stay the same when the queue is reordered (`?queueOrder=rotated`, which also changes which patient is behind "View all"), stay when masked (initials become "••"), and with one patient the chip is teal; chip text, accessible names and the queue's accessibility tree never mention a colour.
+- **axe:** the reordered queue was added to the top-bar scan at 1440, 1024, 760 and 390px. No serious or critical findings.
+- **Contrast:** white initials at 11px on teal 5.98:1, green 5.93:1, blue 6.46:1; all pass.
+- **Unverified, not passed:** e2e on kestrel-test for this commit; how the colours look to people with colour-vision deficiencies (no simulation run; the colour has no meaning, so nothing depends on telling them apart); colours with hosted patient ids (the assignment is unit-tested and the ids are UUIDs, so the order is arbitrary but stable).
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.

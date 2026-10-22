@@ -165,7 +165,7 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
     <AppShell
       user={CLINICIAN}
       activePath={`/patients/${CHARTS[view].patient.id}`}
-      queue={demoQueue(params.queue)}
+      queue={demoQueue(params.queue, params.queueOrder)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
       {params.skeleton ? (

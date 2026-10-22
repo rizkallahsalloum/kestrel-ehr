@@ -152,6 +152,9 @@ test("axe: top bar with 1, 3 and 7 queue patients, Privacy button hovered off an
       await settle(page, `/dev/prescribing?view=blocking&queue=${patients}`);
       await scan(page, `queue ${patients} at ${width}px`);
     }
+    // Reordered queue: the teal, green and blue chip avatars land on other chips.
+    await settle(page, "/dev/prescribing?view=blocking&queueOrder=rotated");
+    await scan(page, `queue reordered at ${width}px`);
     const privacy = page.getByTestId("privacy-toggle");
     await privacy.hover();
     await scan(page, `privacy off hovered at ${width}px`);

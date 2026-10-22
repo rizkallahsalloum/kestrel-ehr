@@ -87,6 +87,13 @@
   --color-avatar-teal: var(--k-semantic-avatar-teal, #2b6c76);
   --color-avatar-green: var(--k-semantic-avatar-green, #356f51);
   --color-avatar-red: var(--k-semantic-avatar-red, #b03a32);
+  /* not in Figma (no blue or info family): third queue-avatar colour; white initials 6.46:1 */
+  --color-avatar-blue: #34618f;
+  /* Today's queue chip avatars, the one place to swap the palette. Decorative only: slot N is
+     assigned by patient id (queueAvatarTones). Never red: red is reserved for severe and critical. */
+  --color-queue-avatar-1: var(--color-avatar-teal);
+  --color-queue-avatar-2: var(--color-avatar-green);
+  --color-queue-avatar-3: var(--color-avatar-blue);
 
   /* ---- Radii (C10) ---- */
   --radius-sm: var(--k-semantic-border-radius-sm, 4px);

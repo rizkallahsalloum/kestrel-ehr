@@ -43,6 +43,7 @@ import {
   RxIcon,
 } from "@/components/ui";
 import { PatientQueueItem } from "@/features/patients/components/patient-queue-item";
+import { QUEUE_AVATAR_TONES, queueAvatarTones } from "@/features/patients/queue";
 import { DEMO_QUEUE } from "../demo-queue";
 import { ContrastTable, type ContrastPair } from "../theme/contrast-table";
 import { ComboboxDemo, ComboboxStatusDemo, DialogDemo, SubmitErrorsDemo } from "./demos";
@@ -113,6 +114,10 @@ const PAIRS: ContrastPair[] = [
   { label: "NoAlert: ink-muted on page", fg: "var(--color-ink-muted)", bg: "var(--color-page)", kind: "text" },
   { label: "Avatar teal: on-accent on avatar-teal", fg: "var(--color-on-accent)", bg: "var(--color-avatar-teal)", kind: "text" },
   { label: "Avatar green: on-accent on avatar-green", fg: "var(--color-on-accent)", bg: "var(--color-avatar-green)", kind: "text" },
+  { label: "Avatar blue: on-accent on avatar-blue", fg: "var(--color-on-accent)", bg: "var(--color-avatar-blue)", kind: "text" },
+  { label: "Queue chip avatar slot 1 (11px initials): on-accent on queue-avatar-1", fg: "var(--color-on-accent)", bg: "var(--color-queue-avatar-1)", kind: "text" },
+  { label: "Queue chip avatar slot 2 (11px initials): on-accent on queue-avatar-2", fg: "var(--color-on-accent)", bg: "var(--color-queue-avatar-2)", kind: "text" },
+  { label: "Queue chip avatar slot 3 (11px initials): on-accent on queue-avatar-3", fg: "var(--color-on-accent)", bg: "var(--color-queue-avatar-3)", kind: "text" },
   { label: "Rail label: on-inverse-muted on inverse", fg: "var(--color-on-inverse-muted)", bg: "var(--color-inverse)", kind: "text" },
   { label: "Rail hover: on-inverse on inverse + 6% white", fg: "var(--color-on-inverse)", bg: "color-mix(in srgb, var(--color-on-inverse) 6%, var(--color-inverse))", kind: "text" },
   { label: "Rail current: on-inverse on inverse + 10% white", fg: "var(--color-on-inverse)", bg: "color-mix(in srgb, var(--color-on-inverse) 10%, var(--color-inverse))", kind: "text" },
@@ -189,6 +194,8 @@ const PAIRS: ContrastPair[] = [
   { label: "E-Rx neutral tile: ink-strong on surface-warm", fg: "var(--color-ink-strong)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "E-Rx label preview text: ok on surface", fg: "var(--color-ok)", bg: "var(--color-surface)", kind: "text" },
 ];
+
+const DEMO_TONES = queueAvatarTones(DEMO_QUEUE);
 
 const ICONS = {
   SearchIcon,
@@ -438,7 +445,11 @@ export default function ComponentSpecimenPage() {
               <ul className="flex flex-wrap gap-2">
                 {DEMO_QUEUE.slice(0, 3).map((patient, index) => (
                   <li key={patient.id}>
-                    <PatientQueueItem patient={patient} current={index === 0 ? "page" : undefined} />
+                    <PatientQueueItem
+                      patient={patient}
+                      avatarTone={DEMO_TONES.get(patient.id)}
+                      current={index === 0 ? "page" : undefined}
+                    />
                   </li>
                 ))}
               </ul>
@@ -487,6 +498,15 @@ export default function ComponentSpecimenPage() {
                 <Avatar initials="RT" tone="teal" />
                 <Avatar initials="MG" tone="green" />
                 <Avatar initials="QX" size="lg" />
+              </div>
+              <div className="flex items-center gap-3" data-specimen="queue-avatars">
+                <span className="text-label-sm text-ink-secondary">Queue chip palette (decorative):</span>
+                {QUEUE_AVATAR_TONES.map((tone, i) => (
+                  <Avatar key={tone} initials={["RT", "MD", "JF"][i]} tone={tone} size="xs" />
+                ))}
+                {QUEUE_AVATAR_TONES.map((tone) => (
+                  <Avatar key={`masked-${tone}`} initials="••" tone={tone} size="xs" />
+                ))}
               </div>
               <div>
                 <DialogDemo />

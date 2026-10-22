@@ -183,7 +183,7 @@ export default async function PrescribingSpecimenPage({ searchParams }: PageProp
     <AppShell
       user={CLINICIAN}
       activePath={`/patients/${PATIENT.id}/prescriptions/new`}
-      queue={demoQueue(params.queue)}
+      queue={demoQueue(params.queue, params.queueOrder)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell"
       searchHiddenFields={{ view: "clinician" }}

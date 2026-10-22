@@ -5,6 +5,10 @@ const tones = {
   teal: "bg-avatar-teal text-on-accent",
   green: "bg-avatar-green text-on-accent",
   ink: "bg-ink text-page",
+  // Today's queue palette slots (--color-queue-avatar-*); decorative, no meaning.
+  "queue-1": "bg-queue-avatar-1 text-on-accent",
+  "queue-2": "bg-queue-avatar-2 text-on-accent",
+  "queue-3": "bg-queue-avatar-3 text-on-accent",
 } as const;
 const sizes = {
   xs: "size-5.5 text-caption",

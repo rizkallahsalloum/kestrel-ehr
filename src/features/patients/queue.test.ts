@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { buildQueue, orderQueue, queueItemCount, queueStatus, type QueueDraftRow, type QueuePatient } from "./queue";
+import {
+  buildQueue,
+  orderQueue,
+  QUEUE_AVATAR_TONES,
+  queueAvatarTones,
+  queueItemCount,
+  queueStatus,
+  type QueueDraftRow,
+  type QueuePatient,
+} from "./queue";
 
 function draft(overrides: Partial<QueueDraftRow> = {}): QueueDraftRow {
   return { status: "draft", version: 2, last_evaluated_version: 2, prescription_alerts: [], ...overrides };
@@ -113,5 +122,52 @@ describe("buildQueue", () => {
       ["u", "warning"],
       ["s", "stable"],
     ]);
+  });
+});
+
+describe("queueAvatarTones", () => {
+  const ids = (...list: string[]) => list.map((id) => ({ id }));
+
+  it("gives a single patient the first slot (teal)", () => {
+    expect(queueAvatarTones(ids("p-9"))).toEqual(new Map([["p-9", "queue-1"]]));
+    expect(QUEUE_AVATAR_TONES[0]).toBe("queue-1");
+  });
+
+  it("assigns the three slots by sorted id, index mod 3", () => {
+    const tones = queueAvatarTones(ids("e", "a", "d", "b", "c"));
+    expect([...tones.entries()]).toEqual([
+      ["a", "queue-1"],
+      ["b", "queue-2"],
+      ["c", "queue-3"],
+      ["d", "queue-1"],
+      ["e", "queue-2"],
+    ]);
+    expect(new Set(tones.values()).size).toBe(3);
+  });
+
+  it("is stable when the queue is reordered by status", () => {
+    const patients: QueuePatient[] = [
+      { id: "id-3", givenName: "A", familyName: "Alpha", status: "stable" },
+      { id: "id-1", givenName: "B", familyName: "Bravo", status: "warning" },
+      { id: "id-2", givenName: "C", familyName: "Charlie", status: "critical" },
+    ];
+    const before = queueAvatarTones(orderQueue(patients));
+    const rotated = patients.map((p, i) => ({ ...p, status: patients[(i + 1) % patients.length]!.status }));
+    const after = queueAvatarTones(orderQueue(rotated));
+    expect(orderQueue(rotated).map((p) => p.id)).not.toEqual(orderQueue(patients).map((p) => p.id));
+    expect(after).toEqual(before);
+    expect(queueAvatarTones([...patients].reverse())).toEqual(before);
+  });
+
+  it("uses the whole queue, so the colours do not depend on which six are shown", () => {
+    const all = ids("g", "f", "e", "d", "c", "b", "a");
+    const tones = queueAvatarTones(all);
+    expect(tones.get("g")).toBe("queue-1");
+    expect(tones.size).toBe(7);
+  });
+
+  it("ignores duplicate ids and an empty queue", () => {
+    expect(queueAvatarTones([]).size).toBe(0);
+    expect(queueAvatarTones(ids("a", "a", "b"))).toEqual(new Map([["a", "queue-1"], ["b", "queue-2"]]));
   });
 });

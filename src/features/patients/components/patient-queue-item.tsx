@@ -11,7 +11,8 @@ export const queueChipClass =
  * One chip in Today's queue: initials, name and status dot, linking to the chart. The status is in
  * the accessible name, not colour alone. With Privacy mode on, name and initials are masked and
  * `maskedLabel` ("Patient 2 of 4, name hidden, Warning") keeps the links distinguishable.
- * `avatarTone` is the only colour input for the avatar, so a per-patient palette can replace it.
+ * `avatarTone` (from `queueAvatarTones`) is the only colour input for the avatar; it is decorative and
+ * never part of the accessible name.
  */
 export function PatientQueueItem({
   patient,
