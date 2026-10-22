@@ -89,6 +89,27 @@ Code commit `8f7acd8`. Severity colour rule changed: red (error tokens) for seve
 - **Known issue, not fixed:** with Privacy on, wrapped medication names in the chart prescriptions table at 390px collapse to a one-line mask, so the table gets shorter (55px on the specimen). Phase 8b trade-off; see theme.md "Known issues". The top bar, queue and hero do not move.
 - **Unverified, not passed:** screen-reader output of the account menu, queue names and offline announcements; the account menu and popover in browsers other than Chromium; the real `online` / `offline` events on a device (tests use Playwright's offline emulation); queue freshness across two tabs or users (only revalidation after this user's own mutations is in place); axe on hosted data.
 
+## Phase 8d note: top bar layout, Privacy button and queue statuses (22 Oct 2026)
+
+Code commit `d4ed977`. Today's queue has its own row under the search and controls (a single item sits inline from 1440px) and wraps instead of scrolling sideways; the sticky offsets follow the bar's computed height. The Privacy button is a ghost button between the sync status and the account menu ("Privacy on" in green). Queue statuses: critical for an unresolved blocking alert on a current draft, warning for an unresolved advisory or a draft with no safety check on its saved version, stable otherwise. Follow-ups from 8c: the allergies card is back to the normal border weight, and the account-menu and queue-chip accessible names have no stray spaces. Fixed: the patient header showed "••••••unknown" with Privacy on (age and sex are now one masked value), and the "Schedule" rail label was clipped (rail items are wider). Details in [theme.md](theme.md#phase-8d-top-bar-layout-privacy-button-queue-statuses).
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 32 files, 257 passed |
+| `pnpm test:browser` (all specs) | 258 passed |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (35 files scanned) |
+| `pnpm test:e2e` (kestrel-test) | 19 passed on the first run |
+
+`test:db` and `test:int` were not re-run (no migrations; the queue query is unchanged).
+
+- **New browser tests.** Privacy button: ghost at rest, hover fill, off and on colours, icons, focus ring, unchanged size, and its position (after the sync status, immediately left of the account menu) at 1440, 1024, 760 and 390px. Queue with 1, 3 and 7 patients at the same four widths: no horizontal overflow, chips inside the queue, the expected number of lines, the bar's rendered height equal to `--topbar-height`, every E-Rx section below the bar after a jump, and every sticky element's offset at least the bar's height. Statuses by case (three distinct dots and names). The patient header meta line on the chart and E-Rx pages, shown and masked. All five rail labels inside their items at 1440 and 761px. The tracker jump test now runs with 1, 3 and 7 queue patients; the skeleton layout-shift test with 1 and 3.
+- **axe** on the top bar with 1, 3 and 7 queue patients and the Privacy button hovered off and on, at 1440, 1024, 760 and 390px; the account-menu / Privacy / offline scan now also runs at 1024 and 760px. No serious or critical findings.
+- **Contrast**: Privacy button rows replaced (off 4.98:1 on `page`, 4.65:1 on the hover fill; on 5.31:1 / 4.95:1; focus ring 5.31:1); all pass.
+- **Found and fixed while testing:** a compiled `:is()` selector made the `md` queue-column rule outrank the `xl` one, so the queue used three columns instead of five at 1180px and up (split into separate rules); the queue chips' hidden status text was a flex item, so accessible names had a space before the comma (it now sits inline after the name); the first top-bar height tokens were 5px off (now derived from tokens and checked against the rendered height).
+- **Known limitation, not fixed (accepted):** with Privacy on, wrapped medication names in the chart prescriptions table at 390px collapse to a one-line mask, so the table gets shorter. See theme.md "Known issues".
+- **Unverified, not passed:** screen-reader output of the new inline hidden text (`sr-only-inline`, font size 0) in NVDA, JAWS and VoiceOver; the top bar in browsers other than Chromium (CSS `round()` and `:has()` are required for the height calculation); top-bar height with real user names much longer than the demo names; hosted-data queue statuses beyond the e2e regex check.
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.
