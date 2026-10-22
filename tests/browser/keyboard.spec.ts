@@ -339,7 +339,7 @@ test.describe("error announcements", () => {
     await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
     const titles = await region.locator("p.font-semibold").allTextContents();
     expect(titles.length).toBe(new Set(titles).size);
-    expect(titles[0], "blocking first").toBe("Allergy conflict on today's order");
+    expect(titles[0], "blocking first").toBe("Allergy conflict on pending order");
   });
 
   test("error screens announce one alert", async ({ page }) => {

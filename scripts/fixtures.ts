@@ -83,6 +83,12 @@ export const ALLERGIES = {
   southOneGammaActive: "a1000000-0000-4000-8000-000000000003",
 } as const;
 
+/** Idempotency keys of drafts the seed script creates through the app's path (as clinicianA). */
+export const SEED_DRAFTS = {
+  /** Zentoril (DEMO-ALPHA) for Rowan Testcase: blocked by her severe DEMO-ALPHA allergy. */
+  northOneZentorilBlocking: "d5000000-0000-4000-8000-000000000001",
+} as const;
+
 export const PATIENT_MEDICATIONS = {
   northOneTessalineActive: "5d000000-0000-4000-8000-000000000001",
   northOneCalvexaStopped: "5d000000-0000-4000-8000-000000000002",

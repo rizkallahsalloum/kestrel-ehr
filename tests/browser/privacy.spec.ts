@@ -118,7 +118,7 @@ for (const width of [1440, 1024, 390]) {
     await expect(page.getByRole("button", { name: "Show content" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "chart specimen" })).toBeVisible();
     // Safety information stays: severity, drug and allergen names.
-    const alert = page.getByText("Allergy conflict on today's order");
+    const alert = page.getByText("Allergy conflict on pending order");
     await expect(alert).toBeVisible();
     await expect(page.getByText(/Draft: Zentoril 10 mg tablet\./)).toBeVisible();
     await expect(page.getByText(/severe DEMO-ALPHA class allergy/)).toBeVisible();

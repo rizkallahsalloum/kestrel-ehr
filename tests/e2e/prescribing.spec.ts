@@ -72,8 +72,11 @@ test("a blocking demo alert cannot be acknowledged or signed; the chart banner s
   await expect(page.getByTestId("sign-button")).toHaveText("Blocking alert: change or cancel the draft");
   await expect(page.getByRole("list", { name: "Signing prerequisites" })).toContainText("blocking demo alert");
 
+  // Rowan Testcase's chart: the draft was created today (UTC), so the title says "today's order".
   await page.goto(`/patients/${PATIENTS.northOne}`);
+  await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toContainText(/Rowan|Testcase/);
   await expect(banner.first()).toBeVisible();
+  await expect(alertSlot.getByText("Allergy conflict on pending order")).toHaveCount(0);
   await expect(alertSlot).toContainText("Draft: Zentoril 10 mg tablet.");
   await expect(alertSlot.getByText("No unresolved demo safety alerts on this patient's drafts.")).toHaveCount(0);
   // Top of the workspace: under the patient header, above the Prescriptions card.

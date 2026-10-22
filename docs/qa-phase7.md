@@ -166,6 +166,23 @@ Today's queue chips have no outline ring at rest, on hover, when current or on m
 - **axe:** the existing top-bar and chart scans ran unchanged in the browser suite. No serious or critical findings.
 - **Unverified, not passed:** the banner title for a blocking interaction rule (none is seeded); chips in Windows forced-colours mode; the full-width layout with real hosted data at 2560px (specimens and e2e at 1440px only).
 
+## Phase 8f follow-up note: banner title by order date, seeded blocking draft (22 Oct 2026)
+
+The blocking banner reads "Allergy conflict on today's order" when the draft was created on the current UTC day, otherwise "Allergy conflict on pending order"; the drug name stays in the body. `pnpm db:seed:test` now adds one blocking Zentoril draft for Rowan Testcase on kestrel-test (through the clinician's session and `evaluate_prescription_safety`; skipped when she already has a blocking draft). Unchanged on purpose (user decisions): the queue dot rule (active severe allergy critical, moderate warning, mild stable) and the queue breakpoint (second row below 2390px). Known limitation flagged for Phase 9: two blocking drafts show identical titles. Details in [theme.md](theme.md#phase-8f-follow-up-banner-title-by-order-date-seeded-blocking-draft).
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 270 passed (4 new title cases: same day, yesterday, either side of UTC midnight, an offset timestamp) |
+| `pnpm test:browser` (all specs) | 284 passed |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (36 files scanned) |
+| `pnpm test:e2e` (kestrel-test) | 20 passed (Rowan's chart shows "today's order" for a draft created through the app) |
+| `pnpm db:seed:test` (kestrel-test) | after a prescription reset: draft created and checked (1 unresolved blocking alert on its current version); run again: none added |
+
+`test:db` and `test:int` were not re-run (no migrations; the seed only adds a draft through existing grants). `test:int` resets prescriptions before it starts; `test:db` does not.
+
+- **Unverified, not passed:** `test:db` with the seeded draft present on kestrel-test; the title when a request straddles UTC midnight in a real session (unit-tested only); the seeded draft after a future change to the DEMO rules.
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.

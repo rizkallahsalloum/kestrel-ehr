@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { AlertBanner, buttonStyles, InfoIcon, NoAlert } from "@/components/ui";
-import type { DraftAlertSummary } from "@/features/chart/alerts";
+import { blockingBannerTitle, type DraftAlertSummary } from "@/features/chart/alerts";
 
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
-// Every seeded blocking DEMO rule is an allergy-class rule, so a blocking alert is an allergy conflict.
-function bannerTitle(summary: DraftAlertSummary): string {
-  if (summary.blocking > 0) return "Allergy conflict on today's order";
+function bannerTitle(summary: DraftAlertSummary, now: Date): string {
+  if (summary.blocking > 0) return blockingBannerTitle(summary.createdAt, now);
   return `Advisory demo alert to acknowledge on draft: ${summary.medicationLabel}`;
 }
 
@@ -33,6 +32,8 @@ export function ChartAlertSlot({
   summaries: DraftAlertSummary[];
   uncheckedDrafts: number;
 }) {
+  // Server-rendered only, so "today" is decided once per request and never re-evaluated in the browser.
+  const now = new Date();
   return (
     <section aria-labelledby="chart-alerts-heading" className="flex flex-col gap-3">
       <h2 id="chart-alerts-heading" className="sr-only">
@@ -42,7 +43,7 @@ export function ChartAlertSlot({
         <AlertBanner
           key={summary.prescriptionId}
           tone={summary.blocking > 0 ? "critical" : "warning"}
-          title={bannerTitle(summary)}
+          title={bannerTitle(summary, now)}
           actions={
             <Link
               href={`/patients/${patientId}/prescriptions/${summary.prescriptionId}`}

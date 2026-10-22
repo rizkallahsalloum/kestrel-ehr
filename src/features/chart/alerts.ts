@@ -7,6 +7,8 @@ export type DraftSafetyState =
 export type DraftAlertSummary = {
   prescriptionId: string;
   medicationLabel: string;
+  /** The draft's `created_at`: the day the order was placed. Edits do not move it. */
+  createdAt: string;
   blocking: number;
   advisoryPending: number;
   /** Messages of the alerts still needing action, blocking first. */
@@ -49,12 +51,28 @@ export function summarizeDraftAlerts(prescriptions: PrescriptionListItem[], aler
     summaries.push({
       prescriptionId: rx.id,
       medicationLabel: medicationLabel(rx),
+      createdAt: rx.created_at,
       blocking: state.blocking,
       advisoryPending: state.advisoryPending,
       messages: state.messages,
     });
   }
   return summaries.sort((a, b) => Number(b.blocking > 0) - Number(a.blocking > 0));
+}
+
+/** Calendar day (YYYY-MM-DD) in UTC, the zone every date in the app is shown in (`lib/format.ts`). */
+export function utcDay(value: string | Date): string {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+/**
+ * Title of a chart banner for a draft with a blocking alert: "today's order" when the draft was
+ * created on the same UTC day as `now`, otherwise "pending order".
+ * Every blocking alert is currently an allergy rule (DEMO-R001, DEMO-R002); a future non-allergy
+ * blocking rule needs its own title.
+ */
+export function blockingBannerTitle(createdAt: string, now: Date): string {
+  return utcDay(createdAt) === utcDay(now) ? "Allergy conflict on today's order" : "Allergy conflict on pending order";
 }
 
 /** Drafts whose saved version has not been through the safety check. */

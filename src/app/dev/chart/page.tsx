@@ -133,6 +133,18 @@ const CHARTS = {
 type View = keyof typeof CHARTS;
 const VIEWS = Object.keys(CHARTS) as View[];
 
+// The blocking view's draft is dated at request time so its banner reads "today's order"; the mixed
+// view keeps its past date, so its banner reads "pending order".
+function chartFor(view: View): PatientChart {
+  const chart = CHARTS[view];
+  if (view !== "blocking") return chart;
+  const createdAt = new Date().toISOString();
+  return {
+    ...chart,
+    prescriptions: chart.prescriptions.map((p) => (p.status === "draft" ? { ...p, created_at: createdAt } : p)),
+  };
+}
+
 export default async function ChartSpecimenPage({ searchParams }: PageProps<"/dev/chart">) {
   if (process.env.NODE_ENV !== "development") notFound();
 
@@ -142,7 +154,7 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
 
   const content = (
     <>
-      <PatientChartView chart={CHARTS[view]} />
+      <PatientChartView chart={chartFor(view)} />
       <p className="mt-6 text-label-sm text-ink-muted">
         Development specimen. Views:{" "}
         {VIEWS.map((v, i) => (

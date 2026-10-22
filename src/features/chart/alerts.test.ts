@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { DraftAlertRow, PrescriptionListItem } from "@/types/domain";
-import { countUncheckedDrafts, draftSafetyState, medicationLabel, summarizeDraftAlerts } from "./alerts";
+import {
+  blockingBannerTitle,
+  countUncheckedDrafts,
+  draftSafetyState,
+  medicationLabel,
+  summarizeDraftAlerts,
+  utcDay,
+} from "./alerts";
 
 function rx(id: string, overrides: Partial<PrescriptionListItem> = {}): PrescriptionListItem {
   return {
@@ -77,12 +84,44 @@ describe("summarizeDraftAlerts", () => {
     ];
     const summary = summarizeDraftAlerts(prescriptions, alerts);
     expect(summary.map((s) => s.prescriptionId)).toEqual(["blocking", "advisory"]);
-    expect(summary[0]).toMatchObject({ blocking: 1, advisoryPending: 0, medicationLabel: "Zentoril 10 mg tablet" });
+    expect(summary[0]).toMatchObject({
+      blocking: 1,
+      advisoryPending: 0,
+      medicationLabel: "Zentoril 10 mg tablet",
+      createdAt: "2026-10-19T08:00:00Z",
+    });
     expect(summary[1]).toMatchObject({ blocking: 0, advisoryPending: 1 });
   });
 
   it("returns nothing when there are no drafts", () => {
     expect(summarizeDraftAlerts([rx("s", { status: "signed" })], [])).toEqual([]);
+  });
+});
+
+describe("blockingBannerTitle", () => {
+  const TODAY = "Allergy conflict on today's order";
+  const PENDING = "Allergy conflict on pending order";
+
+  it("says today's order for a draft created earlier the same UTC day", () => {
+    expect(blockingBannerTitle("2026-10-22T08:00:00Z", new Date("2026-10-22T17:30:00Z"))).toBe(TODAY);
+  });
+
+  it("says pending order for a draft created yesterday", () => {
+    expect(blockingBannerTitle("2026-10-21T08:00:00Z", new Date("2026-10-22T08:00:00Z"))).toBe(PENDING);
+  });
+
+  it("switches exactly at UTC midnight", () => {
+    const created = "2026-10-21T23:59:59.999Z";
+    expect(blockingBannerTitle(created, new Date("2026-10-21T23:59:59.999Z"))).toBe(TODAY);
+    expect(blockingBannerTitle(created, new Date("2026-10-22T00:00:00.000Z"))).toBe(PENDING);
+    expect(blockingBannerTitle("2026-10-22T00:00:00.000Z", new Date("2026-10-22T23:59:59.999Z"))).toBe(TODAY);
+  });
+
+  it("compares in UTC, not in the offset the timestamp was written in", () => {
+    // 01:30 on 22 Oct at UTC+3 is 22:30 on 21 Oct UTC.
+    expect(utcDay("2026-10-22T01:30:00+03:00")).toBe("2026-10-21");
+    expect(blockingBannerTitle("2026-10-22T01:30:00+03:00", new Date("2026-10-22T09:00:00Z"))).toBe(PENDING);
+    expect(blockingBannerTitle("2026-10-22T01:30:00+03:00", new Date("2026-10-21T23:00:00Z"))).toBe(TODAY);
   });
 });
 
