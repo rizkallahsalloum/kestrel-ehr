@@ -30,30 +30,51 @@ Rail and inverse text (`on-inverse`) follows Figma `text.on-inverse` (pure white
 ### Intended usage of the warning colors
 
 - `warning` text on `warning-subtle` fill, outlined with `warning-line`: advisory demo alerts, advisory summaries, the synthetic-data banner.
-- Form errors are amber, never red. Red is reserved as described in "Red and orange" below.
+- Form errors are amber, never red. Red is reserved as described in "Severity colours" below.
   - Field stroke and focus glow: `warning-stroke` (`warning.border-strong`, #9C6A15). It is a non-text indicator and only needs 3:1.
   - Error message text and icon: `warning` (#8A5A0E). `warning-stroke` is not used for text, because it falls below 4.5:1 on `page` and on `warning-subtle`, where the acknowledgement form sits inside advisory alerts.
 - `status-warning`: status dots and other non-text indicators. Always pair a dot with a text label.
 
-### Red and orange (revised after the Phase 5 review; replaces the Phase 4 rule)
+### Severity colours (Phase 8c; replaces the Phase 5 "Red and orange" rule)
 
 One rule, shared with `.cursor/rules/kestrel.mdc`:
 
-- **Red** (`danger`, hover `danger-ink`) is used only for **resolution actions and destructive confirms**. Today that is only the "Cancel draft" confirm button in the cancel dialog (`Button variant="danger"`). Nothing that *detects* a problem is red. The other red-valued tokens (`danger-subtle`, `danger-line`, `status-critical`, `avatar-red`) stay mapped in `globals.css` but are not used; the red avatar tone was removed before Phase 6.
-- **Orange** (`warning`, `warning-subtle`, `warning-line`, `warning-stroke`, `status-warning`) is used for **every detection state**: blocking demo alerts, severe allergies (and critical vitals if they are ever modelled), advisory demo alerts, mild and moderate allergies, and form errors.
-- **Blocking versus advisory is never told apart by colour alone.** It's told apart by four cues, all from `src/components/ui/severity.ts`:
+- **Red** (`danger`, `danger-ink`, `danger-subtle`, `danger-line`, `status-critical`) marks **severe and critical** states: blocking demo alerts, severe allergies, critical status dots in Today's queue, and the offline sync state. It also stays on the destructive "Cancel draft" confirm button (`Button variant="danger"`).
+- **Orange** (`warning`, `warning-subtle`, `warning-line`, `status-warning`) marks **moderate and warning** states: advisory demo alerts, mild and moderate allergies, and warning dots. Form errors and the synthetic-data banner stay orange (`warning-stroke` for field strokes).
+- **Green** (`ok`, `status-stable`) marks stable states: "No alerts" queue dots, the connected sync dot, Privacy mode on, clear states.
+- **Solid versus subtle.** The strongest red treatment is for the critical allergy-conflict banner and critical states: `danger-subtle` fill, a 2px `danger` border and a ringed red icon. Pills, dots, tags and flags use the subtle or outlined error style: `danger-subtle` fill with an inset `danger` ring (badge, allergy pill), `danger` text and outline on white (severity tag), or a red dot with an outline ring. Nothing in the app uses a solid red fill except the "Cancel draft" button.
+- **One icon.** Every alert uses the triangle (`AlertTriangleIcon`). The circle variant was removed from the repository (`AlertCircleIcon`, `severityIcons`); a browser test fails if it comes back. Status dots stay dots.
+- **Blocking versus advisory is never told apart by colour alone.** All maps are in `src/components/ui/severity.ts` (`severityOutline`, `severityFill`, `severityText`, `severityIconText`, `severityDivider`):
 
-  | Cue | Blocking (`critical` tone) | Advisory (`warning` tone) |
+  | Cue | Blocking or severe (`critical` tone) | Advisory, mild or moderate (`warning` tone) |
   | --- | --- | --- |
-  | Border width | `--border-width-emphasis` (2px) in `warning-stroke` (`severityOutline.critical`) | hairline (1px) in `warning-line` (`severityOutline.warning`) |
-  | Icon | circle with exclamation (`severityIcons.critical`) | triangle (`severityIcons.warning`) |
-  | Label text | "Blocking", "Severe", "N blocking alert(s)", "Severe allergy" | "Advisory", "Moderate", "Mild", "to acknowledge" |
+  | Colour family | red (`danger*`) | orange (`warning*`) |
+  | Border width | `--border-width-emphasis` (2px) in `danger` | hairline (1px) in `warning-line` |
+  | Label text | "Blocking", "Severe", "N blocking alert(s)", "Severe allergy", "Critical alert" | "Advisory", "Moderate", "Mild", "to acknowledge", "Warning" |
   | Ordering | first | after blocking; acknowledged advisories last |
 
   Where a 2px border would change an element's size, the emphasis is drawn without it: the `Badge` uses an inset ring, `SeverityTag` trades one pixel of padding, and the review count pill always reserves a 2px border (transparent unless blocking).
-- A summary takes the **treatment** of the highest severity it summarizes: the allergies card (outline and icon), the patient hero allergy badge, the E-Rx allergy tile, the medication safety summary, the review count pill and the chart alert banner all use the blocking treatment when anything blocking or severe is present. Row dividers stay hairline in every tone.
-- Ordering is enforced in the components, not only by the database queries: `bySeverity` (allergies) and `orderAlerts` (prescription alerts) are unit-tested, and the chart banners were already sorted blocking first.
+- A summary takes the **treatment** of the highest severity it summarizes: the allergies card (outline, icon and dividers), the patient hero allergy pill, the E-Rx allergy tile, the medication safety summary, the review count pill and the chart alert banner use the red treatment when anything blocking or severe is present.
+- **Test hook.** Every severity surface carries `data-severity="critical" | "warning"`. `severityColourViolations` in `tests/browser/support.ts` fails a page if a red colour appears outside a `[data-severity=critical]` element or an orange one inside it.
+- Ordering is enforced in the components, not only by the database queries: `bySeverity` (allergies) and `orderAlerts` (prescription alerts) are unit-tested, and the chart banners are sorted blocking first.
 
+**Where red appears (Phase 8c):**
+
+| Place | State | Treatment |
+| --- | --- | --- |
+| Chart `AlertBanner` (`src/components/ui/alert-banner.tsx`) | blocking demo alert on a draft | strongest: subtle fill, 2px red border, ringed red icon, `danger-ink` title |
+| Chart allergies panel (`clinical-lists.tsx`) | any severe allergy | 2px red outline, red icon, `danger-line` row dividers; severe allergy names in `danger-ink` |
+| Allergy row `SeverityTag` | severe | outlined, red text |
+| Patient hero allergy pill (`patient-hero.tsx`, `Badge` critical) | any severe allergy | subtle fill, red inset ring, `danger-ink` text |
+| `Card tone="critical"` and `PanelTitle` critical icon | critical | 2px red outline, red icon |
+| E-Rx severe-allergy tile (`erx-layout.tsx`) | severe allergy | subtle fill, 2px red outline, red icon |
+| E-Rx medication safety summary | any blocking alert | subtle fill, 2px red outline, red icon |
+| E-Rx review count pill | blocking alerts | subtle fill, 2px red border, `danger-ink` text |
+| E-Rx `SafetyDecisionList` blocking cards (`prescription-summary.tsx`) | blocking, not acknowledged | subtle fill, 2px red outline, red icon |
+| `StatusDot` critical: Today's queue chips | patient with a blocking alert on a draft | red dot with outline ring, text "Critical alert" |
+| Sync status (`sync-status.tsx`) | offline | red dot plus the word "Offline" in `danger` |
+| "Cancel draft" confirm (`Button variant="danger"`) | destructive confirm | solid red fill, white text |
+| `/dev/theme`, `/dev/components` | specimens and contrast rows | as above |
 ### Usage rules from the contrast report
 
 - Do not put `ink-muted` on `surface-warm` (4.45:1). Use `ink-secondary` (4.65:1) or `ink-strong` on warm fills.
@@ -61,24 +82,33 @@ One rule, shared with `.cursor/rules/kestrel.mdc`:
 - Field placeholders and suffixes use `ink-placeholder` on `surface`, and `ink-secondary` on the warm read-only or disabled fill (`ink-placeholder` on `surface-warm` is 4.45:1).
 - Disabled controls are exempt from contrast minimums but keep their visible label.
 
-### Blocking and advisory pairings (orange family)
+### Severity pairings (red and orange, Phase 8c)
 
-`danger-subtle` and `danger-line` are no longer used by any component; they stay defined because they come from the Figma export. Blocking and advisory states share the `warning-subtle` fill. Measured on `/dev/components` and asserted by `pnpm test:browser` (`tests/browser/contrast.spec.ts`):
+Measured on `/dev/components` and asserted by `pnpm test:browser` (`tests/browser/contrast.spec.ts`). Advisory states keep the `warning-subtle` fill; blocking and severe states use `danger-subtle`.
 
 | Pairing | Ratio | Needs |
 | --- | --- | --- |
+| `danger-ink` title, badge, allergy pill (12px), review count and tile text on `danger-subtle` | 7.94:1 | 4.5:1 |
+| `danger-ink` severe allergy name on `surface` | 9.60:1 | 4.5:1 |
+| `danger` severity tag text (11px) on `surface-pure` | 6.00:1 | 4.5:1 |
+| `ink-strong` body text on `danger-subtle` | 5.36:1 | 4.5:1 |
+| `accent` link on `danger-subtle` (E-Rx blocking card) | 4.87:1 | 4.5:1 |
+| Blocking 2px outline (`danger`) on `danger-subtle` / `surface` / `page` | 4.89:1 / 5.91:1 / 5.38:1 | 3:1 |
+| Blocking icon (`danger`) on `surface-pure`; icon ring on `danger-subtle` | 6.00:1 / 4.89:1 | 3:1 |
+| `status-critical` dot on `surface` / `accent-subtle` (current queue chip) / `page` | 5.91:1 / 4.91:1 / 5.38:1 | 3:1 |
+| `status-warning` dot on `accent-subtle`; `status-stable` on `accent-subtle` / `page` | 3.83:1; 4.85:1 / 5.31:1 | 3:1 |
+| Sync "Offline" (`danger`, 11px) on `page` | 5.38:1 | 4.5:1 |
+| Form error stroke (`warning-stroke`) against `danger-subtle` (field inside a blocking card) | 3.81:1 | 3:1 |
+| Severe row divider (`danger-line`) on `surface` | 1.55:1 | none (decorative) |
 | `warning` title, label, badge and pill text on `warning-subtle` | 5.09:1 | 4.5:1 |
 | `warning` allergy names and tag text on `surface` / `surface-pure` | 5.82:1 / 5.92:1 | 4.5:1 |
 | `ink` / `ink-strong` body text on `warning-subtle` | 13.78:1 / 5.66:1 | 4.5:1 |
-| `accent` "Go to medication" link on `warning-subtle` | 5.15:1 | 4.5:1 |
-| `focus` ring on controls inside an alert | 5.10:1 | 3:1 |
-| Blocking 2px outline (`warning-stroke`) on `warning-subtle` / `surface` / `surface-pure` / `page` | 4.03:1 / 4.61:1 / 4.68:1 / 4.19:1 | 3:1 |
-| Blocking pill outline (`warning-stroke`) on the `inverse` review header | 3.42:1 | 3:1 |
 | Advisory 1px outline (`warning-line`) | 1.41:1 on `surface` | none (decorative) |
 | "Cancel draft" confirm: `on-accent` on `danger` / hover `danger-ink` | 6.00:1 / 9.75:1 | 4.5:1 |
 
-The blocking outline is a real non-text indicator and passes 3:1 everywhere it is drawn. The advisory outline and the fill against `surface` are decorative. An advisory alert is identified by its triangle icon, label and text. Do not put `ink-secondary`, `ink-muted` or `ink-placeholder` on `warning-subtle`.
+Top-bar rows (Phase 8c): Privacy pill off `ink-secondary` on `surface` 5.48:1, on `ok` on `ok-subtle` 4.83:1 (edge `ok` vs `page` 5.31:1); account-menu items `ink` on `surface-pure` 16.01:1, focused `ink` on `surface-warm` 13.38:1, group label `ink-muted` on `surface-pure` 5.32:1, check mark `accent` 5.98:1; queue chip name `ink-strong` on `surface` 6.47:1, current chip `ink` on `accent-subtle` 13.10:1 with an `accent` border 5.36:1, "View all" `accent` 5.89:1; sync line `ink-muted` on `page` 4.77:1. The Privacy pill's off edge (1.49:1) and the chip edge (1.24:1) are decorative: the text label carries the meaning.
 
+The blocking outline is a real non-text indicator and passes 3:1 everywhere it is drawn. The advisory outline is decorative; an advisory alert is identified by its label and text. Do not put `ink-secondary`, `ink-muted` or `ink-placeholder` on `warning-subtle` or `danger-subtle`.
 ### Additions in Phase 2
 
 - `scrim`: dialog backdrop, built from `inverse` at `opacity.overlay` (50%). It replaces Figma `bg.modal`, which must not be used (see the data issues below).
@@ -98,12 +128,24 @@ The blocking outline is a real non-text indicator and passes 3:1 everywhere it i
 
 ### Changes from the Phase 5 review
 
-- **Red is no longer used for detection** (see "Red and orange"). Converted from red to the orange blocking treatment: the chart alert banner, the chart allergy panel, the patient hero allergy badge, the E-Rx severe-allergy tile, the E-Rx medication safety summary, the review count pill and the E-Rx blocking alert card. The `critical` tones of `Badge`, `SeverityTag`, `StatusDot` (orange dot with an emphasis outline ring), `Card`, `PanelTitle` and `AlertBanner` changed with them.
+- **Red is no longer used for detection** (superseded in Phase 8c, see "Severity colours"). Converted from red to the orange blocking treatment: the chart alert banner, the chart allergy panel, the patient hero allergy badge, the E-Rx severe-allergy tile, the E-Rx medication safety summary, the review count pill and the E-Rx blocking alert card. The `critical` tones of `Badge`, `SeverityTag`, `StatusDot` (orange dot with an emphasis outline ring), `Card`, `PanelTitle` and `AlertBanner` changed with them.
 - **Draft status badge is `neutral`** (was `warning`), on the chart's prescription list and the E-Rx page heading. Draft and cancelled now share the neutral pill; the written status tells them apart. The synthetic-data banner stays orange.
 - **Section tracker uses a container query** on the tracker itself. Below `@tracker-row` (20rem) the steps stack with full labels. From `@tracker-row` they sit in one row with short labels ("Directions" for "Directions and supply"). From `@tracker-full` (28rem) the full labels return. Labels never wrap (`whitespace-nowrap`), and the link's accessible name is always the full label: the short label is `aria-hidden` and the full label is `sr-only` while hidden.
 - **Disabled actions show their reason.** When unsaved edits or prerequisites disable "Sign prescription", "Run safety check" or "Acknowledge", the reason is visible next to the button and linked with `aria-describedby`. The sign button references each reason list item by id, because a referenced list's `aria-label` would replace its text in the description.
 - **Specimens:** `/dev/chart?view=mixed` and `/dev/prescribing?view=mixed` show blocking and advisory side by side, with inputs deliberately out of order to demonstrate the ordering.
 
+### Phase 8c: shell polish and Figma alignment
+
+- **Cursor.** A base rule in `globals.css` gives `cursor: pointer` to buttons, links with `href`, `summary`, `select`, ARIA buttons, menu items, tabs and options, checkbox and radio labels and inputs; `cursor: not-allowed` to `:disabled`, `[aria-disabled=true]` and labels around a disabled input. Text inputs keep the text cursor.
+- **Initials.** One helper, `getInitials` (`src/lib/initials.ts`), for every avatar: grapheme-safe (`Intl.Segmenter`), drops honorifics ("Dr.", and others), suffixes and bracketed text, and takes the first and last name ("Dr. Avery North (synthetic)" → "AN").
+- **Top bar order** at 761px and up: search, Privacy pill, Today's queue, then (pushed right) sync status and the account menu. At 760px and below the search takes its own row and the queue becomes a horizontally scrolling row under the sticky bar; it is not sticky, so the 120px section offset still clears the bar. The "Synthetic data" tag left the top bar; the synthetic-data banner remains.
+- **Account menu** (`src/components/shell/user-menu.tsx`). The name, role, avatar and a chevron are the trigger of a native `popover="auto"` menu (no library): "Privacy auto-hide" radio items and Sign out. WAI-ARIA menu button: `aria-haspopup="menu"`, `aria-expanded`, roving focus with arrow keys, Home and End (wrapping); ArrowDown on the trigger opens on the checked item and ArrowUp on the last; Escape closes and returns focus to the trigger; Tab and outside clicks close it. Space on a radio item selects and keeps the menu open; Enter or click selects and closes. Sign out also clears the Privacy state, the idle choice and the last-viewed patient. The name and role are visually hidden below `xl` (1180px) but stay in the accessible name.
+- **Today's queue** (`src/features/patients/components/patient-queue.tsx`, `patient-queue-item.tsx`; logic in `src/features/patients/queue.ts`). Clinicians only. One query (`listMyQueue`) reads the care-team patients with their draft prescriptions and unresolved alerts under RLS; there is no per-patient query. Status per patient: "Critical alert" if a draft has a blocking alert on its current version, "Warning" if it has an advisory alert on its current version without a decision, otherwise "No alerts". Allergies alone do not set a status. Ordered critical, warning, stable, then family and given name. Up to six chips plus "View all N patients". The current patient's chip has `aria-current="page"` on the chart and `"true"` on its deeper pages. "Back to patients" is gone; the list is reached through search, "View all" and the Chart rail item. Freshness: prescription actions revalidate the whole layout (`revalidatePath("/", "layout")`), so the queue re-renders after a mutation. If the query fails the queue shows "Queue unavailable" and the page still renders.
+- **Sync status** (`src/components/shell/sync-status.tsx`). "Synced with Kestrel Health Network · N min ago" with a green dot; offline shows a red dot and the word "Offline". The time is the server render time, then the time of each client navigation, updated every minute without announcing it. Connection is `navigator.onLine` plus the `online` / `offline` events; only changes are announced ("Offline, changes are not syncing", "Back online") in the polite live region. Hidden below 1180px. The wording is fictional: nothing syncs anywhere.
+- **Rail.** Chart, Schedule, E-Rx, Labs and Billing for clinicians (Audit for administrators). Chart and E-Rx open the current patient, else the last chart viewed in this tab (`kestrel.lastPatient` in `sessionStorage`), else the first queue patient, else the patient list. Schedule, Labs and Billing open `PlaceholderPage` ("Not part of this prototype"), with the shell landmarks, a heading and no patient data. The rail keeps its single avatar.
+- **Allergy pill.** `Badge size="md"`: one line, at least 28px tall, 12px medium text, 12px / 4px padding, 6px gap, triangle icon; red when any allergy is severe, orange otherwise. The chart skeleton reserves the same pill box.
+- **New icons:** `EyeIcon`, `RxIcon`, `FlaskIcon`, `BillingIcon`, drawn on the same 24px grid and 1.8 stroke as the rest. `AlertCircleIcon` was removed.
+- **Contrast rows added** on `/dev/components` for the danger tokens at 12px, the Privacy pill, the account menu, queue chips and dots, and the sync line; see "Severity pairings" below.
 ### Raw values: tokens and documented exceptions
 
 Replaced with existing tokens: `scroll-padding-top` → `--spacing-md`; focus `outline-offset` → `--spacing-xxxs`; the `error-ring` / `focus-ring` glow → `--border-width-heavy`; their 0.5px inset → `calc(--border-width-emphasis − --border-width-field)`; the `fade-up` 6px offset → `calc(--spacing × 1.5)`; dev specimen `max-w-[68ch]` → `max-w-prose`.
@@ -177,10 +219,11 @@ Resolved: `button-size.sm.font-size` (14px) and `text-size.control.sm` (12px) ar
 - **Before hydration.** Server HTML contains the values. An unlayered rule in `globals.css` hides `[data-private-value]` (not revealed) while `<html data-privacy="on">`, so navigation, reloads and loading skeletons never paint a value; hydration then replaces them with masks.
 - **Safety alerts stay visible.** Allergy conflicts, critical states and blocking or advisory alert text, including severity, allergen and drug names, are not masked, because hiding them could hide a safety signal. Only patient identifiers inside them are masked. The demo alert messages contain no patient identifiers today; the `/dev/privacy` specimen shows a critical alert with a masked patient name. The chart's alert banner titles name the medication and stay visible, while the same medication is masked in the prescriptions list.
 - **Masked fields today:** patient name, initials, age, date of birth and MRN on the patient list, chart and prescribing header; medications, doses, start dates and quantities; the prescription heading, drug class, directions, supply, instructions, cancel reason and acknowledgement notes; label preview text; every draft form field; the patient-list search summary (the query is usually a name or MRN). **Not built in the prototype:** diagnoses and encounter notes. `PrivateText` and `PrivateField` are ready for them (see the specimen). The audit page is not masked (out of scope).
-- **Not masked:** the rail, the top bar, the synthetic data banner, headings and field labels, prescriber, version and status.
+- **Today's queue (Phase 8c).** Chip names and initials are masked; status dots stay. Each masked chip is named "Patient N of M, name hidden, <status>", so chips stay distinguishable.
+- **Not masked:** the rail, the rest of the top bar, the synthetic data banner, headings and field labels, prescriber, version and status.
 - **Search query.** The search field is a plain GET form. Turning Privacy on empties the field, including unsubmitted text, and removes `q` from the address bar with `history.replaceState`, which sends no request. Searching while Privacy is on strips the new `q` the same way. Turning Privacy off puts the last stripped `q` back if the URL has not changed since; unsubmitted text is not restored. The browser's own history and address-bar suggestions still hold the visited `?q=` URL, which the page cannot remove.
-- **Toggle button.** The shared `Button` (`quiet`, `sm`) with `EyeOffIcon`, `aria-pressed`, and `surface-warm` when pressed. Icon-only below `lg` (820px), with "Privacy" as the accessible name. **Deviation:** the brief said icon-only at 760px and below; from 761px the top bar is a single row and the label does not fit beside the search until 820px, so the label appears from `lg`. Ctrl+. or ⌘+. toggles from anywhere, including text fields and, since Phase 8b, inside an open dialog (dialogs render the same masked components, so nothing has to close). **The Privacy button is the primary control; the shortcut is a convenience.** On macOS ⌘. is the system Cancel shortcut, and in Safari it stops loading the page, so it may not reach the page there (not tested). On Windows, Ctrl+. switches punctuation in the Microsoft Pinyin input method.
-- **Auto-hide.** `PRIVACY_IDLE_MS` (60000). Pointer, key, input, touch, wheel and scroll activity resets the timer, so typing never masks a field mid-keystroke. After the idle period Privacy turns on, or, if it is already on, every revealed field is masked again (one announcement). Open dialogs stay open; unsaved draft fields and a typed cancel reason are kept.
+- **Toggle button (Privacy pill, Phase 8c).** A pill-shaped native button left of Today's queue, with `aria-pressed`. Off: `EyeIcon` and "Privacy" (`ink-secondary` on `surface`, `line` border). On: `EyeOffIcon` and "Privacy mode on" in `ok` on `ok-subtle` with an `ok` border. The two labels share one grid cell, so the pill keeps the width of the longer label and does not move when toggled; the accessible name follows the visible label. Icon-only below `lg` (820px). **Deviation:** the brief said icon-only at 760px and below; from 761px the top bar is a single row and the label does not fit beside the search until 820px, so the label appears from `lg`. Ctrl+. or ⌘+. toggles from anywhere, including text fields and, since Phase 8b, inside an open dialog (dialogs render the same masked components, so nothing has to close). **The Privacy button is the primary control; the shortcut is a convenience.** On macOS ⌘. is the system Cancel shortcut, and in Safari it stops loading the page, so it may not reach the page there (not tested). On Windows, Ctrl+. switches punctuation in the Microsoft Pinyin input method.
+- **Auto-hide.** Chosen in the account menu ("Privacy auto-hide": 30 seconds, 1 minute, 2 minutes; `PRIVACY_IDLE_OPTIONS`), stored per tab in `sessionStorage` under `kestrel.privacy.idle` and read live by the idle timer. Default `PRIVACY_IDLE_MS` (60000); invalid stored values are ignored. Signing out clears it. Pointer, key, input, touch, wheel and scroll activity resets the timer, so typing never masks a field mid-keystroke. After the idle period Privacy turns on, or, if it is already on, every revealed field is masked again (one announcement). Open dialogs stay open; unsaved draft fields and a typed cancel reason are kept.
 - **Reduced motion.** Masking and revealing have no transition or animation in any case.
 - **Colour.** No red. Masks use the text colour of the value they replace; the form-field mask is `ink-strong` on `surface-warm` with the field border. Contrast rows on `/dev/components`: form-field mask 5.50:1, field edge 3.25:1 (UI), lightest inline use `ink-muted` on `surface` 5.24:1, link `accent` 5.89:1, alert `ink-strong` on `warning-subtle` 5.66:1.
 - **State.** `sessionStorage` key `kestrel.privacy`, applied to `<html>` by an inline script in the root `<head>` before first paint. Per tab, never sent to the server, gone when the tab closes. The sign-in page turns it off; signing out removes the stored value, and the page stays masked until the browser leaves it.
@@ -202,12 +245,14 @@ Each starts one pixel above the reference's `max-width` value, so the switch hap
 ## Known issues
 
 - None open from Phase 5. The duplicate calendar icon is resolved above (native picker only).
+- **Privacy masking can move wrapped values (Phase 8b trade-off, seen in Phase 8c).** An inline value that wraps over two lines is masked by a one-line mask. On the chart's prescriptions table at 390px the medication-name links wrap, so the table gets shorter by up to one line per row (55px on the blocking specimen) when Privacy turns on. The top bar, the queue and the hero do not move. A fix needs either fixed table column widths or a multi-line mask that keeps the auto-layout column widths; not done in 8c.
 
 ## Values that do not come from Figma
 
 - Display font Fraunces (the export only defines Inter and IBM Plex Mono).
 - `touch` 44px minimum target and `cta` 52px sign button.
-- Privacy mode: the `eye-off` icon, the `kestrel.privacy` storage key and the 60s idle period.
+- Privacy mode: the `eye` and `eye-off` icons, the `kestrel.privacy` and `kestrel.privacy.idle` storage keys, and the 30s / 60s / 120s idle choices.
+- Top bar (Phase 8c): the "Kestrel Health Network" sync wording (fictional; nothing is transmitted), the `kestrel.lastPatient` storage key, the six-chip queue limit and the 1180px (`xl`) cut-off for the sync line.
 - Breakpoints 761 (`md`), 820, 1180 and 1280px, the dashboard-only `workspace` breakpoint at 1181px, the E-Rx-only `erx` (821px) and `erx-wide` (1281px) breakpoints, the `fields-2` / `fields-4` container sizes, and the `fade-up` entrance motion.
 - E-Rx layout tokens: `grid-cols-erx` (280px context + form) and `grid-cols-erx-wide` (300px context + form + 380px review).
 - Layout dimensions measured from the HTML references, as named tokens in `globals.css`: `grid-cols-shell` (60px rail) and `grid-cols-shell-wide` (76px rail), `grid-cols-workspace` and `w-context` (340px context column), `w-dialog` (420px, capped to the viewport), `max-w-footer` (760px), `top-below-topbar` (78px sticky offset), `scroll-mt-below-topbar-stacked` (120px: anchor offset at 760px and below, where the top bar wraps onto two rows and measures 112px), `shadow-rail-current`, and the `error-ring` / `error-ring-focus` utilities. Components never use raw pixel values; other sizes snap to the 4px spacing scale, including quarter steps such as `size-4.75` (19px).

@@ -68,6 +68,27 @@ The Phase 8 overlay ("Content hidden" card over a scrim, "Show content" button, 
 - **Found and fixed while testing:** the patient-list search summary showed the query ("1 patient matches “Rowan”") as plain text; it is now masked. Focus could drop to the page body when the focused control became inert; it now moves to the mask.
 - **Unverified, not passed:** screen-reader output of the reveal and re-mask announcements; Privacy mode in browsers other than Chromium, on macOS (⌘+.) and with an input method editor; layout shift on hosted data and for values first rendered while masked (they can move once on reveal, by design).
 
+## Phase 8c note: shell polish, Today's queue and severity colours (22 Oct 2026)
+
+Code commit `8f7acd8`. Severity colour rule changed: red (error tokens) for severe and critical, orange for moderate and warning, green for stable, triangle icon only; see [theme.md](theme.md#severity-colours-phase-8c-replaces-the-phase-5-red-and-orange-rule), which lists every place red appears. New: account menu (Privacy auto-hide 30 s / 1 min / 2 min, Sign out), Today's queue, sync status, Privacy pill, rail with Schedule / Labs / Billing placeholders, global cursor rule, shared `getInitials`. "Back to patients" and the Sign out button are gone.
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 32 files, 253 passed |
+| `pnpm test:browser` (all specs) | 229 passed, including the new `top-bar.spec.ts` |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (35 files scanned) |
+| `pnpm test:e2e` (kestrel-test) | 19 passed on the first run, including queue switching and the placeholder pages |
+
+`test:db` and `test:int` were not re-run (no migrations; the only new query, `listMyQueue`, is a read under existing RLS and is covered by e2e).
+
+- **Severity tests.** The Phase 5 "no detection state is red" assertions were replaced: every severity surface carries `data-severity`, and `severityColourViolations` fails a page if red appears outside a `critical` surface or orange inside one, on every chart and prescribing view.
+- **axe** on every specimen plus: placeholder page, account menu open, Privacy on with the queue masked, and offline sync status, at 1440 and 390px: no serious or critical findings.
+- **Contrast**: new rows for danger tokens at 12px, the Privacy pill, account menu, queue chips and dots, and the sync line; all pass (see theme.md).
+- **Found and fixed while testing:** the queue chips' visually hidden status labels escaped the scrolling list and widened every page by 220px (the list now clips them); axe flagged the account-menu trigger because its `aria-label` left out the avatar initials (the name now comes from the content); the role text failed contrast on the hover fill (now `ink-secondary`); the chart skeleton's allergy pill was narrower than the real one, so only the real hero wrapped at 761px.
+- **Known issue, not fixed:** with Privacy on, wrapped medication names in the chart prescriptions table at 390px collapse to a one-line mask, so the table gets shorter (55px on the specimen). Phase 8b trade-off; see theme.md "Known issues". The top bar, queue and hero do not move.
+- **Unverified, not passed:** screen-reader output of the account menu, queue names and offline announcements; the account menu and popover in browsers other than Chromium; the real `online` / `offline` events on a device (tests use Playwright's offline emulation); queue freshness across two tabs or users (only revalidation after this user's own mutations is in place); axe on hosted data.
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.
