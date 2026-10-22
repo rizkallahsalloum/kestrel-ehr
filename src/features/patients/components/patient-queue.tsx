@@ -18,7 +18,7 @@ function currentFor(pathname: string, patientId: string): "page" | true | undefi
  * Today's queue (dashboard `.queue`): up to `QUEUE_LIMIT` chips, most urgent first, then "View all"
  * when there are more. Lives in the top bar's `queue` grid area: its own row under the search and
  * controls, chips in `--queue-cols` columns that wrap onto more lines (never sideways scrolling).
- * A single chip sits inline beside the controls from `queue-inline`. The top bar's height, and every
+ * From `queue-inline-N` (N items) the queue sits on the search row instead, in N columns. The top bar's height, and every
  * sticky offset, follows from the item count (see `--topbar-height` in globals.css).
  */
 export function PatientQueue({
@@ -42,7 +42,7 @@ export function PatientQueue({
     <nav
       aria-label="Today's queue"
       data-queue=""
-      className="flex min-w-0 items-start gap-4 pt-sm area-queue queue-inline:group-data-[queue-items=1]/topbar:pt-0"
+      className="flex min-w-0 items-start gap-md pt-queue area-queue"
     >
       <span
         aria-hidden="true"
@@ -53,7 +53,7 @@ export function PatientQueue({
       {queue === null ? (
         <p className="flex h-control-sm items-center text-label-sm text-ink-muted">Queue unavailable</p>
       ) : (
-        <ul className="grid min-w-0 flex-1 grid-cols-queue auto-rows-(--spacing-control-sm) gap-2 queue-inline:group-data-[queue-items=1]/topbar:flex">
+        <ul className="grid min-w-0 flex-1 grid-cols-queue auto-rows-(--spacing-control-sm) gap-2">
           {shown.map((patient, index) => (
             <li key={patient.id} className="min-w-0 max-w-queue-chip">
               <PatientQueueItem

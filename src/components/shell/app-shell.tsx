@@ -13,6 +13,17 @@ import { UserMenu } from "./user-menu";
 
 const ROLE_LABEL: Record<AppRole, string> = { clinician: "Clinician", admin: "Administrator" };
 
+/** Where the queue moves onto the search row, by item count (whole class names, so Tailwind sees them). */
+const QUEUE_INLINE: Record<number, string> = {
+  1: "queue-inline-1:grid-areas-topbar-inline",
+  2: "queue-inline-2:grid-areas-topbar-inline",
+  3: "queue-inline-3:grid-areas-topbar-inline",
+  4: "queue-inline-4:grid-areas-topbar-inline",
+  5: "queue-inline-5:grid-areas-topbar-inline",
+  6: "queue-inline-6:grid-areas-topbar-inline",
+  7: "queue-inline-7:grid-areas-topbar-inline",
+};
+
 export type ShellUser = { fullName: string; role: AppRole };
 
 /**
@@ -66,8 +77,8 @@ export function AppShell({
               data-topbar-search={clinician ? "" : undefined}
               data-queue-items={queueItems || undefined}
               className={cn(
-                "group/topbar sticky top-0 z-20 grid grid-areas-topbar items-center border-b border-line-subtle bg-page px-4 py-sm md:grid-areas-topbar-wide md:gap-x-5.5 md:px-7 md:py-md",
-                queueItems === 1 && "queue-inline:grid-areas-topbar-inline",
+                "group/topbar sticky top-0 z-20 grid grid-areas-topbar items-center border-b border-line-subtle bg-page px-md py-sm md:grid-areas-topbar-wide md:gap-x-lg md:px-lg md:py-md",
+                QUEUE_INLINE[queueItems],
               )}
             >
               {clinician && (
@@ -91,7 +102,7 @@ export function AppShell({
           <main
             id="main"
             tabIndex={-1}
-            className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 focus-visible:outline-none has-[[data-layout=wide]]:max-w-none md:px-7"
+            className="mx-auto w-full max-w-content flex-1 px-md py-lg focus-visible:outline-none md:px-lg"
           >
             {children}
           </main>

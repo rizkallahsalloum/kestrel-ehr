@@ -58,7 +58,7 @@ test("rail marks the current section and the account menu names the user", async
   expect(shadow).toContain(color);
   await expect(page.getByTestId("current-user")).toContainText("Dr. Demo Clinician");
   await expect(page.getByRole("button", { name: "Sign out" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Dr. Demo Clinician, Clinician, account menu", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Account menu, Dr. Demo Clinician", exact: true })).toBeVisible();
 
   await page.goto("/dev/shell?view=admin");
   await expect(page.getByRole("link", { name: "Audit" })).toHaveAttribute("aria-current", "page");

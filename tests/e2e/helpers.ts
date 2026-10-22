@@ -14,7 +14,7 @@ export async function signIn(page: Page, key: IdentityKey): Promise<void> {
 export async function signOut(page: Page): Promise<void> {
   const menu = page.getByRole("menu", { name: "Account" });
   await expect(async () => {
-    await page.getByRole("button", { name: /account menu/ }).click();
+    await page.getByRole("button", { name: /account menu/i }).click();
     await expect(menu).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
   await menu.getByRole("menuitem", { name: "Sign out" }).click();

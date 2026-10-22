@@ -8,7 +8,7 @@ import { hideDevOverlay, reviewPath } from "./support";
 
 const CHART = "/dev/chart?view=blocking";
 const ROWAN = "00000000-0000-4000-8000-000000000101";
-const trigger = (page: Page) => page.getByRole("button", { name: /account menu/ });
+const trigger = (page: Page) => page.getByRole("button", { name: /account menu/i });
 const menu = (page: Page) => page.getByRole("menu", { name: "Account" });
 const queueBar = (page: Page) => page.locator("nav[data-queue]").filter({ visible: true });
 const privacy = (page: Page) => page.getByTestId("privacy-toggle");
@@ -365,10 +365,14 @@ test("no circle alert icon is left in the source", () => {
   expect(offenders).toEqual([]);
 });
 
-/** Columns of the queue grid per width (`--queue-cols`): 5 from xl (1180px), 3 from md (761px), else 2. */
-const queueCols = (width: number) => (width >= 1180 ? 5 : width >= 761 ? 3 : 2);
+/** Smallest width where N queue items sit on the search row; mirrors `--breakpoint-queue-inline-N` in globals.css. */
+const INLINE_AT: Record<number, number> = { 1: 1470, 2: 1660, 3: 1840, 4: 2030, 5: 2210, 6: 2390, 7: 2580 };
+const isInline = (width: number, items: number) => width >= INLINE_AT[items]!;
+/** Columns of the queue grid (`--queue-cols`): one per item when inline, else 5 from xl, 3 from md, 2 below. */
+const queueCols = (width: number, items: number) =>
+  isInline(width, items) ? items : width >= 1180 ? 5 : width >= 761 ? 3 : 2;
 
-for (const width of [1440, 1024, 760, 390]) {
+for (const width of [2560, 1440, 1024, 760, 390]) {
   for (const patients of [1, 3, 7]) {
     test(`Today's queue at ${width}px with ${patients} patient(s): wraps, never scrolls sideways, nothing under the sticky bar`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -410,12 +414,12 @@ for (const width of [1440, 1024, 760, 390]) {
       expect(layout.listOverflow).toBeLessThanOrEqual(0);
       expect(["visible", "clip", "hidden"]).toContain(layout.listOverflowX);
       expect(layout.outside).toBe(0);
-      // Its own row under the controls (a single chip sits inline from 1440px), wrapping onto more lines.
+      // Its own row under the controls, wrapping onto more lines, until the items fit on the search row.
       const items = Math.min(patients, 6) + (patients > 6 ? 1 : 0);
-      const inline = patients === 1 && width >= 1440;
+      const inline = isInline(width, items);
       if (inline) expect(layout.navTop).toBeLessThan(layout.controlsBottom);
       else expect(layout.navTop).toBeGreaterThanOrEqual(layout.controlsBottom);
-      expect(layout.itemTops).toHaveLength(inline ? 1 : Math.ceil(items / queueCols(width)));
+      expect(layout.itemTops).toHaveLength(inline ? 1 : Math.ceil(items / queueCols(width, items)));
       // The sticky offsets follow the bar: its height is exactly --topbar-height.
       expect(Math.abs(layout.barHeight - layout.tokenHeight)).toBeLessThanOrEqual(0.5);
 

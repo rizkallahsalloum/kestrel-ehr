@@ -145,8 +145,8 @@ test("axe: combobox expanded", async ({ page }) => {
 });
 
 test("axe: top bar with 1, 3 and 7 queue patients, Privacy button hovered off and on", async ({ page }) => {
-  test.setTimeout(300_000);
-  for (const width of [1440, 1024, 760, 390]) {
+  test.setTimeout(420_000);
+  for (const width of [2560, 1440, 1024, 760, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const patients of [1, 3, 7]) {
       await settle(page, `/dev/prescribing?view=blocking&queue=${patients}`);
@@ -167,21 +167,44 @@ test("axe: top bar with 1, 3 and 7 queue patients, Privacy button hovered off an
     await scan(page, `privacy on at ${width}px`);
     await privacy.click();
   }
+  // Six chips on the search row (inline from 2390px), shown and masked.
+  await page.setViewportSize({ width: 2560, height: 900 });
+  await settle(page, "/dev/chart?view=blocking&queue=6");
+  await scan(page, "six chips inline at 2560px");
+});
+
+test("axe: buttons hovered and pressed on every variant", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await settle(page, "/dev/components");
+  for (const variant of ["primary", "secondary", "danger", "quiet", "link"]) {
+    const live = page.locator(`[data-testid=button-states-${variant}] button:not(:disabled)`).first();
+    await live.hover();
+    await scan(page, `${variant} button hovered`);
+    await page.mouse.down();
+    await scan(page, `${variant} button pressed`);
+    await page.mouse.up();
+  }
+  await page.getByTestId("button-link-specimen").hover();
+  await scan(page, "button-styled link hovered");
+  await page.mouse.move(0, 0);
 });
 
 test("axe: account menu open, Privacy on with the queue masked, and offline sync status", async ({ page }) => {
-  test.setTimeout(180_000);
-  test.setTimeout(180_000);
-  for (const width of [1440, 1024, 760, 390]) {
+  test.setTimeout(240_000);
+  for (const width of [2560, 1440, 1024, 760, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await settle(page, "/dev/chart?view=blocking");
-    const trigger = page.getByRole("button", { name: /account menu/ });
+    const trigger = page.getByRole("button", { name: /account menu/i });
     await expect(async () => {
       await trigger.click();
       await expect(page.getByRole("menu", { name: "Account" })).toBeVisible({ timeout: 1_000 });
     }).toPass({ timeout: 30_000 });
     await scan(page, "account menu open");
     await page.keyboard.press("Escape");
+    await trigger.hover();
+    await scan(page, `account menu trigger hovered at ${width}px`);
+    await page.mouse.move(0, 0);
 
     await page.getByTestId("privacy-toggle").click();
     await expect(page.getByTestId("privacy-toggle")).toHaveAttribute("aria-pressed", "true");

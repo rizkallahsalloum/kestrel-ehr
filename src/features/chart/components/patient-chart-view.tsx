@@ -9,7 +9,7 @@ export function PatientChartView({ chart }: { chart: PatientChart }) {
   const { patient } = chart;
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid items-start gap-5.5 workspace:grid-cols-workspace">
+      <div className="grid items-start gap-lg workspace:grid-cols-workspace">
         <div className="flex min-w-0 flex-col gap-4.5">
           <div className="animate-fade-up">
             <PatientHero patient={patient} allergies={chart.allergies} />

@@ -38,6 +38,13 @@
   --color-surface-warm: var(--k-semantic-bg-surface-hover, #f0eae0);
   --color-inverse: var(--k-semantic-bg-inverse, #1c2321);
   --color-inverse-hover: var(--k-semantic-bg-inverse-hover, #2a3330);
+  /* Button hover and pressed states. Figma's hover tokens are one step from rest (not visible), so
+     hover is lighter by colour mixing and pressed is darker. Text contrast rows are on /dev/components. */
+  --color-inverse-raised: color-mix(in srgb, var(--color-inverse) 80%, var(--color-surface-pure));
+  --color-inverse-pressed: color-mix(in srgb, var(--color-inverse) 65%, black);
+  --color-danger-raised: color-mix(in srgb, var(--color-danger) 90%, var(--color-surface-pure));
+  --color-surface-pressed: color-mix(in srgb, var(--color-surface-warm) 92%, var(--color-inverse));
+  --color-accent-pressed: color-mix(in srgb, var(--color-accent) 75%, black);
 
   /* ---- Text ---- */
   --color-ink: var(--k-semantic-text-primary, #1c2321);
@@ -227,12 +234,14 @@
      never raw pixel values; everything else snaps to the 4px spacing scale. ---- */
   --grid-template-columns-shell: 60px minmax(0, 1fr); /* narrow icon rail + content */
   --grid-template-columns-shell-wide: 76px minmax(0, 1fr); /* labelled rail + content */
-  --grid-template-columns-workspace: minmax(0, 1fr) 340px; /* dashboard chart + context column */
+  --grid-template-columns-workspace: minmax(0, 1fr) var(--width-context); /* fluid chart + fixed context column */
   --grid-template-columns-erx: 280px minmax(0, 1fr); /* E-Rx context + form; review spans below */
   --grid-template-columns-erx-wide: 300px minmax(0, 1fr) 380px; /* E-Rx context + form + review */
   --grid-template-columns-key-value: max-content minmax(0, 1fr); /* E-Rx .kv label/value rows */
   --grid-template-columns-rx-header: auto minmax(0, 1fr); /* E-Rx .hdr identity + summary tiles */
   --width-context: 340px;
+  /* widest content area; the HTML references are fluid, this keeps lines readable on very wide screens */
+  --max-width-content: 1760px;
   --width-dialog: min(420px, calc(100vw - 2rem));
   --max-width-footer: 760px; /* dashboard .footer-note */
   /* sticky offset for the context and review columns: the sticky top bar's height, which grows with
@@ -260,9 +269,17 @@
   /* E-Rx workspace only: one column at max-width 820px, two at max-width 1280px, three above */
   --breakpoint-erx: 821px;
   --breakpoint-erx-wide: 1281px;
-  /* Top bar only: from here a single queue chip (label plus a full-width chip) fits between the
-     search and the controls with the user name shown; below it the queue takes its own row */
-  --breakpoint-queue-inline: 1440px;
+  /* Top bar only: from queue-inline-N, N queue items (chips plus "View all") at full chip width fit on
+     the search row, between the search and the controls, with the longest seeded clinician name and
+     role shown. Measured: rail 76 + 2 * bar padding 24 + search 300 + 2 * gap 24 + label 102 + label
+     gap 16 + N * chip 176 + (N - 1) * chip gap 8 + controls 702 = 1285 + 184 * N, rounded up to 10px. Below it the queue takes its own row. */
+  --breakpoint-queue-inline-1: 1470px;
+  --breakpoint-queue-inline-2: 1660px;
+  --breakpoint-queue-inline-3: 1840px;
+  --breakpoint-queue-inline-4: 2030px;
+  --breakpoint-queue-inline-5: 2210px;
+  --breakpoint-queue-inline-6: 2390px;
+  --breakpoint-queue-inline-7: 2580px;
   /* E-Rx form column (container queries): its width depends on the side columns, not the viewport */
   --container-fields-2: 22rem;
   --container-fields-4: 40rem;
@@ -293,8 +310,8 @@
   /*
    * Height of the sticky top bar, without JS measuring: the bar's own rows (two below md, one from
    * md) plus Today's queue. The queue lays its chips in --queue-cols fixed columns, so its line count
-   * follows from the chip count (data-queue-items, chips plus "View all") and the breakpoint. A single
-   * chip sits inline beside the controls from queue-inline and adds no row.
+   * follows from the chip count (data-queue-items, chips plus "View all") and the breakpoint. From
+   * queue-inline-N, N items sit on the search row in N columns and add no row.
    */
   :root {
     --queue-cols: 2;
@@ -333,11 +350,13 @@
   :root:has([data-queue-items="5"]) { --queue-items: 5; }
   :root:has([data-queue-items="6"]) { --queue-items: 6; }
   :root:has([data-queue-items="7"]) { --queue-items: 7; }
-  @variant queue-inline {
-    :root:has([data-queue-items="1"]) {
-      --queue-inline: 1;
-    }
-  }
+  @variant queue-inline-1 { :root:has([data-queue-items="1"]) { --queue-inline: 1; --queue-cols: 1; } }
+  @variant queue-inline-2 { :root:has([data-queue-items="2"]) { --queue-inline: 1; --queue-cols: 2; } }
+  @variant queue-inline-3 { :root:has([data-queue-items="3"]) { --queue-inline: 1; --queue-cols: 3; } }
+  @variant queue-inline-4 { :root:has([data-queue-items="4"]) { --queue-inline: 1; --queue-cols: 4; } }
+  @variant queue-inline-5 { :root:has([data-queue-items="5"]) { --queue-inline: 1; --queue-cols: 5; } }
+  @variant queue-inline-6 { :root:has([data-queue-items="6"]) { --queue-inline: 1; --queue-cols: 6; } }
+  @variant queue-inline-7 { :root:has([data-queue-items="7"]) { --queue-inline: 1; --queue-cols: 7; } }
 
   html {
     scroll-padding-top: var(--spacing-md);
@@ -421,8 +440,8 @@
 
 /*
  * Sticky top bar layout. Below md: search, then the controls, then Today's queue, each on its own
- * row. From md: search and controls on one row, the queue on its own row below. From queue-inline,
- * a single queue chip sits between them instead (grid-areas-topbar-inline).
+ * row. From md: search and controls on one row, the queue on its own row below. From queue-inline-N
+ * (N items), the queue sits between them instead (grid-areas-topbar-inline), in one line.
  */
 @utility grid-areas-topbar {
   grid-template-areas: "search" "controls" "queue";
@@ -444,6 +463,10 @@
 }
 @utility area-queue {
   grid-area: queue;
+}
+/* The gap above the queue's own row (part of --queue-row); none when the queue is inline. */
+@utility pt-queue {
+  padding-top: calc(var(--spacing-sm) * (1 - var(--queue-inline)));
 }
 
 /* Today's queue chips: --queue-cols fixed columns, so the line count (and the bar height) is known. */

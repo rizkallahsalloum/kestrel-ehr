@@ -1,5 +1,5 @@
 import type { AvatarTone } from "@/components/ui";
-import type { AlertSeverity, PrescriptionStatus } from "@/types/domain";
+import type { AlertSeverity, AllergySeverity, PrescriptionStatus } from "@/types/domain";
 
 /** Status dot of a queue chip: red, orange or green, always with `QUEUE_STATUS_LABEL` text. */
 export type QueueStatus = "critical" | "warning" | "stable";
@@ -13,11 +13,15 @@ export type QueueDraftRow = {
   prescription_alerts: { prescription_version: number; severity: AlertSeverity; decision: { id: string } | null }[];
 };
 
+export type QueueAllergyRow = { severity: AllergySeverity };
+
 export type QueuePatientRow = {
   id: string;
   given_name: string;
   family_name: string;
   prescriptions: QueueDraftRow[];
+  /** Active allergies only (the query filters by status). */
+  allergies: QueueAllergyRow[];
 };
 
 /** Chips shown in the top bar; a "View all" chip follows when there are more. */
@@ -32,21 +36,22 @@ export const QUEUE_STATUS_LABEL: Record<QueueStatus, string> = {
 const RANK: Record<QueueStatus, number> = { critical: 0, warning: 1, stable: 2 };
 
 /**
- * Inputs to a patient's queue status. Drafts only today; Phase 9 vitals can add a field here and a
- * case in `queueStatus` without changing the queue components.
+ * Inputs to a patient's queue status: current drafts and active allergies. Phase 9 vitals can add a
+ * field here and a case in `queueStatus` without changing the queue components.
  */
-export type QueueSignals = { drafts: QueueDraftRow[] };
+export type QueueSignals = { drafts: QueueDraftRow[]; allergies: QueueAllergyRow[] };
 
 /**
- * The one mapping from clinical signals to a queue status. Unresolved alerts only (the query filters
- * resolved ones); a severe allergy on its own changes nothing.
- * - critical: a draft has a blocking alert on its current, checked version;
- * - warning: a draft has an advisory alert without a decision on its current, checked version, or
- *   its saved version has not been safety-checked;
- * - stable: neither.
+ * The one mapping from clinical signals to a queue status. Unresolved alerts and active allergies
+ * only (the query filters the rest).
+ * - critical: a draft has a blocking alert on its current, checked version, or an allergy is severe;
+ * - warning: a draft has an advisory alert without a decision on its current, checked version, its
+ *   saved version has not been safety-checked, or an allergy is moderate;
+ * - stable: none of those. Mild allergies alone stay stable.
  */
-export function queueStatus({ drafts }: QueueSignals): QueueStatus {
-  let status: QueueStatus = "stable";
+export function queueStatus({ drafts, allergies }: QueueSignals): QueueStatus {
+  if (allergies.some((a) => a.severity === "severe")) return "critical";
+  let status: QueueStatus = allergies.some((a) => a.severity === "moderate") ? "warning" : "stable";
   for (const rx of drafts) {
     if (rx.status !== "draft") continue;
     if (rx.last_evaluated_version !== rx.version) {
@@ -79,7 +84,7 @@ export function buildQueue(rows: QueuePatientRow[]): QueuePatient[] {
       id: row.id,
       givenName: row.given_name,
       familyName: row.family_name,
-      status: queueStatus({ drafts: row.prescriptions }),
+      status: queueStatus({ drafts: row.prescriptions, allergies: row.allergies }),
     })),
   );
 }

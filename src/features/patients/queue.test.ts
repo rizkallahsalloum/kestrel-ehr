@@ -6,6 +6,7 @@ import {
   queueAvatarTones,
   queueItemCount,
   queueStatus,
+  type QueueAllergyRow,
   type QueueDraftRow,
   type QueuePatient,
 } from "./queue";
@@ -18,7 +19,9 @@ const blocking = { prescription_version: 2, severity: "blocking" as const, decis
 const advisory = { prescription_version: 2, severity: "advisory" as const, decision: null };
 
 describe("queueStatus", () => {
-  const status = (...drafts: QueueDraftRow[]) => queueStatus({ drafts });
+  const status = (...drafts: QueueDraftRow[]) => queueStatus({ drafts, allergies: [] });
+  const withAllergies = (severities: QueueAllergyRow["severity"][], ...drafts: QueueDraftRow[]) =>
+    queueStatus({ drafts, allergies: severities.map((severity) => ({ severity })) });
 
   it("is stable without drafts, or with checked drafts that have no open alerts", () => {
     expect(status()).toBe("stable");
@@ -57,6 +60,24 @@ describe("queueStatus", () => {
     expect(status(draft({ last_evaluated_version: null }), draft({ prescription_alerts: [blocking] }))).toBe("critical");
     expect(status(draft({ prescription_alerts: [blocking] }), draft({ last_evaluated_version: null }))).toBe("critical");
     expect(status(draft(), draft({ last_evaluated_version: null }))).toBe("warning");
+  });
+
+  it("is critical for an active severe allergy, with or without drafts", () => {
+    expect(withAllergies(["severe"])).toBe("critical");
+    expect(withAllergies(["mild", "severe"], draft())).toBe("critical");
+    expect(withAllergies(["severe"], draft({ prescription_alerts: [advisory] }))).toBe("critical");
+  });
+
+  it("is warning for an active moderate allergy, unless a draft makes it critical", () => {
+    expect(withAllergies(["moderate"])).toBe("warning");
+    expect(withAllergies(["mild", "moderate"], draft())).toBe("warning");
+    expect(withAllergies(["moderate"], draft({ prescription_alerts: [blocking] }))).toBe("critical");
+  });
+
+  it("stays stable for mild allergies alone", () => {
+    expect(withAllergies(["mild"])).toBe("stable");
+    expect(withAllergies(["mild", "mild"], draft())).toBe("stable");
+    expect(withAllergies(["mild"], draft({ last_evaluated_version: 1 }))).toBe("warning");
   });
 });
 
@@ -102,8 +123,8 @@ describe("orderQueue", () => {
 describe("buildQueue", () => {
   it("maps rows and orders them", () => {
     const queue = buildQueue([
-      { id: "a", given_name: "Rowan", family_name: "Testcase", prescriptions: [] },
-      { id: "b", given_name: "Mira", family_name: "Demoson", prescriptions: [draft({ prescription_alerts: [blocking] })] },
+      { id: "a", given_name: "Rowan", family_name: "Testcase", prescriptions: [], allergies: [] },
+      { id: "b", given_name: "Mira", family_name: "Demoson", prescriptions: [draft({ prescription_alerts: [blocking] })], allergies: [] },
     ]);
     expect(queue).toEqual([
       { id: "b", givenName: "Mira", familyName: "Demoson", status: "critical" },
@@ -113,14 +134,27 @@ describe("buildQueue", () => {
 
   it("uses all three statuses by case", () => {
     const queue = buildQueue([
-      { id: "s", given_name: "Sam", family_name: "Stable", prescriptions: [draft()] },
-      { id: "u", given_name: "Una", family_name: "Unchecked", prescriptions: [draft({ last_evaluated_version: 1 })] },
-      { id: "b", given_name: "Bo", family_name: "Blocked", prescriptions: [draft({ prescription_alerts: [blocking] })] },
+      { id: "s", given_name: "Sam", family_name: "Stable", prescriptions: [draft()], allergies: [] },
+      { id: "u", given_name: "Una", family_name: "Unchecked", prescriptions: [draft({ last_evaluated_version: 1 })], allergies: [] },
+      { id: "b", given_name: "Bo", family_name: "Blocked", prescriptions: [draft({ prescription_alerts: [blocking] })], allergies: [] },
     ]);
     expect(queue.map((p) => [p.id, p.status])).toEqual([
       ["b", "critical"],
       ["u", "warning"],
       ["s", "stable"],
+    ]);
+  });
+
+  it("uses allergy severities from the same rows", () => {
+    const queue = buildQueue([
+      { id: "m", given_name: "Mo", family_name: "Mild", prescriptions: [], allergies: [{ severity: "mild" }] },
+      { id: "o", given_name: "Oz", family_name: "Moderate", prescriptions: [], allergies: [{ severity: "moderate" }] },
+      { id: "v", given_name: "Vi", family_name: "Severe", prescriptions: [], allergies: [{ severity: "severe" }] },
+    ]);
+    expect(queue.map((p) => [p.id, p.status])).toEqual([
+      ["v", "critical"],
+      ["o", "warning"],
+      ["m", "stable"],
     ]);
   });
 });

@@ -4,15 +4,46 @@ import { cn } from "./cn";
 export type ButtonVariant = "primary" | "secondary" | "danger" | "quiet" | "link";
 export type ButtonSize = "sm" | "md" | "lg" | "cta";
 
+/*
+ * Hover and pressed states use `not-disabled` and `not-aria-disabled` rather than `enabled`, so they
+ * also apply to links styled with `buttonStyles` (`:enabled` never matches an `<a>`). Tailwind's
+ * `hover` already only applies on devices that can hover.
+ */
 const base =
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-pill border font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-(--opacity-disabled) aria-disabled:cursor-not-allowed aria-disabled:opacity-(--opacity-disabled)";
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-pill border font-medium transition-[color,background-color,border-color,box-shadow] duration-150 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-(--opacity-disabled) aria-disabled:cursor-not-allowed aria-disabled:opacity-(--opacity-disabled)";
+
+const raised = "hover:not-disabled:not-aria-disabled:shadow-level-1 active:not-disabled:not-aria-disabled:shadow-none";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "border-ink bg-ink text-page enabled:hover:border-inverse-hover enabled:hover:bg-inverse-hover",
-  secondary: "border-line bg-surface text-ink enabled:hover:border-line-strong",
-  danger: "border-danger bg-danger text-on-accent enabled:hover:border-danger-ink enabled:hover:bg-danger-ink",
-  quiet: "border-transparent bg-transparent text-ink-secondary enabled:hover:bg-surface-warm enabled:hover:text-ink",
-  link: "border-transparent bg-transparent font-semibold text-accent underline-offset-2 enabled:hover:underline",
+  primary: cn(
+    "border-ink bg-ink text-page",
+    "hover:not-disabled:not-aria-disabled:border-inverse-raised hover:not-disabled:not-aria-disabled:bg-inverse-raised",
+    "active:not-disabled:not-aria-disabled:border-inverse-pressed active:not-disabled:not-aria-disabled:bg-inverse-pressed",
+    raised,
+  ),
+  secondary: cn(
+    "border-line bg-surface text-ink",
+    "hover:not-disabled:not-aria-disabled:border-line-strong hover:not-disabled:not-aria-disabled:bg-surface-pure",
+    "active:not-disabled:not-aria-disabled:bg-surface-pressed",
+    raised,
+  ),
+  danger: cn(
+    "border-danger bg-danger text-on-accent",
+    "hover:not-disabled:not-aria-disabled:border-danger-raised hover:not-disabled:not-aria-disabled:bg-danger-raised",
+    "active:not-disabled:not-aria-disabled:border-danger-ink active:not-disabled:not-aria-disabled:bg-danger-ink",
+    raised,
+  ),
+  quiet: cn(
+    "border-transparent bg-transparent text-ink-secondary",
+    "hover:not-disabled:not-aria-disabled:bg-surface-warm hover:not-disabled:not-aria-disabled:text-ink",
+    "active:not-disabled:not-aria-disabled:bg-surface-pressed",
+    raised,
+  ),
+  // Text-only: underline on hover instead of a fill and shadow, darker text when pressed.
+  link: cn(
+    "border-transparent bg-transparent font-semibold text-accent underline-offset-2",
+    "hover:not-disabled:not-aria-disabled:underline active:not-disabled:not-aria-disabled:text-accent-pressed",
+  ),
 };
 
 const sizes: Record<ButtonSize, string> = {

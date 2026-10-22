@@ -39,7 +39,7 @@ export function HeroSkeleton() {
         </div>
       </div>
       <span className="inline-flex min-h-7 shrink-0 items-center rounded-pill px-3 py-1 text-label-sm">
-        <SkeletonLine width="w-48" />
+        <SkeletonLine width="w-40" />
       </span>
     </div>
   );
@@ -93,7 +93,7 @@ function PrescriptionsCardSkeleton() {
 export function ChartSkeleton() {
   return (
     <LoadingRegion label="Loading patient chart" className="flex flex-col gap-4">
-      <div className="grid items-start gap-5.5 workspace:grid-cols-workspace">
+      <div className="grid items-start gap-lg workspace:grid-cols-workspace">
         <div data-skeleton="main-column" className="flex min-w-0 flex-col gap-4.5">
           <HeroSkeleton />
           <PrescriptionsCardSkeleton />

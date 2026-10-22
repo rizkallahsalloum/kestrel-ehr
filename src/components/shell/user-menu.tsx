@@ -5,6 +5,7 @@ import { Avatar, CheckIcon, ChevronDownIcon, cn } from "@/components/ui";
 import { PRIVACY_IDLE_OPTIONS } from "@/features/privacy/config";
 import { usePrivacy } from "@/features/privacy/components/privacy-provider";
 import { getIdleSettingStore, getPrivacyStore } from "@/features/privacy/store";
+import { CLINIC_NAME } from "./clinic";
 import { lastPatientStore } from "./last-patient";
 
 function menuItems(menu: HTMLElement | null): HTMLElement[] {
@@ -15,8 +16,9 @@ const itemClass =
   "flex min-h-control-sm w-full items-center gap-2 rounded-control px-2.5 text-left text-label text-ink hover:bg-surface-warm focus-visible:bg-surface-warm";
 
 /**
- * Account menu (WAI-ARIA menu button). The name, role and avatar open a native popover with the
- * "Privacy auto-hide" choice and Sign out. Arrow keys, Home and End move focus; Escape closes and
+ * Account menu (WAI-ARIA menu button). The name, role and clinic are plain text; only the avatar and
+ * chevron are the trigger. It opens a native popover with the "Privacy auto-hide" choice and Sign
+ * out. Arrow keys, Home and End move focus; Escape closes and
  * returns focus to the trigger; Tab and outside clicks close it.
  */
 export function UserMenu({
@@ -134,28 +136,33 @@ export function UserMenu({
   };
 
   return (
-    <div className="flex items-center md:border-l md:border-line-subtle md:pl-4.5">
+    <div className="flex items-center gap-2 md:border-l md:border-line-subtle md:pl-4.5">
+      <p className="text-right max-xl:sr-only" data-testid="current-user">
+        <span className="block text-label font-semibold whitespace-nowrap text-ink">
+          {fullName}
+          <span className="sr-only-inline">,</span>
+        </span>{" "}
+        <span className="block text-caption whitespace-nowrap text-ink-secondary">
+          {roleLabel} · {CLINIC_NAME}
+        </span>
+      </p>
       <button
         ref={triggerRef}
         type="button"
+        aria-label={`Account menu, ${fullName}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         popoverTarget={menuId}
         onKeyDown={onTriggerKeyDown}
-        className="flex items-center gap-2.5 rounded-pill py-0.5 pr-1.5 pl-0.5 hover:bg-surface-warm xl:pl-2.5"
+        className="flex min-h-control-md min-w-control-md items-center justify-center gap-1 rounded-pill px-1 hover:bg-surface-warm"
       >
-        <span className="text-right max-xl:sr-only" data-testid="current-user">
-          <span className="block text-label font-semibold whitespace-nowrap text-ink">
-            {fullName}
-            <span className="sr-only-inline">,</span>
-          </span>{" "}
-          <span className="block text-caption text-ink-secondary">
-            {roleLabel}
-            <span className="sr-only-inline">, account menu</span>
-          </span>
-        </span>
-        <Avatar initials={initials} tone="ink" size="sm" />
+        {/* Initials as generated content: the avatar is decorative, so the button's only text is its name. */}
+        <Avatar
+          initials={<span data-initials={initials} className="before:content-[attr(data-initials)]" />}
+          tone="ink"
+          size="sm"
+        />
         <ChevronDownIcon className={cn("text-ink-muted transition-transform", open && "rotate-180")} />
       </button>
       <div

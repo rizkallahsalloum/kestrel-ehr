@@ -3,6 +3,7 @@ import type { Enums, Tables } from "./database";
 export type AppRole = Enums<"app_role">;
 export type PrescriptionStatus = Enums<"prescription_status">;
 export type AlertSeverity = Enums<"alert_severity">;
+export type AllergySeverity = Enums<"allergy_severity">;
 export type DoseUnit = Enums<"dose_unit">;
 export type MedicationRoute = Enums<"medication_route">;
 export type DoseFrequency = Enums<"dose_frequency">;

@@ -109,7 +109,22 @@ const PAIRS: ContrastPair[] = [
   { label: "Suffix/placeholder on read-only: ink-secondary on surface-warm", fg: "var(--color-ink-secondary)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "Placeholder: ink-placeholder on surface", fg: "var(--color-ink-placeholder)", bg: "var(--color-surface)", kind: "text" },
   { label: "Success message: ok on surface", fg: "var(--color-ok)", bg: "var(--color-surface)", kind: "text" },
-  { label: "Primary hover: page on inverse-hover", fg: "var(--color-page)", bg: "var(--color-inverse-hover)", kind: "text" },
+  { label: "Primary rest: page on ink", fg: "var(--color-page)", bg: "var(--color-ink)", kind: "text" },
+  { label: "Primary hover: page on inverse-raised", fg: "var(--color-page)", bg: "var(--color-inverse-raised)", kind: "text" },
+  { label: "Primary pressed: page on inverse-pressed", fg: "var(--color-page)", bg: "var(--color-inverse-pressed)", kind: "text" },
+  { label: "Primary hover fill vs rest fill (change is visible; label text carries meaning)", fg: "var(--color-inverse-raised)", bg: "var(--color-ink)", kind: "decorative" },
+  { label: "Secondary rest: ink on surface", fg: "var(--color-ink)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Secondary hover: ink on surface-pure", fg: "var(--color-ink)", bg: "var(--color-surface-pure)", kind: "text" },
+  { label: "Secondary hover border: line-strong on page", fg: "var(--color-line-strong)", bg: "var(--color-page)", kind: "ui" },
+  { label: "Secondary pressed: ink on surface-pressed", fg: "var(--color-ink)", bg: "var(--color-surface-pressed)", kind: "text" },
+  { label: "Danger rest: on-accent on danger", fg: "var(--color-on-accent)", bg: "var(--color-danger)", kind: "text" },
+  { label: "Danger hover: on-accent on danger-raised", fg: "var(--color-on-accent)", bg: "var(--color-danger-raised)", kind: "text" },
+  { label: "Danger pressed: on-accent on danger-ink", fg: "var(--color-on-accent)", bg: "var(--color-danger-ink)", kind: "text" },
+  { label: "Quiet hover: ink on surface-warm", fg: "var(--color-ink)", bg: "var(--color-surface-warm)", kind: "text" },
+  { label: "Quiet pressed: ink on surface-pressed", fg: "var(--color-ink)", bg: "var(--color-surface-pressed)", kind: "text" },
+  { label: "Link rest: accent on surface", fg: "var(--color-accent)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Link pressed: accent-pressed on surface", fg: "var(--color-accent-pressed)", bg: "var(--color-surface)", kind: "text" },
+  { label: "Focus ring on page (unchanged on every button state)", fg: "var(--color-focus)", bg: "var(--color-page)", kind: "ui" },
   { label: "Quiet button: ink-secondary on surface", fg: "var(--color-ink-secondary)", bg: "var(--color-surface)", kind: "text" },
   { label: "NoAlert: ink-muted on page", fg: "var(--color-ink-muted)", bg: "var(--color-page)", kind: "text" },
   { label: "Avatar teal: on-accent on avatar-teal", fg: "var(--color-on-accent)", bg: "var(--color-avatar-teal)", kind: "text" },
@@ -197,6 +212,15 @@ const PAIRS: ContrastPair[] = [
 
 const DEMO_TONES = queueAvatarTones(DEMO_QUEUE);
 
+/** The hover and pressed classes from `button.tsx`, applied without the pseudo-class for the specimen. */
+const STATE_PREVIEW = {
+  primary: { rest: "", hover: "border-inverse-raised bg-inverse-raised shadow-level-1", pressed: "border-inverse-pressed bg-inverse-pressed" },
+  secondary: { rest: "", hover: "border-line-strong bg-surface-pure shadow-level-1", pressed: "bg-surface-pressed" },
+  danger: { rest: "", hover: "border-danger-raised bg-danger-raised shadow-level-1", pressed: "border-danger-ink bg-danger-ink" },
+  quiet: { rest: "", hover: "bg-surface-warm text-ink shadow-level-1", pressed: "bg-surface-pressed" },
+  link: { rest: "", hover: "underline", pressed: "text-accent-pressed" },
+} as const;
+
 const ICONS = {
   SearchIcon,
   LockIcon,
@@ -268,9 +292,29 @@ export default function ComponentSpecimenPage() {
             </div>
             <div>
               <Label>buttonStyles on a link</Label>
-              <a href="#buttons" className={buttonStyles({ size: "sm" })}>
+              <a href="#buttons" className={buttonStyles({ size: "sm" })} data-testid="button-link-specimen">
                 New prescription draft
               </a>
+            </div>
+            <div>
+              <Label>states (static previews of hover and pressed; hover, press or Tab the live buttons above)</Label>
+              <div className="flex flex-col gap-3">
+                {(["primary", "secondary", "danger", "quiet", "link"] as const).map((variant) => (
+                  <div key={variant} className="flex flex-wrap items-center gap-3" data-testid={`button-states-${variant}`}>
+                    {(["rest", "hover", "pressed"] as const).map((state) => (
+                      <span key={state} aria-hidden="true" className={buttonStyles({ variant, size: "sm", className: STATE_PREVIEW[variant][state] })}>
+                        {variant} {state}
+                      </span>
+                    ))}
+                    <Button variant={variant} size="sm">
+                      {variant} live
+                    </Button>
+                    <Button variant={variant} size="sm" disabled>
+                      {variant} disabled
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </Section>

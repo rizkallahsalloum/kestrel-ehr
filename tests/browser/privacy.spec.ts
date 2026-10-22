@@ -320,10 +320,10 @@ test("reduced motion: masking and revealing run no transition or animation", asy
 test("signing out from the account menu drops the stored state and the sign-in page turns Privacy mode off", async ({ page }) => {
   await open(page);
   await turnOn(page);
-  await page.getByRole("button", { name: /account menu/ }).click();
+  await page.getByRole("button", { name: /account menu/i }).click();
   await page.getByRole("menuitemradio", { name: "2 minutes" }).click();
   expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy.idle"))).toBe("120000");
-  await page.getByRole("button", { name: /account menu/ }).click();
+  await page.getByRole("button", { name: /account menu/i }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy"))).toBeNull();
   expect(await page.evaluate(() => sessionStorage.getItem("kestrel.privacy.idle"))).toBeNull();
@@ -359,7 +359,7 @@ test("the auto-hide delay comes from the account menu choice", async ({ page }) 
   await page.clock.install();
   await open(page);
   await expect(async () => {
-    await page.getByRole("button", { name: /account menu/ }).click();
+    await page.getByRole("button", { name: /account menu/i }).click();
     await expect(page.getByRole("menu", { name: "Account" })).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
   await expect(page.getByRole("menuitemradio", { name: "1 minute" })).toHaveAttribute("aria-checked", "true");
@@ -374,6 +374,6 @@ test("the auto-hide delay comes from the account menu choice", async ({ page }) 
 
   // The choice survives a reload in the same tab.
   await page.reload();
-  await page.getByRole("button", { name: /account menu/ }).click();
+  await page.getByRole("button", { name: /account menu/i }).click();
   await expect(page.getByRole("menuitemradio", { name: "30 seconds" })).toHaveAttribute("aria-checked", "true");
 });
