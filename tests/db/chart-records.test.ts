@@ -4,13 +4,27 @@ import { closePool, withTx, type Tx } from "../helpers/db";
 
 afterAll(closePool);
 
-async function auditFor(tx: Tx, entityId: string) {
+/** Audit rows for the entity written after `afterId` (rows from earlier, committed runs are ignored). */
+async function auditFor(tx: Tx, entityId: string, afterId = 0) {
   await tx.as("postgres");
   const { rows } = await tx.query<{ action: string; actor_id: string; metadata: Record<string, unknown> }>(
-    "select action, actor_id, metadata from private.audit_logs where entity_id = $1 order by id",
-    [entityId],
+    "select action, actor_id, metadata from private.audit_logs where entity_id = $1 and id > $2 order by id",
+    [entityId, afterId],
   );
   return rows;
+}
+
+/**
+ * A diagnosis's current version and the last audit id, read as postgres at the start of a test.
+ * The integration suite changes the same seeded diagnoses through the real Server Actions and
+ * those changes commit: it restores status and text, but versions, revisions and audit rows only
+ * grow. So these tests start from whatever version kestrel-test holds, not from 1.
+ */
+async function baseline(tx: Tx, diagnosisId: string) {
+  await tx.as("postgres");
+  const dx = await tx.query<{ version: number }>("select version from public.diagnoses where id = $1", [diagnosisId]);
+  const audit = await tx.query<{ id: string }>("select coalesce(max(id), 0)::text as id from private.audit_logs");
+  return { version: dx.rows[0]!.version, auditId: Number(audit.rows[0]!.id) };
 }
 
 describe("diagnoses, vitals and lab results: read access", () => {
@@ -84,12 +98,13 @@ describe("diagnoses, vitals and lab results: read access", () => {
 describe("set_diagnosis_status and update_diagnosis_description", () => {
   it("any active clinician on the team resolves and reopens, with a revision and a content-free audit row", async () => {
     await withTx(async (tx) => {
+      const { version: v, auditId } = await baseline(tx, DIAGNOSES.northOneHypertension);
       await tx.as("clinicianA2");
       const resolved = await tx.query<{ r: { status: string; version: number } }>(
-        "select public.set_diagnosis_status($1, 'resolved', 1) as r",
-        [DIAGNOSES.northOneHypertension],
+        "select public.set_diagnosis_status($1, 'resolved', $2) as r",
+        [DIAGNOSES.northOneHypertension, v],
       );
-      expect(resolved.rows[0]!.r).toMatchObject({ status: "resolved", version: 2 });
+      expect(resolved.rows[0]!.r).toMatchObject({ status: "resolved", version: v + 1 });
       const row = await tx.query<{ resolved_on: string | null; resolved_by: string | null }>(
         "select resolved_on::text, resolved_by from public.diagnoses where id = $1",
         [DIAGNOSES.northOneHypertension],
@@ -97,26 +112,26 @@ describe("set_diagnosis_status and update_diagnosis_description", () => {
       expect(row.rows[0]!.resolved_by).toBe(IDENTITIES.clinicianA2.id);
       expect(row.rows[0]!.resolved_on).not.toBeNull();
 
-      await tx.expectError("select public.set_diagnosis_status($1, 'resolved', 2)", [DIAGNOSES.northOneHypertension], "KE009");
-      await tx.expectError("select public.set_diagnosis_status($1, 'active', 1)", [DIAGNOSES.northOneHypertension], "KE008");
+      await tx.expectError("select public.set_diagnosis_status($1, 'resolved', $2)", [DIAGNOSES.northOneHypertension, v + 1], "KE009");
+      await tx.expectError("select public.set_diagnosis_status($1, 'active', $2)", [DIAGNOSES.northOneHypertension, v], "KE008");
 
       const reopened = await tx.query<{ r: { status: string; version: number } }>(
-        "select public.set_diagnosis_status($1, 'active', 2) as r",
-        [DIAGNOSES.northOneHypertension],
+        "select public.set_diagnosis_status($1, 'active', $2) as r",
+        [DIAGNOSES.northOneHypertension, v + 1],
       );
-      expect(reopened.rows[0]!.r).toMatchObject({ status: "active", version: 3 });
+      expect(reopened.rows[0]!.r).toMatchObject({ status: "active", version: v + 2 });
 
       const revisions = await tx.query<{ version: number; status: string }>(
-        "select version, status from public.diagnosis_revisions where diagnosis_id = $1 order by version",
-        [DIAGNOSES.northOneHypertension],
+        "select version, status from public.diagnosis_revisions where diagnosis_id = $1 and version >= $2 order by version",
+        [DIAGNOSES.northOneHypertension, v],
       );
       expect(revisions.rows.map((r) => [r.version, r.status])).toEqual([
-        [1, "active"],
-        [2, "resolved"],
-        [3, "active"],
+        [v, "active"],
+        [v + 1, "resolved"],
+        [v + 2, "active"],
       ]);
 
-      const audit = await auditFor(tx, DIAGNOSES.northOneHypertension);
+      const audit = await auditFor(tx, DIAGNOSES.northOneHypertension, auditId);
       expect(audit.map((a) => a.action)).toEqual(["diagnosis.resolved", "diagnosis.reopened"]);
       for (const entry of audit) {
         expect(entry.actor_id).toBe(IDENTITIES.clinicianA2.id);
@@ -127,23 +142,25 @@ describe("set_diagnosis_status and update_diagnosis_description", () => {
 
   it("edits the description (trimmed), keeps a revision and never puts the text in the audit log", async () => {
     await withTx(async (tx) => {
+      const { version: v, auditId } = await baseline(tx, DIAGNOSES.northOneLipids);
       await tx.as("clinicianA");
       const updated = await tx.query<{ r: { version: number } }>(
-        "select public.update_diagnosis_description($1, '  Hyperlipidemia, mixed (synthetic edit)  ', 1) as r",
-        [DIAGNOSES.northOneLipids],
+        "select public.update_diagnosis_description($1, '  Hyperlipidemia, mixed (synthetic edit)  ', $2) as r",
+        [DIAGNOSES.northOneLipids, v],
       );
-      expect(updated.rows[0]!.r.version).toBe(2);
+      expect(updated.rows[0]!.r.version).toBe(v + 1);
       const row = await tx.query<{ description: string }>("select description from public.diagnoses where id = $1", [DIAGNOSES.northOneLipids]);
       expect(row.rows[0]!.description).toBe("Hyperlipidemia, mixed (synthetic edit)");
 
       const unchanged = await tx.query<{ r: { version: number } }>(
-        "select public.update_diagnosis_description($1, 'Hyperlipidemia, mixed (synthetic edit)', 2) as r",
-        [DIAGNOSES.northOneLipids],
+        "select public.update_diagnosis_description($1, 'Hyperlipidemia, mixed (synthetic edit)', $2) as r",
+        [DIAGNOSES.northOneLipids, v + 1],
       );
-      expect(unchanged.rows[0]!.r.version).toBe(2);
-      await tx.expectError("select public.update_diagnosis_description($1, '   ', 2)", [DIAGNOSES.northOneLipids], "23514");
+      expect(unchanged.rows[0]!.r.version).toBe(v + 1);
+      await tx.expectError("select public.update_diagnosis_description($1, 'Hyperlipidemia, stale', $2)", [DIAGNOSES.northOneLipids, v], "KE008");
+      await tx.expectError("select public.update_diagnosis_description($1, '   ', $2)", [DIAGNOSES.northOneLipids, v + 1], "23514");
 
-      const audit = await auditFor(tx, DIAGNOSES.northOneLipids);
+      const audit = await auditFor(tx, DIAGNOSES.northOneLipids, auditId);
       expect(audit.map((a) => a.action)).toEqual(["diagnosis.updated"]);
       expect(JSON.stringify(audit)).not.toContain("Hyperlipidemia");
     });
