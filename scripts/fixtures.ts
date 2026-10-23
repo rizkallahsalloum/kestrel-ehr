@@ -89,6 +89,26 @@ export const SEED_DRAFTS = {
   northOneZentorilBlocking: "d5000000-0000-4000-8000-000000000001",
 } as const;
 
+/**
+ * Idempotency keys of prescriptions the seed script signs through the app's path (as clinicianA),
+ * so the chart has a signed prescription to renew. The e2e and integration resets keep these.
+ */
+export const SEED_SIGNED = {
+  /** Ploxidrin (DEMO-BETA) for Rowan Testcase; her DEMO-BETA allergy is inactive. */
+  northOnePloxidrin: "d5000000-0000-4000-8000-000000000002",
+  /** Zentoril (DEMO-ALPHA) for Elliot Samplewood. */
+  northTwoZentoril: "d5000000-0000-4000-8000-000000000003",
+} as const;
+
+export const DIAGNOSES = {
+  northOneHypertension: "d1000000-0000-4000-8000-000000000001",
+  northOneDiabetes: "d1000000-0000-4000-8000-000000000002",
+  northOneLipids: "d1000000-0000-4000-8000-000000000003",
+  northOneUriResolved: "d1000000-0000-4000-8000-000000000004",
+  northTwoAsthma: "d1000000-0000-4000-8000-000000000006",
+  southOneHypertension: "d1000000-0000-4000-8000-000000000010",
+} as const;
+
 export const PATIENT_MEDICATIONS = {
   northOneTessalineActive: "5d000000-0000-4000-8000-000000000001",
   northOneCalvexaStopped: "5d000000-0000-4000-8000-000000000002",

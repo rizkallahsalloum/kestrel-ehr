@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import type { Database } from "../src/types/database.ts";
-import { IDENTITIES, MEDICATIONS, PATIENTS, SEED_DRAFTS } from "./fixtures.ts";
+import { IDENTITIES, MEDICATIONS, PATIENTS, SEED_DRAFTS, SEED_SIGNED } from "./fixtures.ts";
 import { assertSeedablePassword, loadTestEnv, TestEnvError, type TestEnv } from "./test-env.ts";
 
 let env;
@@ -58,16 +58,70 @@ try {
   await client.end();
 }
 
+await seedSignedPrescriptions(env);
 await seedRowanBlockingDraft(env);
 
 /**
- * One blocking DEMO draft for Rowan Testcase, so the chart's alert banner shows on kestrel-test.
- * Made the way the app makes it: signed in as clinicianA with the publishable key (RLS applies),
- * insert the draft, then run `evaluate_prescription_safety`, which writes the real blocking alert.
- * Skipped when Rowan already has a draft with an unresolved blocking alert on its checked version.
- * The e2e and integration resets delete every prescription; run the seed again afterwards.
+ * Signed DEMO prescriptions for Rowan Testcase and Elliot Samplewood, so the chart has something
+ * to renew. Made the way the app makes them: signed in as clinicianA (RLS applies), insert the
+ * draft, run `evaluate_prescription_safety`, then `sign_prescription`, which also adds the active
+ * medication. Skipped when the prescription with the fixed idempotency key is already signed.
  */
-async function seedRowanBlockingDraft(env: TestEnv): Promise<void> {
+async function seedSignedPrescriptions(env: TestEnv): Promise<void> {
+  const plans = [
+    { key: SEED_SIGNED.northOnePloxidrin, patientId: PATIENTS.northOne, medicationId: MEDICATIONS.ploxidrin, dose: 100, label: "Rowan Testcase" },
+    { key: SEED_SIGNED.northTwoZentoril, patientId: PATIENTS.northTwo, medicationId: MEDICATIONS.zentoril, dose: 10, label: "Elliot Samplewood" },
+  ];
+  await asClinicianA(env, async (clinician) => {
+    for (const plan of plans) {
+      const existing = await clinician
+        .from("prescriptions")
+        .select("id, status")
+        .eq("prescriber_id", IDENTITIES.clinicianA.id)
+        .eq("idempotency_key", plan.key)
+        .maybeSingle();
+      if (existing.error) throw new Error(`Could not read ${plan.label}'s seeded prescription: ${existing.error.message}`);
+      if (existing.data && existing.data.status !== "draft") {
+        console.log(`The seeded prescription for ${plan.label} is ${existing.data.status}; none added.`);
+        continue;
+      }
+      let id = existing.data?.id;
+      if (!id) {
+        const inserted = await clinician
+          .from("prescriptions")
+          .insert({
+            patient_id: plan.patientId,
+            prescriber_id: IDENTITIES.clinicianA.id,
+            medication_id: plan.medicationId,
+            dose_amount: plan.dose,
+            dose_unit: "mg",
+            route: "oral",
+            frequency: "once_daily",
+            quantity: 30,
+            refills: 1,
+            start_date: new Date().toISOString().slice(0, 10),
+            instructions: "Synthetic seed prescription (DEMO).",
+            idempotency_key: plan.key,
+          })
+          .select("id")
+          .single();
+        if (inserted.error) throw new Error(`Could not create ${plan.label}'s prescription: ${inserted.error.message}`);
+        id = inserted.data.id;
+      }
+      const checked = await clinician.rpc("evaluate_prescription_safety", { p_prescription_id: id });
+      if (checked.error) throw new Error(`Could not run the safety check: ${checked.error.message}`);
+      const version = (checked.data as { version: number }).version;
+      const signed = await clinician.rpc("sign_prescription", { p_prescription_id: id, p_expected_version: version });
+      if (signed.error) throw new Error(`Could not sign ${plan.label}'s prescription: ${signed.error.message}`);
+      console.log(`Signed DEMO prescription for ${plan.label}.`);
+    }
+  });
+}
+
+async function asClinicianA(
+  env: TestEnv,
+  fn: (clinician: ReturnType<typeof createClient<Database>>) => Promise<void>,
+): Promise<void> {
   const clinician = createClient<Database>(env.supabaseUrl, env.publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -77,6 +131,21 @@ async function seedRowanBlockingDraft(env: TestEnv): Promise<void> {
   });
   if (signedIn.error) throw new Error(`Could not sign in as ${IDENTITIES.clinicianA.email}: ${signedIn.error.message}`);
   try {
+    await fn(clinician);
+  } finally {
+    await clinician.auth.signOut();
+  }
+}
+
+/**
+ * One blocking DEMO draft for Rowan Testcase, so the chart's alert banner shows on kestrel-test.
+ * Made the way the app makes it: signed in as clinicianA with the publishable key (RLS applies),
+ * insert the draft, then run `evaluate_prescription_safety`, which writes the real blocking alert.
+ * Skipped when Rowan already has a draft with an unresolved blocking alert on its checked version.
+ * The e2e and integration resets delete this draft (they keep only SEED_SIGNED); run the seed again afterwards.
+ */
+async function seedRowanBlockingDraft(env: TestEnv): Promise<void> {
+  await asClinicianA(env, async (clinician) => {
     const existing = await clinician
       .from("prescriptions")
       .select("id, status, version, last_evaluated_version, idempotency_key, prescription_alerts(prescription_version, severity, resolved_at)")
@@ -126,7 +195,5 @@ async function seedRowanBlockingDraft(env: TestEnv): Promise<void> {
     const checked = await clinician.rpc("evaluate_prescription_safety", { p_prescription_id: id });
     if (checked.error) throw new Error(`Could not run the safety check: ${checked.error.message}`);
     console.log("Blocking DEMO draft for Rowan Testcase created and safety-checked.");
-  } finally {
-    await clinician.auth.signOut();
-  }
+  });
 }
