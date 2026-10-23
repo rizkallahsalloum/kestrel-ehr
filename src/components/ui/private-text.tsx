@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
   type ReactElement,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { cn } from "./cn";
@@ -191,6 +192,52 @@ export function PrivateText({
         </span>
       )}
     </span>
+  );
+}
+
+/**
+ * Patient content that is more than text (a chart and its data table) and that Privacy mode hides as
+ * one region. The content stays mounted (invisible, inert and out of the accessibility tree), so its
+ * box never changes; one mask button covers it. A revealed region stays visible while focus is inside
+ * it and is masked again the configured time after focus leaves.
+ */
+export function PrivateRegion({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const { hidden, revealed, reveal } = useReveal(label, focusWithin, wrapRef);
+
+  return (
+    <div
+      ref={wrapRef}
+      data-private=""
+      data-private-region=""
+      className={cn("relative", className)}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusWithin(false);
+      }}
+    >
+      {hidden && (
+        <button
+          type="button"
+          data-private-focus=""
+          aria-label={`${label} hidden, press to reveal`}
+          onClick={reveal}
+          className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-control bg-surface-warm text-body-sm font-medium text-ink-strong select-none"
+        >
+          {PRIVACY_MASK}
+        </button>
+      )}
+      <div
+        data-private-value=""
+        data-revealed={revealed || undefined}
+        inert={hidden}
+        aria-hidden={hidden || undefined}
+        className={cn(hidden && "invisible select-none")}
+      >
+        {children}
+      </div>
+    </div>
   );
 }
 

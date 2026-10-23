@@ -29,6 +29,11 @@ export function newDraftValues(startDate: string): PrescriptionFormValues {
   };
 }
 
+/** Renew: a signed prescription's content as a new draft, starting on `startDate`. */
+export function renewalDraftValues(rx: Prescription, startDate: string): PrescriptionFormValues {
+  return { ...savedDraftValues(rx), startDate };
+}
+
 export function savedDraftValues(rx: Prescription): PrescriptionFormValues {
   return {
     medicationId: rx.medication_id,

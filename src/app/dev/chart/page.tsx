@@ -10,10 +10,13 @@ import { demoQueue } from "../demo-queue";
 import type { PatientChart } from "@/features/chart/queries";
 import { patientPath } from "@/features/patients/refs";
 import type { DraftAlertRow, PatientSummary, PrescriptionListItem } from "@/types/domain";
+import { ASTHMA_CASE, DIABETES_CASE, EMPTY_CASE, WELL_CASE } from "./clinical";
+import { StubNotesEditor, type StubSaveMode } from "./stub-notes-editor";
 
 export const metadata: Metadata = { title: "Chart specimen (development only) | Kestrel EHR" };
 
-// Static synthetic content for reviewing the Phase 4 chart. Mirrors supabase/seed/synthetic.sql; no data access.
+// Static synthetic content for reviewing the chart. Mirrors supabase/seed/synthetic.sql; no data access.
+// `?noteSave=fail` or `?noteSave=conflict` makes every stubbed note save fail that way.
 
 const CLINICIAN: ShellUser = { fullName: "Dr. Demo Clinician", role: "clinician" };
 const team = { name: "North team (synthetic)" };
@@ -87,6 +90,7 @@ const CHARTS = {
       rx("03", MEDS.ploxidrin, { status: "cancelled", quantity: 14, start_date: "2026-08-20", created_at: "2026-08-20T10:00:00Z" }),
     ],
     draftAlerts: [alert("01", "01", "blocking", RULE_ALPHA)],
+    ...DIABETES_CASE,
   },
   advisory: {
     patient: patient(2, "Mira", "Demoson", "1984-11-02", "female"),
@@ -100,6 +104,7 @@ const CHARTS = {
       rx("12", MEDS.ploxidrin, { version: 2, last_evaluated_version: 1, quantity: 14 }),
     ],
     draftAlerts: [alert("11", "11", "advisory", RULE_BETA_GAMMA)],
+    ...ASTHMA_CASE,
   },
   "no-drafts": {
     patient: patient(3, "Ellis", "Placeholder", "1971-06-27", "male"),
@@ -108,12 +113,13 @@ const CHARTS = {
       { id: "a3", substance_text: "Demo class Beta agents", reaction: "Synthetic nausea (example)", severity: "mild", drug_class_code: "DEMO-BETA", status: "active" },
     ],
     medications: [
-      { id: "m4", dose_text: "10 mg oral once daily", start_date: "2026-03-15", status: "active", source_prescription_id: "00000000-0000-4000-8000-000000000221", medication: MEDS.zentoril },
+      { id: "m4", dose_text: "10 mg oral once daily", start_date: "2026-03-15", status: "active", source_prescription_id: "00000000-0000-4000-8000-000000000221", medication: MEDS.zentoril, source: { public_ref: "synrx00221", status: "signed" } },
     ],
     prescriptions: [
       rx("21", MEDS.zentoril, { status: "signed", signed_at: "2026-03-15T11:40:00Z", start_date: "2026-03-15", created_at: "2026-03-15T11:30:00Z" }),
     ],
     draftAlerts: [],
+    ...WELL_CASE,
   },
   // Blocking and advisory side by side; input deliberately out of severity order.
   mixed: {
@@ -131,6 +137,7 @@ const CHARTS = {
       rx("32", MEDS.zentoril),
     ],
     draftAlerts: [alert("31", "31", "advisory", RULE_BETA_GAMMA), alert("32", "32", "blocking", RULE_ALPHA)],
+    ...WELL_CASE,
   },
   "no-allergies": {
     patient: patient(4, "Zoë", "Sampleton", "2001-01-09", "female"),
@@ -138,6 +145,7 @@ const CHARTS = {
     medications: [],
     prescriptions: [],
     draftAlerts: [],
+    ...EMPTY_CASE,
   },
 } satisfies Record<string, PatientChart>;
 
@@ -163,9 +171,21 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
   const view: View = VIEWS.find((v) => v === params.view) ?? "blocking";
   const delay = delayParam(params.delay);
 
+  const chart = chartFor(view);
+  const own = chart.notes.ownToday;
+  const saveMode: StubSaveMode = params.noteSave === "fail" || params.noteSave === "conflict" ? params.noteSave : "ok";
   const content = (
     <>
-      <PatientChartView chart={chartFor(view)} />
+      <PatientChartView
+        chart={chart}
+        notesEditor={
+          <StubNotesEditor
+            key={view}
+            mode={saveMode}
+            initial={own ? { noteId: own.id, version: own.version, body: own.body, savedAt: own.saved_at } : null}
+          />
+        }
+      />
       <p className="mt-6 text-label-sm text-ink-muted">
         Development specimen. Views:{" "}
         {VIEWS.map((v, i) => (

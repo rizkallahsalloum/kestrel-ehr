@@ -1,4 +1,9 @@
 import { cn, LoadingRegion, SkeletonBlock, SkeletonLine } from "@/components/ui";
+import { DiagnosisTableSkeleton } from "@/features/diagnoses/components/diagnosis-table";
+import { EncounterNotesSkeleton } from "@/features/encounter-notes/components/encounter-notes-panel";
+import { Hba1cChartSkeleton } from "@/features/labs/components/hba1c-chart";
+import { VitalsBandSkeleton } from "@/features/vitals/components/vitals-band";
+import { CHART_FOOTER } from "./patient-chart-view";
 
 // Mirrors PatientChartView: same grid, card boxes and line heights, so the swap to the real chart
 // keeps the columns and the hero in place. Rows stand in for typical content.
@@ -32,7 +37,11 @@ export function HeroSkeleton() {
         <div className="min-w-0">
           <SkeletonLine className="mb-1 text-heading-xl" width="w-52" />
           <DemographicsSkeleton className="gap-y-1" />
-          <p className="mt-3 flex flex-wrap gap-2">
+          <p className="mt-3 flex gap-2 overflow-hidden contain-inline-size">
+            <TagSkeleton width="w-36" />
+            <TagSkeleton width="w-28" />
+          </p>
+          <p className="mt-2 flex flex-wrap gap-2">
             <TagSkeleton width="w-32" />
             <TagSkeleton width="w-24" />
           </p>
@@ -96,17 +105,20 @@ export function ChartSkeleton() {
       <div className="grid items-start gap-lg workspace:grid-cols-workspace">
         <div data-skeleton="main-column" className="flex min-w-0 flex-col gap-4.5">
           <HeroSkeleton />
-          <PrescriptionsCardSkeleton />
+          <div className="flex flex-col gap-4.5">
+            <VitalsBandSkeleton />
+            <Hba1cChartSkeleton />
+            <DiagnosisTableSkeleton />
+            <PrescriptionsCardSkeleton />
+            <EncounterNotesSkeleton />
+          </div>
         </div>
         <div data-skeleton="aside" className="flex flex-col gap-4 workspace:sticky workspace:top-below-topbar">
           <PanelSkeleton rows={2} />
           <PanelSkeleton rows={1} />
         </div>
       </div>
-      <p className="max-w-footer text-label-sm text-ink-muted">
-        Synthetic record. This prototype models allergies, medications and demo prescriptions only; vitals, labs,
-        diagnoses, encounter notes and scheduling are not part of it.
-      </p>
+      <p className="max-w-footer text-label-sm text-ink-muted">{CHART_FOOTER}</p>
     </LoadingRegion>
   );
 }

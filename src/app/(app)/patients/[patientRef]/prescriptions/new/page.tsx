@@ -7,10 +7,17 @@ import { todayUtc } from "@/features/prescriptions/schemas";
 
 export const metadata: Metadata = { title: "New prescription draft | Kestrel EHR" };
 
-export default async function NewPrescriptionPage({ params }: PageProps<"/patients/[patientRef]/prescriptions/new">) {
-  const { patientRef } = await params;
-  const { patientId } = await resolvePatientSegment(patientRef, "/prescriptions/new");
-  const context = await getNewPrescriptionContext(patientId);
+export default async function NewPrescriptionPage({
+  params,
+  searchParams,
+}: PageProps<"/patients/[patientRef]/prescriptions/new">) {
+  const [{ patientRef }, { renew }] = await Promise.all([params, searchParams]);
+  const renewRef = typeof renew === "string" ? renew : null;
+  const { patientId } = await resolvePatientSegment(
+    patientRef,
+    renewRef ? `/prescriptions/new?renew=${encodeURIComponent(renewRef)}` : "/prescriptions/new",
+  );
+  const context = await getNewPrescriptionContext(patientId, renewRef);
   if (!context) notFound();
 
   return (

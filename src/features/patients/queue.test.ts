@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { VitalReading } from "@/features/vitals/thresholds";
 import {
   buildQueue,
   orderQueue,
@@ -79,6 +80,32 @@ describe("queueStatus", () => {
     expect(withAllergies(["mild"])).toBe("stable");
     expect(withAllergies(["mild", "mild"], draft())).toBe("stable");
     expect(withAllergies(["mild"], draft({ last_evaluated_version: 1 }))).toBe("warning");
+  });
+
+  const reading = (overrides: Partial<VitalReading> = {}): VitalReading => ({
+    recorded_at: "2026-10-12T09:00:00Z",
+    heart_rate: 72,
+    systolic: 118,
+    diastolic: 76,
+    spo2: 98,
+    temperature_f: 98.4,
+    ...overrides,
+  });
+  const withVitals = (vitals: VitalReading | null, severities: QueueAllergyRow["severity"][] = [], ...drafts: QueueDraftRow[]) =>
+    queueStatus({ drafts, allergies: severities.map((severity) => ({ severity })), vitals });
+
+  it("follows the latest vitals reading under the DEMO vitals rules", () => {
+    expect(withVitals(null)).toBe("stable");
+    expect(withVitals(reading())).toBe("stable");
+    expect(withVitals(reading({ systolic: 148, diastolic: 92 }))).toBe("warning");
+    expect(withVitals(reading({ spo2: 91 }))).toBe("critical");
+  });
+
+  it("takes the most severe of vitals, allergies and drafts", () => {
+    expect(withVitals(reading({ spo2: 91 }), ["mild"], draft({ prescription_alerts: [advisory] }))).toBe("critical");
+    expect(withVitals(reading({ heart_rate: 108 }), ["severe"])).toBe("critical");
+    expect(withVitals(reading(), ["moderate"])).toBe("warning");
+    expect(withVitals(reading({ heart_rate: 108 }), [], draft({ prescription_alerts: [blocking] }))).toBe("critical");
   });
 });
 
@@ -167,6 +194,18 @@ describe("buildQueue", () => {
       ["v", "critical"],
       ["o", "warning"],
       ["m", "stable"],
+    ]);
+  });
+
+  it("uses the first embedded vitals reading (the query returns only the latest)", () => {
+    const base = { recorded_at: "2026-10-12T09:00:00Z", heart_rate: 72, systolic: 118, diastolic: 76, temperature_f: 98.4 };
+    const queue = buildQueue([
+      row("n", "No", "Readings", { vital_readings: [] }),
+      row("c", "Cy", "Critical", { vital_readings: [{ ...base, spo2: 91 }] }),
+    ]);
+    expect(queue.map((p) => [p.id, p.status])).toEqual([
+      ["c", "critical"],
+      ["n", "stable"],
     ]);
   });
 });

@@ -69,7 +69,7 @@ test("blocking draft: critical banner links to the draft and offers no acknowled
   await expect(slot).toContainText("DEMO RULE: recorded allergy to demo class Alpha.");
   await expect(slot.getByRole("link", { name: "Review draft for Zentoril 10 mg tablet" })).toHaveAttribute(
     "href",
-    /\/patients\/00000000-0000-4000-8000-000000000101\/prescriptions\/00000000-0000-4000-8000-000000000201$/,
+    /\/patients\/syn0000101\/prescriptions\/synrx00201$/,
   );
   await expect(page.getByRole("button", { name: /acknowledge/i })).toHaveCount(0);
 
@@ -224,5 +224,153 @@ test("chart headings form one outline under the patient name", async ({ page }) 
   await open(page, "blocking");
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   const h2 = await page.getByRole("heading", { level: 2 }).allTextContents();
-  expect(h2).toEqual(["Demo safety alerts", "Prescriptions", "Allergies", "Active medications"]);
+  expect(h2).toEqual([
+    "Demo safety alerts",
+    "Vitals",
+    "HbA1c and estimated average glucose",
+    "Diagnoses",
+    "Prescriptions",
+    "Encounter notes",
+    "Allergies",
+    "Active medications",
+  ]);
+});
+
+const vitalsBand = (page: Page) => page.getByRole("region", { name: "Vitals" });
+const tile = (page: Page, kind: string) => vitalsBand(page).locator(`[data-vital=${kind}]`);
+
+test("vitals: status by text and icon or dot, red only for critical, every tile the same size", async ({ page }) => {
+  await open(page, "advisory");
+  await expect(tile(page, "spo2")).toContainText("91");
+  await expect(tile(page, "spo2").locator("[data-vital-status]")).toHaveText("Critical");
+  await expect(tile(page, "spo2").locator("[data-vital-status] svg")).toHaveAttribute("data-icon", "alert-triangle");
+  expect(await borderColor(tile(page, "spo2"))).toBe(await tokenColor(page, "danger"));
+  expect(await borderWidth(tile(page, "spo2"))).toBe("2px");
+  await expect(tile(page, "heart_rate").locator("[data-vital-status]")).toHaveText("Warning");
+  expect(await textColor(tile(page, "heart_rate").locator("[data-vital-status]"))).toBe(await tokenColor(page, "warning"));
+  expect(await borderWidth(tile(page, "heart_rate"))).toBe("1px");
+  await expect(tile(page, "blood_pressure").locator("[data-vital-status]")).toHaveText("Stable");
+  await expect(tile(page, "blood_pressure").locator("[data-status=stable]")).toHaveCount(1);
+  await expect(vitalsBand(page)).toContainText("1 critical, 1 warning under the demo rules.");
+  await expect(vitalsBand(page)).toContainText("illustrative demo rules, not clinical guidance");
+
+  const sizes = await vitalsBand(page)
+    .locator("[data-vital]")
+    .evaluateAll((tiles) => tiles.map((t) => `${t.getBoundingClientRect().width}x${t.getBoundingClientRect().height}`));
+  expect(new Set(sizes).size).toBe(1);
+});
+
+for (const [width, columns] of [
+  [1440, 4],
+  [1181, 4],
+  [1024, 4],
+  [800, 2],
+  [761, 2],
+  [760, 1],
+  [390, 1],
+] as const) {
+  test(`vitals band: ${columns} tile column${columns === 1 ? "" : "s"} at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await open(page, "blocking");
+    const xs = await vitalsBand(page)
+      .locator("[data-vital]")
+      .evaluateAll((tiles) => new Set(tiles.map((t) => Math.round(t.getBoundingClientRect().x))).size);
+    expect(xs).toBe(columns);
+  });
+}
+
+test("HbA1c chart: labelled axes, keyboard-reachable points with tooltips, and a data table", async ({ page }) => {
+  await open(page, "blocking");
+  const chart = page.locator("[data-hba1c-chart]");
+  await expect(chart).toContainText("HbA1c (%)");
+  await expect(chart).toContainText("eAG (mg/dL)");
+  const points = chart.locator("[data-chart-point]");
+  await expect(points).toHaveCount(6);
+  await expect(points.first()).toHaveAccessibleName("Mar 2026: HbA1c 7.8%, eAG 177 mg/dL");
+  await expect(points.last()).toHaveAccessibleName("Aug 2026: HbA1c 6.8%, eAG 148 mg/dL");
+
+  // Tab reaches every point in order, and focus shows its tooltip.
+  await page.getByRole("link", { name: "Review draft for Zentoril 10 mg tablet" }).focus();
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press("Tab");
+    await expect(points.nth(i)).toBeFocused();
+    await expect(points.nth(i).locator("[data-chart-tooltip]")).toBeVisible();
+  }
+  await expect(points.nth(0).locator("[data-chart-tooltip]")).toBeHidden();
+
+  const table = chart.getByRole("table");
+  await expect(table.locator("tbody tr")).toHaveCount(6);
+  await expect(table.locator("tbody tr").nth(3)).toHaveText(/Jun 2026\s*7\.1\s*157/);
+
+  await open(page, "advisory");
+  await expect(page.getByText("No HbA1c results on file.")).toBeVisible();
+  await expect(page.locator("[data-chart-point]")).toHaveCount(0);
+});
+
+test("diagnoses: ICD-10-CM codes, active first, row actions named after the row, no red", async ({ page }) => {
+  await open(page, "blocking");
+  const table = page.getByRole("table", { name: "Diagnoses" });
+  const rows = table.locator("tbody tr");
+  await expect(rows).toHaveCount(5);
+  await expect(rows.nth(0)).toContainText("I10");
+  await expect(rows.nth(4)).toContainText("M54.50");
+  await expect(rows.nth(4)).toContainText(/resolved/i);
+  await expect(table.getByRole("button", { name: "Resolve I10 Essential (primary) hypertension" })).toBeVisible();
+  await expect(table.getByRole("button", { name: "Reopen M54.50 Low back pain, unspecified" })).toBeVisible();
+  expect(await table.locator("[data-severity]").count()).toBe(0);
+
+  // Edit shows the same Unsaved changes pattern as prescribing; Cancel returns focus to Edit.
+  const edit = table.getByRole("button", { name: "Edit E78.5 Hyperlipidemia, unspecified" });
+  await edit.click();
+  const input = table.getByRole("textbox", { name: "Description" });
+  await expect(input).toBeFocused();
+  await expect(table.getByText("Unsaved changes")).toHaveCount(0);
+  await input.fill("Hyperlipidemia, unspecified (edited)");
+  await expect(table.getByText("Unsaved changes")).toBeVisible();
+  await table.getByRole("button", { name: "Cancel" }).click();
+  await expect(edit).toBeFocused();
+  await expect(rows.nth(2)).toContainText("Hyperlipidemia, unspecified");
+});
+
+test("hero: three most recent active diagnoses on one line", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await open(page, "blocking");
+  const hero = page.locator("main header").first();
+  const tags = hero.locator("p", { hasText: "Active diagnoses:" });
+  await expect(tags).toContainText("Essential (primary) hypertension");
+  await expect(tags).toContainText("Hyperlipidemia, unspecified");
+  await expect(tags).not.toContainText("Low back pain");
+  const lineHeight = await tags.evaluate((el) => el.getBoundingClientRect().height);
+  expect(lineHeight).toBeLessThan(32);
+});
+
+test("encounter notes: autosave reports Saved only after the save, and Unsaved changes while typing", async ({ page }) => {
+  await open(page, "blocking");
+  const note = page.getByRole("textbox", { name: "Your note for today" });
+  const state = page.locator("[data-save-state]");
+  await expect(state).toHaveText("No note for today yet");
+  await note.fill("Synthetic note (example text).");
+  await expect(state).toHaveAttribute("data-save-state", "dirty");
+  await expect(state).toContainText("Unsaved changes");
+  // The specimen's stub save resolves at once, so "Saving…" may not be observable.
+  await expect(state).toContainText(/Saved \d\d:\d\d UTC/, { timeout: 5_000 });
+  await expect(state).toHaveAttribute("data-save-state", "clean");
+  const box = await state.boundingBox();
+
+  await page.goto("/dev/chart?view=blocking&noteSave=conflict");
+  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+  await note.fill("Synthetic note that conflicts.");
+  await expect(state).toHaveAttribute("data-save-state", "conflict", { timeout: 5_000 });
+  await expect(page.getByRole("alert").filter({ hasText: "Not saved." })).toContainText("Copy your text, then reload.");
+  await expect(note).toHaveValue("Synthetic note that conflicts.");
+  expect((await state.boundingBox())!.height).toBeGreaterThanOrEqual(box!.height);
+});
+
+test("renew: a medication from a signed prescription links to a prefilled new draft", async ({ page }) => {
+  await open(page, "no-drafts");
+  const renew = sidePanel(page).getByRole("link", { name: "Renew Zentoril 10 mg tablet" });
+  await expect(renew).toHaveAttribute("href", "/patients/syn0000103/prescriptions/new?renew=synrx00221");
+  await open(page, "advisory");
+  // The specimen's other medication has a source id but no loaded signed source: no Renew.
+  await expect(sidePanel(page).getByRole("link", { name: /^Renew/ })).toHaveCount(0);
 });

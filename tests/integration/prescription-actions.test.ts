@@ -85,7 +85,12 @@ describe("prescription Server Actions against the test project", () => {
     const second = await actions.createPrescriptionDraft(input);
     expect(first.ok && second.ok).toBe(true);
     if (first.ok && second.ok) {
-      expect(second.data).toEqual({ prescriptionId: first.data.prescriptionId, duplicate: true });
+      expect(second.data).toEqual({
+        prescriptionId: first.data.prescriptionId,
+        prescriptionRef: first.data.prescriptionRef,
+        patientRef: first.data.patientRef,
+        duplicate: true,
+      });
     }
   });
 

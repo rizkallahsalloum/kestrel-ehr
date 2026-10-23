@@ -1,4 +1,5 @@
 import type { AvatarTone } from "@/components/ui";
+import { readingStatus, type VitalReading } from "@/features/vitals/thresholds";
 import type { AlertSeverity, AllergySeverity, PrescriptionStatus } from "@/types/domain";
 
 /** Status dot of a queue chip: red, orange or green, always with `QUEUE_STATUS_LABEL` text. */
@@ -23,6 +24,8 @@ export type QueuePatientRow = {
   prescriptions: QueueDraftRow[];
   /** Active allergies only (the query filters by status). */
   allergies: QueueAllergyRow[];
+  /** The latest vitals reading only (the query orders and limits to one). */
+  vital_readings?: VitalReading[];
 };
 
 /** Chips shown in the top bar; a "View all" chip follows when there are more. */
@@ -37,22 +40,26 @@ export const QUEUE_STATUS_LABEL: Record<QueueStatus, string> = {
 const RANK: Record<QueueStatus, number> = { critical: 0, warning: 1, stable: 2 };
 
 /**
- * Inputs to a patient's queue status: current drafts and active allergies. Phase 9 vitals can add a
- * field here and a case in `queueStatus` without changing the queue components.
+ * Inputs to a patient's queue status: current drafts, active allergies and the latest vitals reading
+ * (null when none is on file).
  */
-export type QueueSignals = { drafts: QueueDraftRow[]; allergies: QueueAllergyRow[] };
+export type QueueSignals = { drafts: QueueDraftRow[]; allergies: QueueAllergyRow[]; vitals?: VitalReading | null };
 
 /**
  * The one mapping from clinical signals to a queue status. Unresolved alerts and active allergies
  * only (the query filters the rest).
- * - critical: a draft has a blocking alert on its current, checked version, or an allergy is severe;
+ * - critical: a draft has a blocking alert on its current, checked version, an allergy is severe, or
+ *   the latest vitals reading is Critical under the DEMO vitals rules;
  * - warning: a draft has an advisory alert without a decision on its current, checked version, its
- *   saved version has not been safety-checked, or an allergy is moderate;
+ *   saved version has not been safety-checked, an allergy is moderate, or the latest vitals reading
+ *   is Warning;
  * - stable: none of those. Mild allergies alone stay stable.
  */
-export function queueStatus({ drafts, allergies }: QueueSignals): QueueStatus {
-  if (allergies.some((a) => a.severity === "severe")) return "critical";
-  let status: QueueStatus = allergies.some((a) => a.severity === "moderate") ? "warning" : "stable";
+export function queueStatus({ drafts, allergies, vitals = null }: QueueSignals): QueueStatus {
+  const vitalsStatus = vitals ? readingStatus(vitals) : "stable";
+  if (allergies.some((a) => a.severity === "severe") || vitalsStatus === "critical") return "critical";
+  let status: QueueStatus =
+    allergies.some((a) => a.severity === "moderate") || vitalsStatus === "warning" ? "warning" : "stable";
   for (const rx of drafts) {
     if (rx.status !== "draft") continue;
     if (rx.last_evaluated_version !== rx.version) {
@@ -86,7 +93,11 @@ export function buildQueue(rows: QueuePatientRow[]): QueuePatient[] {
       ref: row.public_ref,
       givenName: row.given_name,
       familyName: row.family_name,
-      status: queueStatus({ drafts: row.prescriptions, allergies: row.allergies }),
+      status: queueStatus({
+        drafts: row.prescriptions,
+        allergies: row.allergies,
+        vitals: row.vital_readings?.[0] ?? null,
+      }),
     })),
   );
 }

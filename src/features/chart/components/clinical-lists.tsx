@@ -18,7 +18,7 @@ import {
 } from "@/components/ui";
 import { allergyTone, bySeverity, highestSeverity } from "@/features/chart/allergies";
 import { draftSafetyState, medicationLabel } from "@/features/chart/alerts";
-import { newPrescriptionPath, prescriptionPath } from "@/features/patients/refs";
+import { newPrescriptionPath, prescriptionPath, renewPrescriptionPath } from "@/features/patients/refs";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Allergy, DraftAlertRow, PatientMedication, PrescriptionListItem, PrescriptionStatus } from "@/types/domain";
 
@@ -105,7 +105,12 @@ export function AllergyPanel({ allergies }: { allergies: Allergy[] }) {
   );
 }
 
-export function MedicationPanel({ medications }: { medications: PatientMedication[] }) {
+/**
+ * Active medications. With `patientRef` (the chart), entries that came from a signed prescription
+ * get a Renew link: it opens a new draft prefilled from that prescription, and nothing is written
+ * until the clinician saves it.
+ */
+export function MedicationPanel({ medications, patientRef }: { medications: PatientMedication[]; patientRef?: string }) {
   return (
     <Panel title="Active medications" icon={<PillIcon className="size-3.75" />}>
       {medications.length > 0 ? (
@@ -119,7 +124,25 @@ export function MedicationPanel({ medications }: { medications: PatientMedicatio
                 <PrivateText label="Dose">{item.dose_text}</PrivateText> · since{" "}
                 <PrivateText label="Start date" className="whitespace-nowrap">{formatDate(item.start_date)}</PrivateText>
               </p>
-              {item.source_prescription_id && <Badge tone="accent" className="mt-1.5">from signed prescription</Badge>}
+              {item.source_prescription_id && (
+                <p className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <Badge tone="accent">from signed prescription</Badge>
+                  {patientRef && item.source?.status === "signed" && (
+                    <Link
+                      href={renewPrescriptionPath(patientRef, item.source.public_ref)}
+                      className={buttonStyles({ variant: "link", size: "sm" })}
+                    >
+                      Renew
+                      <span className="sr-only">
+                        {" "}
+                        <PrivateText label="Medication" revealable={false}>
+                          {medicationLabel(item)}
+                        </PrivateText>
+                      </span>
+                    </Link>
+                  )}
+                </p>
+              )}
             </li>
           ))}
         </ul>

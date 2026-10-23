@@ -23,6 +23,11 @@ export function newPrescriptionPath(patientRef: string): string {
   return `/patients/${patientRef}/prescriptions/new`;
 }
 
+/** New draft prefilled from a signed prescription (Renew). */
+export function renewPrescriptionPath(patientRef: string, prescriptionRef: string): string {
+  return `${newPrescriptionPath(patientRef)}?renew=${prescriptionRef}`;
+}
+
 export function prescriptionPath(patientRef: string, prescriptionRef: string): string {
   return `/patients/${patientRef}/prescriptions/${prescriptionRef}`;
 }

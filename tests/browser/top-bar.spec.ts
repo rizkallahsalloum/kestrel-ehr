@@ -461,7 +461,7 @@ for (const width of [1440, 1024, 760, 390]) {
       page.evaluate(() =>
         // Top bar, queue and chart hero. Wrapped multi-line values further down (the prescriptions table
         // at 390px) are a known Privacy trade-off, documented in docs/theme.md.
-        [...document.querySelectorAll("header > div, nav[data-queue], [data-queue-item], main header, main h1")].map((el) => {
+        [...document.querySelectorAll("header:not(main header) > div, nav[data-queue], [data-queue-item], main header:has(h1), main h1")].map((el) => {
           const r = el.getBoundingClientRect();
           return `${el.tagName} ${r.x.toFixed(2)},${r.y.toFixed(2)} ${r.width.toFixed(2)}x${r.height.toFixed(2)}`;
         }),

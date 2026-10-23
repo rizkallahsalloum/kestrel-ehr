@@ -52,6 +52,8 @@ export const DB_ERROR = {
   START_DATE_WINDOW: "KE005",
   INACTIVE_MEDICATION: "KE006",
   ALERT_NOT_ACTIONABLE: "KE007",
+  DIAGNOSIS_VERSION_CONFLICT: "KE008",
+  DIAGNOSIS_STATUS_UNCHANGED: "KE009",
 } as const;
 
 export type PostgrestLikeError = { code?: string | null; message?: string | null };
@@ -83,6 +85,14 @@ const DB_ERROR_MAP: Record<string, { code: ActionErrorCode; message: string; fie
   [DB_ERROR.ALERT_NOT_ACTIONABLE]: {
     code: "CONFLICT",
     message: "This alert can no longer be acknowledged. Re-run the safety check.",
+  },
+  [DB_ERROR.DIAGNOSIS_VERSION_CONFLICT]: {
+    code: "CONFLICT",
+    message: "This diagnosis changed since you opened it. Reload and review it again.",
+  },
+  [DB_ERROR.DIAGNOSIS_STATUS_UNCHANGED]: {
+    code: "CONFLICT",
+    message: "This diagnosis already has that status. Reload to see the latest version.",
   },
   "42501": { code: "FORBIDDEN", message: "You are not allowed to perform this action." },
   P0002: { code: "NOT_FOUND", message: "The requested record was not found." },

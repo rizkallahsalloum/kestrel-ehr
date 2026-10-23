@@ -6,6 +6,10 @@ import { AppShell, type ShellUser } from "@/components/shell/app-shell";
 import { AlertBanner, Card, PrivateText } from "@/components/ui";
 import { AllergyPanel, MedicationPanel } from "@/features/chart/components/clinical-lists";
 import { PatientHero } from "@/features/chart/components/patient-hero";
+import { DiagnosisTable } from "@/features/diagnoses/components/diagnosis-table";
+import { Hba1cChart } from "@/features/labs/components/hba1c-chart";
+import { VitalsBand } from "@/features/vitals/components/vitals-band";
+import { DIABETES_CASE } from "../chart/clinical";
 import { PatientList } from "@/features/patients/components/patient-list";
 import { PatientListSkeleton } from "@/features/patients/components/patient-list-skeleton";
 import type { Allergy, PatientMedication, PatientSummary } from "@/types/domain";
@@ -83,7 +87,11 @@ export default async function PrivacySpecimenPage({ searchParams }: PageProps<"/
   const content = (
     <div className="flex flex-col gap-4">
       <PatientList patients={PATIENTS} query="" clearHref="/dev/privacy" />
-      <PatientHero patient={PATIENTS[0]!} allergies={ALLERGIES} />
+      <PatientHero
+        patient={PATIENTS[0]!}
+        allergies={ALLERGIES}
+        diagnoses={[{ id: "dx-a", description: "Synthetic condition A" }, ...DIABETES_CASE.diagnoses]}
+      />
       <AlertBanner tone="critical" title="Allergy conflict on pending order">
         <p>
           Draft: Zentoril 10 mg tablet. Allergy conflict (synthetic) for <PrivateText label="Patient name">Testcase, Rowan</PrivateText>: severe
@@ -94,12 +102,11 @@ export default async function PrivacySpecimenPage({ searchParams }: PageProps<"/
         <AllergyPanel allergies={ALLERGIES} />
         <MedicationPanel medications={MEDICATIONS} />
       </div>
+      <VitalsBand readings={DIABETES_CASE.vitals} />
+      <Hba1cChart results={DIABETES_CASE.hba1c} />
+      <DiagnosisTable diagnoses={DIABETES_CASE.diagnoses} />
       <Card title="Encounter note (synthetic)">
         <div className="flex flex-col gap-3">
-          <p className="text-body-sm text-ink-strong">
-            Diagnosis (example field, not in the prototype):{" "}
-            <PrivateText label="Diagnosis">Synthetic condition A</PrivateText>
-          </p>
           <PrivacyNotesDemo />
           <div>
             <PrivacyDialogDemo />

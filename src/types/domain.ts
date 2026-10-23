@@ -23,7 +23,11 @@ export type Allergy = Pick<
 export type PatientMedication = Pick<
   Tables<"patient_medications">,
   "id" | "dose_text" | "start_date" | "status" | "source_prescription_id"
-> & { medication: Pick<Tables<"medications">, "name" | "strength" | "form"> | null };
+> & {
+  medication: Pick<Tables<"medications">, "name" | "strength" | "form"> | null;
+  /** The signed prescription this entry came from; the chart loads it for Renew. */
+  source?: Pick<Tables<"prescriptions">, "public_ref" | "status"> | null;
+};
 
 export type PrescriptionListItem = Pick<
   Tables<"prescriptions">,

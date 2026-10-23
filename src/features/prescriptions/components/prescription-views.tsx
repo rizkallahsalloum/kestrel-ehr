@@ -2,8 +2,8 @@ import { CheckCircleIcon, PrivateText } from "@/components/ui";
 import { medicationLabel } from "@/features/chart/alerts";
 import { AllergyPanel, MedicationPanel } from "@/features/chart/components/clinical-lists";
 import { formatDateTime } from "@/lib/format";
-import type { Allergy, MedicationOption, PatientMedication, PatientSummary } from "@/types/domain";
-import { newDraftValues, savedDraftValues } from "../form-values";
+import type { Allergy, MedicationOption, PatientMedication, PatientSummary, Prescription } from "@/types/domain";
+import { newDraftValues, renewalDraftValues, savedDraftValues } from "../form-values";
 import type { PrescriptionWorkspace } from "../queries";
 import { labelLines } from "../sig";
 import { isEditable } from "../transitions";
@@ -42,6 +42,8 @@ export function NewPrescriptionView({
   patientMedications,
   idempotencyKey,
   startDate,
+  renewal = null,
+  renewUnavailable = false,
 }: {
   patient: PatientSummary;
   medications: MedicationOption[];
@@ -49,18 +51,34 @@ export function NewPrescriptionView({
   patientMedications: PatientMedication[];
   idempotencyKey: string;
   startDate: string;
+  /** Signed prescription to prefill from (Renew). */
+  renewal?: Prescription | null;
+  /** A renew link pointed at a prescription that is not signed or not visible. */
+  renewUnavailable?: boolean;
 }) {
   return (
     <div data-layout="wide" className="flex flex-col gap-4">
-      <ErxPageHeading patientRef={patient.public_ref} title="New prescription" />
+      <ErxPageHeading patientRef={patient.public_ref} title={renewal ? "Renew prescription" : "New prescription"} />
       <RxPatientHeader patient={patient} allergies={allergies} medications={patientMedications} />
+      {renewal && (
+        <p role="status" className="text-body-sm text-ink-strong">
+          Prefilled from the signed prescription for{" "}
+          <PrivateText label="Medication">{medicationLabel(renewal)}</PrivateText>, with today as the start date. Review
+          every field: nothing is saved until you create the draft, and the new draft gets its own safety check.
+        </p>
+      )}
+      {renewUnavailable && (
+        <p role="status" className="text-body-sm text-ink-strong">
+          That prescription cannot be renewed: only signed prescriptions for this patient can. Start a new draft below.
+        </p>
+      )}
       <DraftWorkspace
         mode="create"
         idempotencyKey={idempotencyKey}
         patientId={patient.id}
         patientName={patientName(patient)}
         medications={medications}
-        initialValues={newDraftValues(startDate)}
+        initialValues={renewal ? renewalDraftValues(renewal, startDate) : newDraftValues(startDate)}
         context={<Context safety={{ kind: "unsaved" }} allergies={allergies} patientMedications={patientMedications} />}
       />
     </div>

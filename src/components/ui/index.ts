@@ -25,6 +25,7 @@ export {
   PRIVATE_FOCUS_SELECTOR,
   PrivacyMaskContext,
   PrivateField,
+  PrivateRegion,
   PrivateText,
   type PrivacyMaskState,
 } from "./private-text";

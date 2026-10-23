@@ -65,9 +65,10 @@ test("Today's queue lists only care-team patients and switches charts; the curre
 
 /**
  * Seeded baseline (no prescriptions after the global reset): Rowan has an active severe allergy
- * (critical), Jordan an active moderate one (warning); Elliot, Morgan and Casey have none (stable).
- * Drafts made by other e2e tests can raise a state, so the expectation is the queue status function
- * applied to what the clinician's own session reads; the allergy floors hold whatever the drafts are.
+ * (critical), Elliot a latest SpO2 of 91% (critical under DEMO-V005), Jordan an active moderate
+ * allergy (warning); Morgan and Casey are stable. Drafts made by other e2e tests can raise a state,
+ * so the expectation is the queue status function applied to what the clinician's own session
+ * reads; the allergy and vitals floors hold whatever the drafts are.
  */
 test("Today's queue dots follow the queue status function for every seeded patient", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -75,26 +76,32 @@ test("Today's queue dots follow the queue status function for every seeded patie
     { key: "clinicianA", patients: [PATIENTS.northOne, PATIENTS.northTwo, PATIENTS.northThree] },
     { key: "clinicianB", patients: [PATIENTS.southOne, PATIENTS.southTwo] },
   ] as const;
-  const floors: Record<string, QueueStatus> = { [PATIENTS.northOne]: "critical", [PATIENTS.southOne]: "warning" };
+  const floors: Record<string, QueueStatus> = {
+    [PATIENTS.northOne]: "critical",
+    [PATIENTS.northTwo]: "critical",
+    [PATIENTS.southOne]: "warning",
+  };
   const rank: Record<QueueStatus, number> = { stable: 0, warning: 1, critical: 2 };
   for (const { key, patients } of cases) {
     const client = await clientFor(key);
     const { data, error } = await client
       .from("patients")
       .select(
-        "id, allergies(severity), prescriptions(status, version, last_evaluated_version, prescription_alerts(prescription_version, severity, decision:prescription_safety_decisions(id)))",
+        "id, allergies(severity), prescriptions(status, version, last_evaluated_version, prescription_alerts(prescription_version, severity, decision:prescription_safety_decisions(id))), vital_readings(heart_rate, systolic, diastolic, spo2, temperature_f, recorded_at)",
       )
       .in("id", [...patients])
       .eq("allergies.status", "active")
       .eq("prescriptions.status", "draft")
-      .is("prescriptions.prescription_alerts.resolved_at", null);
+      .is("prescriptions.prescription_alerts.resolved_at", null)
+      .order("recorded_at", { referencedTable: "vital_readings", ascending: false })
+      .limit(1, { referencedTable: "vital_readings" });
     expect(error).toBeNull();
     expect(data).toHaveLength(patients.length);
 
     await signIn(page, key);
     const queue = page.getByRole("navigation", { name: "Today's queue" }).filter({ visible: true });
     for (const row of data!) {
-      const expected = queueStatus({ drafts: row.prescriptions, allergies: row.allergies });
+      const expected = queueStatus({ drafts: row.prescriptions, allergies: row.allergies, vitals: row.vital_readings[0] ?? null });
       if (floors[row.id]) expect(rank[expected]).toBeGreaterThanOrEqual(rank[floors[row.id]!]);
       const chip = queue.locator(`[data-queue-item="${row.id}"]`);
       await expect(chip.locator("[data-status]")).toHaveAttribute("data-status", expected);

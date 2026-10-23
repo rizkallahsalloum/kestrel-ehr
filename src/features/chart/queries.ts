@@ -2,6 +2,12 @@ import "server-only";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { createClient, type ServerSupabaseClient } from "@/lib/supabase/server";
+import { loadDiagnoses, type DiagnosisItem } from "@/features/diagnoses/queries";
+import { loadEncounterNotes, type EncounterNotes } from "@/features/encounter-notes/queries";
+import type { Hba1cPoint } from "@/features/labs/chart-scale";
+import { loadHba1c } from "@/features/labs/queries";
+import { loadVitals } from "@/features/vitals/queries";
+import type { VitalReading } from "@/features/vitals/thresholds";
 import type { Allergy, DraftAlertRow, PatientMedication, PatientSummary, PrescriptionListItem } from "@/types/domain";
 
 export type PatientChart = {
@@ -11,6 +17,12 @@ export type PatientChart = {
   prescriptions: PrescriptionListItem[];
   /** Unresolved alerts on drafts, any version; see features/chart/alerts.ts for what counts. */
   draftAlerts: DraftAlertRow[];
+  /** The latest readings, oldest first. */
+  vitals: VitalReading[];
+  /** HbA1c results, oldest first. */
+  hba1c: Hba1cPoint[];
+  diagnoses: DiagnosisItem[];
+  notes: EncounterNotes;
 };
 
 export class ChartAccessLogError extends Error {
@@ -26,11 +38,13 @@ const patientIdSchema = z.uuid();
  * Loads a chart for the given client. The view is written to the audit log
  * before any clinical data is read; if that fails the chart is not returned
  * (fail closed). Returns null when the patient is unknown or not on the
- * caller's care team, so both cases look the same to the caller.
+ * caller's care team, so both cases look the same to the caller. `viewerId`
+ * picks out the caller's own note for today.
  */
 export async function loadPatientChart(
   supabase: ServerSupabaseClient,
   patientId: string,
+  viewerId: string | null = null,
 ): Promise<PatientChart | null> {
   if (!patientIdSchema.safeParse(patientId).success) return null;
 
@@ -40,7 +54,7 @@ export async function loadPatientChart(
     throw new ChartAccessLogError();
   }
 
-  const [patient, allergies, medications, prescriptions] = await Promise.all([
+  const [patient, allergies, medications, prescriptions, vitals, hba1c, diagnoses, notes] = await Promise.all([
     supabase
       .from("patients")
       .select("id, public_ref, mrn, given_name, family_name, date_of_birth, sex, care_team:care_teams(name)")
@@ -54,7 +68,9 @@ export async function loadPatientChart(
       .order("severity", { ascending: false }),
     supabase
       .from("patient_medications")
-      .select("id, dose_text, start_date, status, source_prescription_id, medication:medications(name, strength, form)")
+      .select(
+        "id, dose_text, start_date, status, source_prescription_id, medication:medications(name, strength, form), source:prescriptions!patient_medications_source_prescription_fkey(public_ref, status)",
+      )
       .eq("patient_id", patientId)
       .eq("status", "active")
       .order("start_date", { ascending: false }),
@@ -65,6 +81,10 @@ export async function loadPatientChart(
       )
       .eq("patient_id", patientId)
       .order("created_at", { ascending: false }),
+    loadVitals(supabase, patientId),
+    loadHba1c(supabase, patientId),
+    loadDiagnoses(supabase, patientId),
+    loadEncounterNotes(supabase, patientId, viewerId),
   ]);
 
   if (patient.error || allergies.error || medications.error || prescriptions.error) {
@@ -90,10 +110,14 @@ export async function loadPatientChart(
     medications: medications.data,
     prescriptions: prescriptions.data,
     draftAlerts,
+    vitals,
+    hba1c,
+    diagnoses,
+    notes,
   };
 }
 
 export async function getPatientChart(patientId: string): Promise<PatientChart | null> {
-  await requireRole("clinician");
-  return loadPatientChart(await createClient(), patientId);
+  const user = await requireRole("clinician");
+  return loadPatientChart(await createClient(), patientId, user.id);
 }

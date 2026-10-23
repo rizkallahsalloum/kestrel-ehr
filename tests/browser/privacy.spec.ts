@@ -15,13 +15,34 @@ const revealButton = (page: Page, label: string) =>
   page.getByRole("button", { name: `${label} hidden, press to reveal`, exact: true }).filter({ visible: true });
 
 /** Patient values on /dev/privacy that Privacy mode must hide. */
-const PRIVATE_VALUES = ["Testcase", "Rowan", "Demoson", "SYN-000101", "SYN-000102", "Calvexa", "Synthetic condition A"];
+const PRIVATE_VALUES = [
+  "Testcase",
+  "Rowan",
+  "Demoson",
+  "SYN-000101",
+  "SYN-000102",
+  "Calvexa",
+  "Synthetic condition A",
+  // Phase 9 clinical content: diagnosis code and text, vitals values, HbA1c and eAG values.
+  "Essential (primary) hypertension",
+  "E11.9",
+  "148/92",
+  "98.4",
+  "6.8%",
+  "148 mg/dL",
+];
 
-/** Text of the content area outside form controls (controls keep their value, hidden and inert). */
+/**
+ * Text of the content area outside form controls and masked regions: both keep their content
+ * mounted (hidden, inert and out of the accessibility tree) so that nothing moves.
+ */
 function mainText(page: Page): Promise<string> {
   return page.evaluate(() => {
     const main = document.querySelector("main")!.cloneNode(true) as HTMLElement;
     main.querySelectorAll("input, textarea, select").forEach((control) => control.remove());
+    main
+      .querySelectorAll("[data-private-region] > [data-private-value]:not([data-revealed])")
+      .forEach((region) => region.remove());
     return main.textContent ?? "";
   });
 }
@@ -38,7 +59,8 @@ async function expectMasked(page: Page): Promise<void> {
 /** Block-level boxes in the content area plus the top bar and every private value. */
 function boxes(page: Page): Promise<string[]> {
   return page.evaluate(() => {
-    const selector = "main :is(tr, section, header, h1, h2, p, li, dd, [data-private]), header > div";
+    // Visually hidden text (sr-only accessible names) has no visible box to shift.
+    const selector = "main :is(tr, section, header, h1, h2, p, li, dd, [data-private]):not(.sr-only *), header > div";
     return [...document.querySelectorAll(selector)].map((el) => {
       const r = el.getBoundingClientRect();
       return `${el.tagName} ${r.x.toFixed(2)},${r.y.toFixed(2)} ${r.width.toFixed(2)}x${r.height.toFixed(2)}`;
@@ -137,6 +159,46 @@ for (const width of [1440, 1024, 390]) {
     expect(await boxes(page), "layout after showing").toEqual(before);
   });
 }
+
+test("clinical content: values, sparklines and the HbA1c chart are masked; vitals status stays readable", async ({ page }) => {
+  await page.clock.install();
+  await open(page);
+  const chart = page.locator("[data-hba1c-chart]");
+  await expect(chart.locator("[data-chart-point]")).toHaveCount(6);
+  await turnOn(page);
+  await expectMasked(page);
+
+  // Status text, units and the diagnosis status badge stay visible; values and trend lines do not.
+  const band = page.getByRole("region", { name: "Vitals" });
+  await expect(band.locator("[data-vital=blood_pressure]")).toContainText("Warning");
+  await expect(band.locator("[data-vital=blood_pressure]")).toContainText("mmHg");
+  await expect(band.locator("[data-vital=heart_rate]")).toContainText("Stable");
+  for (const line of await band.locator("[data-sparkline]").all()) {
+    expect(await line.evaluate((el) => getComputedStyle(el).visibility)).toBe("hidden");
+  }
+  await expect(page.getByRole("table", { name: "Diagnoses" }).getByText("active").first()).toBeVisible();
+  // Row actions are named without the diagnosis while masked.
+  await expect(page.getByRole("button", { name: "Resolve Diagnosis hidden" }).first()).toBeVisible();
+
+  // The chart is one masked region: hidden, inert, with a single reveal button.
+  expect(await chart.evaluate((el) => Boolean(el.closest("[inert]")))).toBe(true);
+  expect(await chart.evaluate((el) => getComputedStyle(el).visibility)).toBe("hidden");
+  const reveal = revealButton(page, "HbA1c chart");
+  await expect(reveal).toHaveCount(1);
+  await reveal.click();
+  await expect(liveText(page)).toHaveText("HbA1c chart shown");
+  await expect(chart).toBeVisible();
+  await chart.locator("[data-chart-point]").first().focus();
+  await expect(chart.locator("[data-chart-point]").first()).toHaveAccessibleName("Mar 2026: HbA1c 7.8%, eAG 177 mg/dL");
+
+  // Focus inside keeps it shown; after focus leaves it masks itself again.
+  await page.clock.fastForward(PRIVACY_FIELD_REVEAL_MS + 1_000);
+  await expect(chart).toBeVisible();
+  await privacyButton(page).focus();
+  await page.clock.fastForward(PRIVACY_FIELD_REVEAL_MS + 1_000);
+  await expect(revealButton(page, "HbA1c chart")).toBeVisible();
+  await expectMasked(page);
+});
 
 test("a masked field reveals by click, Enter or Space, alone, and masks itself again after the reveal period", async ({ page }) => {
   await page.clock.install();

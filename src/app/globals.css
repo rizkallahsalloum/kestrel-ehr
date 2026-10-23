@@ -285,6 +285,13 @@
      tracker-row, full labels from tracker-full; below tracker-row the steps stack */
   --container-tracker-row: 20rem;
   --container-tracker-full: 28rem;
+  /* Chart vitals band (container query on the band, from md only): four tiles in one row from
+     vitals-4, two per row below it, one per row at 760px and below */
+  --container-vitals-4: 40rem;
+  /* Vital value box: six mono characters, the width of both the Privacy mask and "148/92" */
+  --min-width-vital-value: 6ch;
+  /* HbA1c chart plot area */
+  --aspect-chart: 3 / 1;
 
   /* ---- Motion: dashboard staggered entrance (.chart-col children 0/40/80ms, .context-col 60ms) ---- */
   --animate-fade-up: fade-up 0.5s ease both;

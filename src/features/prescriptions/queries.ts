@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { ChartAccessLogError } from "@/features/chart/queries";
+import { isPublicRef } from "@/features/patients/refs";
 import { createClient, type ServerSupabaseClient } from "@/lib/supabase/server";
 import type {
   Allergy,
@@ -64,20 +65,46 @@ async function loadSafetyContext(supabase: ServerSupabaseClient, patientId: stri
   return { allergies: allergies.data, patientMedications: patientMedications.data };
 }
 
-export type NewPrescriptionContext = PatientSafetyContext & { patient: PatientSummary; medications: MedicationOption[] };
+export type NewPrescriptionContext = PatientSafetyContext & {
+  patient: PatientSummary;
+  medications: MedicationOption[];
+  /** Signed prescription of this patient to prefill from (Renew), when one was asked for and found. */
+  renewal: Prescription | null;
+  renewUnavailable: boolean;
+};
 
-export async function getNewPrescriptionContext(patientId: string): Promise<NewPrescriptionContext | null> {
+/** `renewRef`: a prescription reference from a Renew link; only a signed prescription of this patient is used. */
+export async function getNewPrescriptionContext(
+  patientId: string,
+  renewRef: string | null = null,
+): Promise<NewPrescriptionContext | null> {
   await requireRole("clinician");
   if (!uuid.safeParse(patientId).success) return null;
   const supabase = await createClient();
   if (!(await logAccess(supabase, patientId))) return null;
-  const [patient, medications, context] = await Promise.all([
+  const [patient, medications, context, renewal] = await Promise.all([
     loadPatient(supabase, patientId),
     loadActiveMedications(supabase),
     loadSafetyContext(supabase, patientId),
+    renewRef && isPublicRef(renewRef)
+      ? supabase
+          .from("prescriptions")
+          .select("*, medication:medications(id, name, strength, form, drug_class_code)")
+          .eq("public_ref", renewRef)
+          .eq("patient_id", patientId)
+          .eq("status", "signed")
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
   ]);
+  if (renewal.error) throw new Error("Could not load the prescription to renew.");
   if (!patient) return null;
-  return { patient, medications, ...context };
+  return {
+    patient,
+    medications,
+    ...context,
+    renewal: renewal.data,
+    renewUnavailable: renewRef !== null && !renewal.data,
+  };
 }
 
 export type PrescriptionWorkspace = PatientSafetyContext & {
