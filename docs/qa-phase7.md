@@ -183,6 +183,30 @@ The blocking banner reads "Allergy conflict on today's order" when the draft was
 
 - **Unverified, not passed:** `test:db` with the seeded draft present on kestrel-test; the title when a request straddles UTC midnight in a real session (unit-tested only); the seeded draft after a future change to the DEMO rules.
 
+## Phase 9 note: vitals, HbA1c, diagnoses and encounter notes (23 Oct 2026)
+
+The chart shows a vitals band (demo status, sparkline), one HbA1c series with eAG derived by 28.7 × HbA1c − 46.7, the full diagnosis table, and encounter notes. Privacy masks the values and leaves Critical, Warning and Stable readable. Renew is a link into the normal new-draft form. Details in [theme.md](theme.md#phase-9-vitals-hba1c-diagnoses-encounter-notes).
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 37 files, 300 passed |
+| `pnpm test:db` (kestrel-test) | 6 files, 59 passed |
+| `pnpm test:int` (kestrel-test) | 24 passed. The first run failed one assertion: a repeated draft now also returns `patientRef` and `prescriptionRef`. The expectation was updated and the suite was re-run. |
+| `pnpm test:browser` (all specs) | 298 passed |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (38 files scanned) |
+| `pnpm test:e2e` (kestrel-test) | 25 passed |
+| `pnpm db:seed:test` (kestrel-test), after e2e | signed prescriptions already present; Rowan already had a blocking draft (the suite's own), so none was added |
+
+Kestrel-Dev was not written to. Migrations 0011–0015 were already on kestrel-test before this UI pass.
+
+- **Seeded queue, for the clinician who can see that patient.** Rowan Testcase critical (severe DEMO-ALPHA allergy; latest blood pressure 148/92 is only a warning). Elliot Samplewood critical (SpO₂ 91; heart rate 108 is a warning). Jordan Mockridge warning (moderate DEMO-GAMMA allergy; vitals stable; one HbA1c, 5.6%). Morgan Fixture and Casey Placeholder stable. The e2e queue test checks the dots against `queueStatus`.
+- **HbA1c.** Rowan has six results, 7.8% down to 6.8%. The 7.1% and 6.9% points are eAG 157 and 151 mg/dL. Jordan has 5.6% (eAG 114). The others have none, and the chart says so.
+- **Renew.** The seed signs Ploxidrin for Rowan and Zentoril for Elliot through `sign_prescription`. The test reset keeps those.
+- **Notes.** None are seeded. A clinician's first save creates today's note.
+- **Checked in the browser on `/dev/chart`:** warning and critical tiles with their words, the six chart points and the hidden table, Privacy masking the values while Warning stayed visible, "Unsaved changes" on a diagnosis edit (cancelled, not saved), a note going from "Unsaved changes" to "Saved" only after the specimen save returned, an empty HbA1c chart, and the Renew link. The dev overlay's hydration warning was `data-cursor-ref` injected by the browser tool, not a mismatch in the app.
+- **Unverified, not passed:** a real screen reader on the chart table and the point tooltips; colour-vision review of the accent chart line; the vitals band at a real hosted chart wider than the specimen; Windows forced-colours mode.
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.

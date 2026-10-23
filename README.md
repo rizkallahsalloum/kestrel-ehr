@@ -104,8 +104,8 @@ Be precise about what has and has not been shown:
 - Loading skeletons are checked against the specimens only: column boxes match at every collapse step, and layout shift stays below 0.05 when content streams in. Not measured on hosted data.
 - Against hosted `kestrel-test` with migrations 0001-0010 applied (21 Oct 2026): `pnpm test:db` 46 passed, `pnpm test:int` 18 passed, `pnpm test:e2e` 16 passed (`auth`, `shell`, `prescribing`, `dev-routes`; the first run had 3 hosted-latency timeouts, the re-run passed). After Phase 8 and its follow-up (21 Oct 2026), `pnpm test:e2e` 17 passed on the first run each time, including the Privacy mode sign-out/sign-in case, again after Phase 8b (22 Oct 2026, 17 passed), and after Phase 8c (22 Oct 2026, 19 passed, including Today's queue and the placeholder pages); `test:db` and `test:int` were not re-run (no database or Server Action changes).
 - In the production build every `/dev/*` URL returns 404 from the proxy, signed in or out, and the `?skeleton` and `?delay` specimen modes have no effect (`tests/e2e/dev-routes.spec.ts`).
-- There is no chart e2e spec. The chart is covered by `tests/integration/chart.test.ts` and the browser specimens.
-- Migrations 0001-0010 are applied to both hosted projects. Read-only comparison of table, column, function and default grants, RLS flags and policies (20 Oct 2026): identical except `rls_auto_enable`, which exists only on `kestrel-test` (see above). `service_role` holds no privileges on Kestrel objects in either project.
+- Chart end-to-end coverage is `tests/e2e/chart-records.spec.ts` (Phase 9: vitals, HbA1c, diagnoses, notes, Renew) plus `tests/integration/chart.test.ts`, `tests/integration/chart-records.test.ts` and the browser specimens.
+- Migrations 0001-0010 are applied to both hosted projects. Read-only comparison of table, column, function and default grants, RLS flags and policies (20 Oct 2026): identical except `rls_auto_enable`, which exists only on `kestrel-test` (see above). `service_role` holds no privileges on Kestrel objects in either project. Migrations 0011-0015 (opaque references, diagnoses, vitals, HbA1c, encounter notes) are applied to `kestrel-test` only. `kestrel-dev` was not updated.
 
 ## Known limitations
 
@@ -115,7 +115,8 @@ Be precise about what has and has not been shown:
 - **`src/types/database.ts` is hand-written** to match the migrations. Replace it with `pnpm db:types` output once a project exists.
 - **A few theme values are not from Figma.** Warning colors that fail contrast as exported, and values with no semantic token, are overridden in one place. See [docs/theme.md](docs/theme.md).
 - `supabase db reset --db-url` without Docker has not been verified (see `scripts/db.ts`).
-- No MFA or re-authentication before signing, no voiding of signed prescriptions, no admin UI for teams, and diagnoses, vitals and notes are deferred.
+- No MFA or re-authentication before signing, no voiding of signed prescriptions, and no admin UI for teams.
+- Renewing a signed prescription can leave the earlier medication active as well. See [docs/theme.md](docs/theme.md#known-issues).
 
 ## Design system
 
