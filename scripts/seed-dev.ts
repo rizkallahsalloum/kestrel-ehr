@@ -6,6 +6,7 @@ import { DevSeedEnvError, loadDevSeedEnv, parseDevSeedArgs, readTestProjectRef, 
 import { IDENTITIES, SEED_DRAFTS, SEED_SIGNED } from "./fixtures.ts";
 import {
   devSeedBlockers,
+  needsExistingClinicianSignIn,
   parseSeedSql,
   planSeedPrescription,
   REPORT_ONLY_TABLES,
@@ -22,7 +23,7 @@ import {
   type SqlValue,
   type TableReport,
 } from "./seed-plan.ts";
-import { seedSignedPrescriptions, SIGNED_PLANS } from "./seed-prescriptions.ts";
+import { asClinicianA, seedSignedPrescriptions, SIGNED_PLANS } from "./seed-prescriptions.ts";
 
 /*
  * Insert-only synthetic seed for Kestrel-Dev.
@@ -328,7 +329,7 @@ function printReport(report: DevReport): void {
   }
   if (report.identities.find((identity) => identity.email === SEED_LOGINS[0].email)?.status === "present") {
     console.log("  Signing seed prescriptions logs in as clinician.a with KESTREL_DEV_SEED_PASSWORD, so it must equal that account's");
-    console.log("  current password; otherwise the rows above are still inserted and the prescription step stops with a sign-in error.");
+    console.log("  current password; otherwise the real run checks the sign-in first and stops before writing anything.");
   }
   if (report.otherAccounts.length === 0) {
     console.log("  No other Dev accounts exist.");
@@ -339,6 +340,16 @@ function printReport(report: DevReport): void {
   }
   console.log("  The seed does not change existing accounts or add them to teams. To see the seeded charts as your own");
   console.log("  account, it would have to be an active clinician on one of the seeded teams; until then use clinician.a or clinician.b.");
+}
+
+/** Signs in and out once, so a wrong password stops the run before anything is written. */
+async function clinicianASignsIn(): Promise<boolean> {
+  try {
+    await asClinicianA({ supabaseUrl: env.supabaseUrl, publishableKey: env.publishableKey, password: env.seedPassword }, async () => {});
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function createMissingIdentities(report: DevReport): Promise<Set<string>> {
@@ -406,6 +417,11 @@ try {
     console.log("\nDry run: nothing was written.");
   } else if (blockers.length > 0) {
     console.error("\nRefusing to seed Kestrel-Dev. Nothing was written.");
+    process.exitCode = 1;
+  } else if (needsExistingClinicianSignIn(report, IDENTITIES.clinicianA.email) && !(await clinicianASignsIn())) {
+    console.error(
+      `\nRefusing to seed Kestrel-Dev: KESTREL_DEV_SEED_PASSWORD does not sign in as ${IDENTITIES.clinicianA.email}, which already exists and keeps its own password. Set KESTREL_DEV_SEED_PASSWORD to that account's current password and run again. Nothing was written.`,
+    );
     process.exitCode = 1;
   } else {
     const created = await createMissingIdentities(report);

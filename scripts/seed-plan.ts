@@ -220,6 +220,15 @@ export function planSeedPrescription(
   return { label, status };
 }
 
+/**
+ * True when the run will sign prescriptions as clinician.a and that account already exists, so its
+ * password (never changed by the seed) must match KESTREL_DEV_SEED_PASSWORD. Checked before any write.
+ */
+export function needsExistingClinicianSignIn(report: DevReport, clinicianEmail: string): boolean {
+  const signs = report.prescriptions.some((rx) => rx.status === "new" || rx.status === "draft");
+  return signs && report.identities.find((identity) => identity.email === clinicianEmail)?.status === "present";
+}
+
 /** Reasons the real run must stop. Empty means it may insert. */
 export function devSeedBlockers(report: DevReport): string[] {
   const blockers: string[] = [];

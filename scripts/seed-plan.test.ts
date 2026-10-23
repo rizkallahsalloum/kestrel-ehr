@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { IDENTITIES, PATIENTS, TEAMS } from "./fixtures";
 import {
   devSeedBlockers,
+  needsExistingClinicianSignIn,
   parseSeedSql,
   planSeedPrescription,
   SeedSqlError,
@@ -155,6 +156,23 @@ describe("seed prescriptions and existing signed prescriptions", () => {
     expect(planSeedPrescription("Rowan", undefined, undefined).status).toBe("new");
     expect(planSeedPrescription("Rowan", "signed", dup).status).toBe("signed");
     expect(planSeedPrescription("Rowan", "cancelled", undefined).status).toBe("cancelled");
+  });
+});
+
+describe("clinician sign-in check before writing", () => {
+  const email = IDENTITIES.clinicianA.email;
+  const withRx = (status: "new" | "draft" | "signed" | "duplicate", identity: "new" | "present") =>
+    report({ identities: [{ email, status: identity }], prescriptions: [{ label: "Elliot", status }] });
+
+  it("is needed when an existing clinician.a will sign a new or draft prescription", () => {
+    expect(needsExistingClinicianSignIn(withRx("new", "present"), email)).toBe(true);
+    expect(needsExistingClinicianSignIn(withRx("draft", "present"), email)).toBe(true);
+  });
+
+  it("is not needed when the seed creates clinician.a or has nothing to sign", () => {
+    expect(needsExistingClinicianSignIn(withRx("new", "new"), email)).toBe(false);
+    expect(needsExistingClinicianSignIn(withRx("signed", "present"), email)).toBe(false);
+    expect(needsExistingClinicianSignIn(withRx("duplicate", "present"), email)).toBe(false);
   });
 });
 
