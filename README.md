@@ -66,14 +66,24 @@ You need Node 22+, pnpm, and two hosted Supabase projects you create yourself: `
    pnpm db:push:test
    pnpm db:seed:test
    ```
-   To seed the dev project, run `node scripts/seed.ts --env <file>` with a separate, git-ignored env file that points at `kestrel-dev`.
+   To seed the dev project, see [Seeding kestrel-dev](#seeding-kestrel-dev). The test scripts refuse `kestrel-dev`.
 5. Regenerate database types from the real schema (`SUPABASE_ACCESS_TOKEN` must be set):
    ```
    pnpm db:types
    ```
-6. `pnpm dev`, then sign in as a seeded synthetic user, for example `clinician.a@kestrel.example` with the password you set in `KESTREL_TEST_USER_PASSWORD`.
+6. `pnpm dev`, then sign in to `kestrel-dev` as a seeded synthetic user, for example `clinician.a@kestrel.example` (see [Seeding kestrel-dev](#seeding-kestrel-dev) for the password).
 
-Every script that touches Supabase refuses to run unless the URL and database URL in `.env.test` both point at `KESTREL_TEST_PROJECT_REF`.
+Every script that touches Supabase refuses to run unless the URL and database URL in `.env.test` both point at `KESTREL_TEST_PROJECT_REF`, and refuses outright when that ref is `kestrel-dev` (`scripts/project-refs.ts`).
+
+### Seeding kestrel-dev
+
+`scripts/seed-dev.ts` adds the same synthetic fixtures as the test seed (five `SYN-` patients, their allergies, medications, diagnoses, vitals and HbA1c results, and Rowan's and Elliot's signed DEMO prescriptions) to `kestrel-dev`. It only inserts: it never deletes, never updates rows it did not create, never changes the schema, and never changes existing users, profiles or care teams.
+
+1. Copy `.env.dev-seed.example` to `.env.dev-seed` (git-ignored) and fill it in for `kestrel-dev`. Every URL must point at `KESTREL_DEV_PROJECT_REF`, which must differ from `KESTREL_TEST_PROJECT_REF`.
+2. `pnpm db:seed:dev:dry` opens a read-only transaction and lists what would be inserted, what already exists, rows the seed did not create, and which accounts would see the seeded patients.
+3. `pnpm db:seed:dev --confirm-dev <full kestrel-dev ref>` inserts. It refuses if Dev is missing migrations, or already holds patients or other rows the seed did not create, rather than mixing data. The exception is prescriptions and medication-list entries made in the app: those are listed and left unchanged. A seeded signed prescription is skipped when the patient already has a signed prescription of the same medication, so no duplicate therapy is created; the existing one serves as the Renew source. It is also skipped when it would raise a DEMO alert against the patient's current records, because the seed does not acknowledge alerts. It is safe to run twice.
+
+Seeded patients belong to Team Kestrel North and Team Kestrel South (synthetic). Sign in as `clinician.a@kestrel.example` (North) or `clinician.b@kestrel.example` (South). Accounts the seed creates get `KESTREL_DEV_SEED_PASSWORD`; accounts that already exist keep their password. Other Dev accounts see them only if they are active clinicians on one of those teams; the seed does not add anyone to a team.
 
 ### Differences between hosted projects
 

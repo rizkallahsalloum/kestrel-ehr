@@ -19,6 +19,8 @@
     "db:push:test:dry": "node scripts/db.ts push --dry-run",
     "db:reset:test": "node scripts/db.ts reset",
     "db:seed:test": "node scripts/seed.ts",
+    "db:seed:dev:dry": "node scripts/seed-dev.ts --dry-run",
+    "db:seed:dev": "node scripts/seed-dev.ts",
     "db:types": "node scripts/db.ts types",
     "tokens:build": "node scripts/build-tokens.mjs",
     "check:bundle": "node scripts/check-client-bundle.mjs"

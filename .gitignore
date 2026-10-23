@@ -30,7 +30,9 @@ npm-debug.log*
 # env files: never commit real keys; only the placeholder example is tracked
 .env*
 !.env.example
+!.env.dev-seed.example
 .env.local
+.env.dev-seed
 
 # supabase CLI local state
 /supabase/.temp/

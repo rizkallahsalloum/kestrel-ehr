@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
+import { isDevProjectRef } from "./project-refs.ts";
 
 export type TestEnv = {
   supabaseUrl: string;
@@ -53,6 +54,11 @@ export function validateTestEnv(raw: Record<string, string | undefined>): TestEn
   const projectRef = raw.KESTREL_TEST_PROJECT_REF!.trim();
   const urlRef = projectRefFromUrl(raw.NEXT_PUBLIC_SUPABASE_URL!);
   const dbRef = projectRefFromDbUrl(raw.SUPABASE_DB_URL!);
+  if ([projectRef, urlRef, dbRef].some(isDevProjectRef)) {
+    throw new TestEnvError(
+      "This file points at Kestrel-Dev. Test scripts never run against Dev; use `pnpm db:seed:dev:dry` for the Dev seed.",
+    );
+  }
   if (urlRef !== projectRef) {
     throw new TestEnvError("NEXT_PUBLIC_SUPABASE_URL does not point at KESTREL_TEST_PROJECT_REF.");
   }
@@ -82,12 +88,10 @@ const PLACEHOLDER_WORDS = ["change", "example", "placeholder"];
  * Refuses placeholder seed passwords: the `.env.example` value and anything containing
  * "change", "example" or "placeholder" (any case). The message never includes the value.
  */
-export function assertSeedablePassword(password: string): void {
+export function assertSeedablePassword(password: string, variable = "KESTREL_TEST_USER_PASSWORD"): void {
   const lower = password.toLowerCase();
   if (password === EXAMPLE_TEST_USER_PASSWORD || PLACEHOLDER_WORDS.some((word) => lower.includes(word))) {
-    throw new TestEnvError(
-      "KESTREL_TEST_USER_PASSWORD looks like a placeholder. Set a long random value before seeding.",
-    );
+    throw new TestEnvError(`${variable} looks like a placeholder. Set a long random value before seeding.`);
   }
 }
 

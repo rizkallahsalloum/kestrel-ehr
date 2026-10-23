@@ -7,6 +7,7 @@ import {
   TestEnvError,
   validateTestEnv,
 } from "./test-env";
+import { KESTREL_DEV_PROJECT_REF } from "./project-refs";
 
 const REF = "abcdefghijklmnopqrst";
 const OTHER = "zyxwvutsrqponmlkjihg";
@@ -49,6 +50,25 @@ describe("test environment guard", () => {
 
   it("refuses when required variables are missing", () => {
     expect(() => validateTestEnv(base({ SUPABASE_SECRET_KEY: "" }))).toThrow(/SUPABASE_SECRET_KEY/);
+  });
+
+  it("refuses a file that points consistently at Kestrel-Dev", () => {
+    const dev = KESTREL_DEV_PROJECT_REF;
+    expect(() =>
+      validateTestEnv(
+        base({
+          NEXT_PUBLIC_SUPABASE_URL: `https://${dev}.supabase.co`,
+          SUPABASE_DB_URL: `postgresql://postgres.${dev}:pw@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
+          KESTREL_TEST_PROJECT_REF: dev,
+        }),
+      ),
+    ).toThrow(/Kestrel-Dev/);
+  });
+
+  it("refuses Kestrel-Dev even when only one URL names it", () => {
+    expect(() => validateTestEnv(base({ NEXT_PUBLIC_SUPABASE_URL: `https://${KESTREL_DEV_PROJECT_REF}.supabase.co` }))).toThrow(
+      /Kestrel-Dev/,
+    );
   });
 });
 
