@@ -1,8 +1,8 @@
 import pg from "pg";
 import { loadTestEnv } from "../../scripts/test-env.ts";
 
-/** The URL reference pattern (see src/features/patients/refs.ts), for URL assertions. */
-export const REF = "[0-9a-hjkmnp-tv-z]{10}";
+/** The URL reference pattern (see src/features/patients/refs.ts), for URL assertions: legacy or new. */
+export const REF = "(?:[0-9a-hjkmnp-tv-z]{10}|[A-Za-z0-9_-]{21})";
 
 let cache: Map<string, string> | undefined;
 

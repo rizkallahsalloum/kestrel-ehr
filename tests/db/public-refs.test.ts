@@ -4,7 +4,9 @@ import { closePool, withTx } from "../helpers/db";
 
 afterAll(closePool);
 
-const FORMAT = /^[0-9a-hjkmnp-tv-z]{10}$/;
+/** Rows created before migration 0016 keep 10-character references; new rows get 21 characters. */
+const FORMAT = /^(?:[0-9a-hjkmnp-tv-z]{10}|[A-Za-z0-9_-]{21})$/;
+const NEW_FORMAT = /^[A-Za-z0-9_-]{21}$/;
 
 describe("opaque URL references", () => {
   it("every patient and prescription has a unique, well-formed reference", async () => {
@@ -19,6 +21,33 @@ describe("opaque URL references", () => {
     });
   });
 
+  it("the generator returns distinct 21-character URL-safe references", async () => {
+    await withTx(async (tx) => {
+      const { rows } = await tx.query<{ ref: string }>("select private.new_public_ref() as ref from generate_series(1, 500)");
+      for (const row of rows) expect(row.ref).toMatch(NEW_FORMAT);
+      expect(new Set(rows.map((r) => r.ref)).size).toBe(rows.length);
+    });
+  });
+
+  it("the format check accepts legacy and new references and nothing else", async () => {
+    await withTx(async (tx) => {
+      await tx.query("update public.patients set public_ref = '8nstgphb8h' where id = $1", [PATIENTS.northOne]);
+      await tx.query("update public.patients set public_ref = 'V1StGXR8_Z5jdHi6B-myT' where id = $1", [PATIENTS.northTwo]);
+      for (const bad of ["8NSTGPHB8H", "8nstgphb8i", "V1StGXR8_Z5jdHi6B-my", "V1StGXR8_Z5jdHi6B-myTx", "V1StGXR8.Z5jdHi6B-myT", "A".repeat(33)]) {
+        await tx.expectError("update public.patients set public_ref = $2 where id = $1", [PATIENTS.northThree, bad], "23514");
+      }
+    });
+  });
+
+  it("existing references survive updates to their rows", async () => {
+    await withTx(async (tx) => {
+      const before = await tx.query<{ id: string; public_ref: string }>("select id, public_ref from public.patients order by id");
+      await tx.query("update public.patients set given_name = given_name");
+      const after = await tx.query<{ id: string; public_ref: string }>("select id, public_ref from public.patients order by id");
+      expect(after.rows).toEqual(before.rows);
+    });
+  });
+
   it("assigns a fresh reference on insert and ignores a supplied one", async () => {
     await withTx(async (tx) => {
       const { rows } = await tx.query<{ public_ref: string }>(
@@ -28,7 +57,7 @@ describe("opaque URL references", () => {
          returning public_ref`,
         [PATIENTS.northThree, MEDICATIONS.morivane, IDENTITIES.clinicianA.id],
       );
-      expect(rows[0]!.public_ref).toMatch(FORMAT);
+      expect(rows[0]!.public_ref).toMatch(NEW_FORMAT);
       expect(rows[0]!.public_ref).not.toBe("aaaaaaaaaa");
     });
   });
@@ -55,7 +84,7 @@ describe("opaque URL references", () => {
          returning public_ref`,
         [PATIENTS.northThree, MEDICATIONS.morivane],
       );
-      expect(inserted.rows[0]!.public_ref).toMatch(FORMAT);
+      expect(inserted.rows[0]!.public_ref).toMatch(NEW_FORMAT);
     });
   });
 
