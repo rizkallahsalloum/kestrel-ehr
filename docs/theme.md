@@ -279,7 +279,18 @@ Global breakpoints (`md` 761, `lg` 820, `xl` 1180, `2xl` 1280) are listed under 
 
 Each starts one pixel above the reference's `max-width` value, so the switch happens at exactly the reference width. The container sizes `fields-2` (22rem) and `fields-4` (40rem) are not breakpoints: they respond to the E-Rx form column's width.
 
+## Decision log
+
+### Decision: red marks severity, not resolution (2026-10-22)
+
+- **Before (Phase 5):** red was reserved for resolution actions and destructive confirms. Every detection state was orange, and blocking was told apart from advisory by a circle icon versus a triangle.
+- **Now (Phase 8c, user decision):** red (error tokens) marks severe and critical states only; orange (warning tokens) marks moderate and warning states; green marks stable. The triangle alert icon is used everywhere and the circle variant is removed. Solid red is used only for the allergy-conflict banner and critical states; pills, dots and flags use the subtle or outlined error style. Blocking and advisory stay distinct by text label and border weight, never by colour alone. Red stays on the destructive "Cancel draft" confirm.
+- **Phase 8e addition:** an active severe allergy makes a patient's queue dot critical; an active moderate allergy makes it warning.
+- Details: "Severity colours" above and `.cursor/rules/kestrel.mdc`.
+
 ## Known issues
+
+- **Dates follow UTC, not clinic time.**
 
 - None open from Phase 5. The duplicate calendar icon is resolved above (native picker only).
 - **Privacy masking can move wrapped values (Phase 8b trade-off, seen in Phase 8c).** An inline value that wraps over two lines is masked by a one-line mask. On the chart's prescriptions table at 390px the medication-name links wrap, so the table gets shorter by up to one line per row (55px on the blocking specimen) when Privacy turns on. The top bar, the queue and the hero do not move. A fix needs either fixed table column widths or a multi-line mask that keeps the auto-layout column widths; not done in 8c or 8d (accepted as a known limitation).
