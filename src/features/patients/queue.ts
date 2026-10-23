@@ -4,7 +4,7 @@ import type { AlertSeverity, AllergySeverity, PrescriptionStatus } from "@/types
 /** Status dot of a queue chip: red, orange or green, always with `QUEUE_STATUS_LABEL` text. */
 export type QueueStatus = "critical" | "warning" | "stable";
 
-export type QueuePatient = { id: string; givenName: string; familyName: string; status: QueueStatus };
+export type QueuePatient = { id: string; ref: string; givenName: string; familyName: string; status: QueueStatus };
 
 export type QueueDraftRow = {
   status: PrescriptionStatus;
@@ -17,6 +17,7 @@ export type QueueAllergyRow = { severity: AllergySeverity };
 
 export type QueuePatientRow = {
   id: string;
+  public_ref: string;
   given_name: string;
   family_name: string;
   prescriptions: QueueDraftRow[];
@@ -82,6 +83,7 @@ export function buildQueue(rows: QueuePatientRow[]): QueuePatient[] {
   return orderQueue(
     rows.map((row) => ({
       id: row.id,
+      ref: row.public_ref,
       givenName: row.given_name,
       familyName: row.family_name,
       status: queueStatus({ drafts: row.prescriptions, allergies: row.allergies }),

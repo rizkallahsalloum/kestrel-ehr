@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { MEDICATIONS, PATIENTS } from "../../scripts/fixtures.ts";
+import { patientRef, REF } from "../helpers/refs";
 import { signIn } from "./helpers";
 
 const MEDICATION_NAMES: Record<string, string> = {
@@ -8,7 +9,8 @@ const MEDICATION_NAMES: Record<string, string> = {
 };
 
 async function createDraft(page: Page, patientId: string, medicationId: string): Promise<void> {
-  await page.goto(`/patients/${patientId}`);
+  const ref = await patientRef(patientId);
+  await page.goto(`/patients/${ref}`);
   await page.getByRole("link", { name: "New prescription draft" }).click();
   const name = MEDICATION_NAMES[medicationId]!;
   await page.getByRole("combobox", { name: "Medication (synthetic catalog)" }).fill(name);
@@ -17,7 +19,7 @@ async function createDraft(page: Page, patientId: string, medicationId: string):
   await page.getByLabel("Dose amount").fill("10");
   await page.getByLabel("Quantity").fill("30");
   await page.getByRole("button", { name: "Create draft" }).click();
-  await expect(page).toHaveURL(new RegExp(`/patients/${patientId}/prescriptions/[0-9a-f-]{36}$`));
+  await expect(page).toHaveURL(new RegExp(`/patients/${ref}/prescriptions/${REF}$`));
 }
 
 test("clinician drafts, acknowledges an advisory alert, and signs", async ({ page }) => {
@@ -47,7 +49,14 @@ test("clinician drafts, acknowledges an advisory alert, and signs", async ({ pag
   await expect(page.getByRole("button", { name: "Run safety check" })).toHaveCount(0);
 
   await page.getByRole("link", { name: "Back to chart" }).click();
-  await expect(page.getByRole("list", { name: "Active medications" }).getByText("from signed prescription")).toBeVisible();
+  // Elliot also has a seeded signed Zentoril; the new medication is the Calvexa row.
+  await expect(
+    page
+      .getByRole("list", { name: "Active medications" })
+      .getByRole("listitem")
+      .filter({ hasText: "Calvexa" })
+      .getByText("from signed prescription"),
+  ).toBeVisible();
 });
 
 test("a blocking demo alert cannot be acknowledged or signed; the chart banner shows only while the draft has one", async ({ page }) => {
@@ -56,7 +65,8 @@ test("a blocking demo alert cannot be acknowledged or signed; the chart banner s
   const banner = alertSlot.getByText("Allergy conflict on today's order", { exact: true });
 
   // Rowan's severe allergy alone is not an order conflict: no draft, so the empty state and no banner.
-  await page.goto(`/patients/${PATIENTS.northOne}`);
+  const rowan = await patientRef(PATIENTS.northOne);
+  await page.goto(`/patients/${rowan}`);
   await expect(alertSlot.getByText("No unresolved demo safety alerts on this patient's drafts.")).toBeVisible();
   await expect(banner).toHaveCount(0);
 
@@ -73,7 +83,7 @@ test("a blocking demo alert cannot be acknowledged or signed; the chart banner s
   await expect(page.getByRole("list", { name: "Signing prerequisites" })).toContainText("blocking demo alert");
 
   // Rowan Testcase's chart: the draft was created today (UTC), so the title says "today's order".
-  await page.goto(`/patients/${PATIENTS.northOne}`);
+  await page.goto(`/patients/${rowan}`);
   await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toContainText(/Rowan|Testcase/);
   await expect(banner.first()).toBeVisible();
   await expect(alertSlot.getByText("Allergy conflict on pending order")).toHaveCount(0);
@@ -88,7 +98,7 @@ test("a blocking demo alert cannot be acknowledged or signed; the chart banner s
   expect(bannerTop).toBeLessThan(prescriptionsTop);
   await expect(page.getByRole("button", { name: /acknowledge/i })).toHaveCount(0);
   await page.getByRole("link", { name: /^Review draft/ }).first().click();
-  await expect(page).toHaveURL(new RegExp(`/patients/${PATIENTS.northOne}/prescriptions/[0-9a-f-]{36}$`));
+  await expect(page).toHaveURL(new RegExp(`/patients/${rowan}/prescriptions/${REF}$`));
 });
 
 test("clinician keeps a draft, then cancels it with feedback", async ({ page }) => {

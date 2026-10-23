@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Avatar, cn, PrivateText, StatusDot, type AvatarTone } from "@/components/ui";
 import { getInitials } from "@/lib/initials";
 import { QUEUE_STATUS_LABEL, type QueuePatient } from "../queue";
+import { patientPath } from "../refs";
 
 /**
  * Fills its queue column (`--spacing-queue-chip` at most); a long name truncates. No outline ring in
@@ -33,7 +34,7 @@ export function PatientQueueItem({
   const status = QUEUE_STATUS_LABEL[patient.status];
   return (
     <Link
-      href={`/patients/${patient.id}`}
+      href={patientPath(patient.ref)}
       aria-current={current}
       aria-label={maskedLabel}
       data-queue-item={patient.id}

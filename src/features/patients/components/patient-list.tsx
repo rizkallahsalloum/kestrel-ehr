@@ -3,6 +3,7 @@ import { Avatar, Card, EmptyState, PrivateText, Tag } from "@/components/ui";
 import { ageInYears, formatDate } from "@/lib/format";
 import { getInitials } from "@/lib/initials";
 import type { PatientSummary } from "@/types/domain";
+import { patientPath } from "../refs";
 
 /** The query is usually a name or MRN, so it is masked like one. */
 function resultSummary(count: number, query: string) {
@@ -72,7 +73,7 @@ export function PatientList({
                         <div className="min-w-0">
                           {/* A mask inside a link cannot be a button; the MRN and date of birth can be revealed. */}
                           <Link
-                            href={`/patients/${patient.id}`}
+                            href={patientPath(patient.public_ref)}
                             className="font-medium text-accent underline-offset-2 hover:underline"
                           >
                             <PrivateText label="Patient name" revealable={false}>

@@ -13,10 +13,16 @@ export function stripControl(value: string): string {
   return value.replace(CONTROL, " ").trim();
 }
 
-/** Route pattern of a pathname: query and fragment dropped, record ids replaced by `[id]`. */
+/** A patient or prescription segment (an opaque ref, an old id, or anything typed into the URL). */
+const RECORD_SEGMENT = /(\/(?:patients|prescriptions)\/)(?!(?:new|\[id\])(?:\/|$))[^/]+/g;
+
+/**
+ * Route pattern of a pathname: query and fragment dropped, record ids replaced by `[id]`, and
+ * the segment after `patients` or `prescriptions` replaced by `[ref]` (except `new`).
+ */
 export function routePattern(pathname: string): string {
   const path = pathname.split(/[?#]/, 1)[0] || "/";
-  return path.replace(UUID, "[id]").slice(0, CLIENT_REPORT_LIMITS.route);
+  return path.replace(UUID, "[id]").replace(RECORD_SEGMENT, "$1[ref]").slice(0, CLIENT_REPORT_LIMITS.route);
 }
 
 /**

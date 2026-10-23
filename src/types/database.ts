@@ -70,6 +70,7 @@ export type Database = {
           sex: string;
           care_team_id: string;
           is_synthetic: boolean;
+          public_ref: string;
           created_at: string;
           updated_at: string;
         };
@@ -281,6 +282,7 @@ export type Database = {
           cancelled_by: string | null;
           cancelled_at: string | null;
           cancel_reason: string | null;
+          public_ref: string;
           created_at: string;
           updated_at: string;
         };
@@ -406,6 +408,195 @@ export type Database = {
           },
         ];
       };
+      diagnoses: {
+        Row: {
+          id: string;
+          patient_id: string;
+          icd10_code: string;
+          description: string;
+          status: Database["public"]["Enums"]["diagnosis_status"];
+          recorded_on: string;
+          recorded_by: string;
+          resolved_on: string | null;
+          resolved_by: string | null;
+          version: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          icd10_code: string;
+          description: string;
+          status?: Database["public"]["Enums"]["diagnosis_status"];
+          recorded_on: string;
+          recorded_by: string;
+          resolved_on?: string | null;
+          resolved_by?: string | null;
+          version?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["diagnoses"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "diagnoses_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: false;
+            referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "diagnoses_recorded_by_fkey";
+            columns: ["recorded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "diagnoses_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      diagnosis_revisions: {
+        Row: {
+          id: string;
+          diagnosis_id: string;
+          version: number;
+          status: Database["public"]["Enums"]["diagnosis_status"];
+          description: string;
+          resolved_on: string | null;
+          changed_by: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          id?: string;
+          diagnosis_id: string;
+          version: number;
+          status: Database["public"]["Enums"]["diagnosis_status"];
+          description: string;
+          resolved_on?: string | null;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["diagnosis_revisions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "diagnosis_revisions_diagnosis_id_fkey";
+            columns: ["diagnosis_id"];
+            isOneToOne: false;
+            referencedRelation: "diagnoses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      vital_readings: {
+        Row: {
+          id: string;
+          patient_id: string;
+          recorded_at: string;
+          heart_rate: number;
+          systolic: number;
+          diastolic: number;
+          spo2: number;
+          temperature_f: number;
+          recorded_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          recorded_at: string;
+          heart_rate: number;
+          systolic: number;
+          diastolic: number;
+          spo2: number;
+          temperature_f: number;
+          recorded_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["vital_readings"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "vital_readings_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: false;
+            referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      lab_results: {
+        Row: {
+          id: string;
+          patient_id: string;
+          test: Database["public"]["Enums"]["lab_test"];
+          value: number;
+          unit: string;
+          collected_on: string;
+          recorded_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          test: Database["public"]["Enums"]["lab_test"];
+          value: number;
+          unit: string;
+          collected_on: string;
+          recorded_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["lab_results"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "lab_results_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: false;
+            referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      encounter_notes: {
+        Row: {
+          id: string;
+          patient_id: string;
+          author_id: string;
+          note_date: string;
+          body: string;
+          version: number;
+          saved_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          author_id: string;
+          body: string;
+        };
+        Update: { body?: string };
+        Relationships: [
+          {
+            foreignKeyName: "encounter_notes_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: false;
+            referencedRelation: "patients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "encounter_notes_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -451,6 +642,18 @@ export type Database = {
         Args: { p_prescription_id: string; p_expected_version: number; p_reason?: string | null };
         Returns: Json;
       };
+      set_diagnosis_status: {
+        Args: {
+          p_diagnosis_id: string;
+          p_status: Database["public"]["Enums"]["diagnosis_status"];
+          p_expected_version: number;
+        };
+        Returns: Json;
+      };
+      update_diagnosis_description: {
+        Args: { p_diagnosis_id: string; p_description: string; p_expected_version: number };
+        Returns: Json;
+      };
     };
     Enums: {
       app_role: "clinician" | "admin";
@@ -469,6 +672,8 @@ export type Database = {
         | "every_8_hours"
         | "at_bedtime"
         | "as_needed";
+      diagnosis_status: "active" | "resolved";
+      lab_test: "hba1c";
     };
     CompositeTypes: { [_ in never]: never };
   };

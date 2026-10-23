@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AppShell, type ShellUser } from "@/components/shell/app-shell";
+import { newPrescriptionPath } from "@/features/patients/refs";
 import { PrescribingSkeleton } from "@/features/prescriptions/components/prescribing-skeleton";
 import { NewPrescriptionView, PrescriptionView } from "@/features/prescriptions/components/prescription-views";
 import type { PrescriptionWorkspace } from "@/features/prescriptions/queries";
@@ -31,6 +32,7 @@ const med = (name: string) => CATALOG.find((m) => m.name === name)!;
 
 const PATIENT: PatientSummary = {
   id: "00000000-0000-4000-8000-000000000101",
+  public_ref: "syn0000101",
   mrn: "SYN-000101",
   given_name: "Rowan",
   family_name: "Testcase",
@@ -75,6 +77,7 @@ function prescription(medication: MedicationOption, overrides: Partial<Prescript
     cancelled_by: null,
     cancelled_at: null,
     cancel_reason: null,
+    public_ref: "synrx00201",
     created_at: "2026-10-19T08:00:00Z",
     updated_at: "2026-10-19T08:05:00Z",
     medication,
@@ -182,7 +185,7 @@ export default async function PrescribingSpecimenPage({ searchParams }: PageProp
   return (
     <AppShell
       user={CLINICIAN}
-      activePath={`/patients/${PATIENT.id}/prescriptions/new`}
+      activePath={newPrescriptionPath(PATIENT.public_ref)}
       queue={demoQueue(params.queue, params.queueOrder)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell"

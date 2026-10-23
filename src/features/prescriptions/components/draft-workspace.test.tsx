@@ -40,6 +40,7 @@ const RX: Prescription = {
   cancelled_by: null,
   cancelled_at: null,
   cancel_reason: null,
+  public_ref: "synrx00222",
   created_at: "2026-10-19T08:00:00Z",
   updated_at: "2026-10-19T08:00:00Z",
   medication: MEDICATION,

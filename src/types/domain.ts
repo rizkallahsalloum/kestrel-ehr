@@ -10,7 +10,7 @@ export type DoseFrequency = Enums<"dose_frequency">;
 
 export type PatientSummary = Pick<
   Tables<"patients">,
-  "id" | "mrn" | "given_name" | "family_name" | "date_of_birth" | "sex"
+  "id" | "public_ref" | "mrn" | "given_name" | "family_name" | "date_of_birth" | "sex"
 > & { care_team: { name: string } | null };
 
 export type MedicationOption = Pick<Tables<"medications">, "id" | "name" | "strength" | "form" | "drug_class_code">;
@@ -28,6 +28,7 @@ export type PatientMedication = Pick<
 export type PrescriptionListItem = Pick<
   Tables<"prescriptions">,
   | "id"
+  | "public_ref"
   | "status"
   | "version"
   | "last_evaluated_version"

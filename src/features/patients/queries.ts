@@ -10,7 +10,7 @@ export async function listMyPatients(): Promise<PatientSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("patients")
-    .select("id, mrn, given_name, family_name, date_of_birth, sex, care_team:care_teams(name)")
+    .select("id, public_ref, mrn, given_name, family_name, date_of_birth, sex, care_team:care_teams(name)")
     .order("family_name")
     .order("given_name");
   if (error) throw new Error("Could not load patients.");
@@ -28,7 +28,7 @@ export async function listMyQueue(): Promise<QueuePatient[]> {
   const { data, error } = await supabase
     .from("patients")
     .select(
-      "id, given_name, family_name, allergies(severity), prescriptions(status, version, last_evaluated_version, prescription_alerts(prescription_version, severity, decision:prescription_safety_decisions(id)))",
+      "id, public_ref, given_name, family_name, allergies(severity), prescriptions(status, version, last_evaluated_version, prescription_alerts(prescription_version, severity, decision:prescription_safety_decisions(id)))",
     )
     .eq("allergies.status", "active")
     .eq("prescriptions.status", "draft")

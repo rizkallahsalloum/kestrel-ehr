@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { PATIENTS } from "../../scripts/fixtures.ts";
 import { loadTestEnv } from "../../scripts/test-env.ts";
+import { patientRef } from "../helpers/refs";
 import { signIn, signOut } from "./helpers";
 
 test("unauthenticated visitors are redirected to login", async ({ page }) => {
@@ -25,9 +26,26 @@ test("a clinician sees only their team's patients", async ({ page }) => {
   await expect(page.getByText("Mockridge")).toHaveCount(0);
 });
 
-test("another team's patient URL returns not found", async ({ page }) => {
+test("another team's patient URL returns not found, by reference or by old id", async ({ page }) => {
   await signIn(page, "clinicianA");
+  await page.goto(`/patients/${await patientRef(PATIENTS.southOne)}`);
+  await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
   await page.goto(`/patients/${PATIENTS.southOne}`);
+  await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
+  await page.goto(`/patients/${PATIENTS.southOne}/prescriptions/new`);
+  await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
+});
+
+test("an old id-based chart link redirects to the opaque reference URL", async ({ page }) => {
+  await signIn(page, "clinicianA");
+  const rowan = await patientRef(PATIENTS.northOne);
+  await page.goto(`/patients/${PATIENTS.northOne}`);
+  await expect(page).toHaveURL(new RegExp(`/patients/${rowan}$`));
+  await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toContainText("Testcase");
+  await page.goto(`/patients/${PATIENTS.northOne}/prescriptions/new`);
+  await expect(page).toHaveURL(new RegExp(`/patients/${rowan}/prescriptions/new$`));
+  expect(page.url()).not.toContain(PATIENTS.northOne);
+  await page.goto("/patients/not-a-reference");
   await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
 });
 

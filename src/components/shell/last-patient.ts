@@ -1,11 +1,14 @@
-/** sessionStorage key for the id of the last chart opened in this tab (an id only, no patient content). */
+import { isPublicRef } from "@/features/patients/refs";
+
+/** sessionStorage key for the reference of the last chart opened in this tab (an opaque ref only, no patient content). */
 const STORAGE_KEY = "kestrel.lastPatient";
 
-const CHART_PATH = /^\/patients\/([0-9a-f-]{36})(?:\/|$)/i;
+const CHART_PATH = /^\/patients\/([^/?#]+)(?:\/|$)/;
 
-/** The patient id in a chart or prescription URL, if any. */
-export function patientIdFromPath(pathname: string): string | null {
-  return CHART_PATH.exec(pathname)?.[1] ?? null;
+/** The patient reference in a chart or prescription URL, if any. */
+export function patientRefFromPath(pathname: string): string | null {
+  const segment = CHART_PATH.exec(pathname)?.[1];
+  return segment && isPublicRef(segment) ? segment : null;
 }
 
 const listeners = new Set<() => void>();
@@ -26,9 +29,9 @@ export const lastPatientStore = {
       return null;
     }
   },
-  set(id: string | null) {
+  set(ref: string | null) {
     try {
-      if (id) storage()?.setItem(STORAGE_KEY, id);
+      if (ref) storage()?.setItem(STORAGE_KEY, ref);
       else storage()?.removeItem(STORAGE_KEY);
     } catch {
       // Unavailable storage: the rail falls back to the first queue patient.

@@ -9,6 +9,7 @@ import {
   type QueueAllergyRow,
   type QueueDraftRow,
   type QueuePatient,
+  type QueuePatientRow,
 } from "./queue";
 
 function draft(overrides: Partial<QueueDraftRow> = {}): QueueDraftRow {
@@ -83,7 +84,7 @@ describe("queueStatus", () => {
 
 describe("queueItemCount", () => {
   const patients = (n: number): QueuePatient[] =>
-    Array.from({ length: n }, (_, i) => ({ id: `${i}`, givenName: "A", familyName: "B", status: "stable" }));
+    Array.from({ length: n }, (_, i) => ({ id: `${i}`, ref: `${i}`, givenName: "A", familyName: "B", status: "stable" }));
 
   it("counts chips, plus View all beyond six, and one item for an unavailable queue", () => {
     expect(queueItemCount([])).toBe(0);
@@ -97,6 +98,7 @@ describe("queueItemCount", () => {
 describe("orderQueue", () => {
   const p = (id: string, familyName: string, givenName: string, status: QueuePatient["status"]): QueuePatient => ({
     id,
+    ref: id,
     familyName,
     givenName,
     status,
@@ -121,22 +123,32 @@ describe("orderQueue", () => {
 });
 
 describe("buildQueue", () => {
+  const row = (id: string, given_name: string, family_name: string, signals: Partial<QueuePatientRow> = {}): QueuePatientRow => ({
+    id,
+    public_ref: `ref-${id}`,
+    given_name,
+    family_name,
+    prescriptions: [],
+    allergies: [],
+    ...signals,
+  });
+
   it("maps rows and orders them", () => {
     const queue = buildQueue([
-      { id: "a", given_name: "Rowan", family_name: "Testcase", prescriptions: [], allergies: [] },
-      { id: "b", given_name: "Mira", family_name: "Demoson", prescriptions: [draft({ prescription_alerts: [blocking] })], allergies: [] },
+      row("a", "Rowan", "Testcase"),
+      row("b", "Mira", "Demoson", { prescriptions: [draft({ prescription_alerts: [blocking] })] }),
     ]);
     expect(queue).toEqual([
-      { id: "b", givenName: "Mira", familyName: "Demoson", status: "critical" },
-      { id: "a", givenName: "Rowan", familyName: "Testcase", status: "stable" },
+      { id: "b", ref: "ref-b", givenName: "Mira", familyName: "Demoson", status: "critical" },
+      { id: "a", ref: "ref-a", givenName: "Rowan", familyName: "Testcase", status: "stable" },
     ]);
   });
 
   it("uses all three statuses by case", () => {
     const queue = buildQueue([
-      { id: "s", given_name: "Sam", family_name: "Stable", prescriptions: [draft()], allergies: [] },
-      { id: "u", given_name: "Una", family_name: "Unchecked", prescriptions: [draft({ last_evaluated_version: 1 })], allergies: [] },
-      { id: "b", given_name: "Bo", family_name: "Blocked", prescriptions: [draft({ prescription_alerts: [blocking] })], allergies: [] },
+      row("s", "Sam", "Stable", { prescriptions: [draft()] }),
+      row("u", "Una", "Unchecked", { prescriptions: [draft({ last_evaluated_version: 1 })] }),
+      row("b", "Bo", "Blocked", { prescriptions: [draft({ prescription_alerts: [blocking] })] }),
     ]);
     expect(queue.map((p) => [p.id, p.status])).toEqual([
       ["b", "critical"],
@@ -147,9 +159,9 @@ describe("buildQueue", () => {
 
   it("uses allergy severities from the same rows", () => {
     const queue = buildQueue([
-      { id: "m", given_name: "Mo", family_name: "Mild", prescriptions: [], allergies: [{ severity: "mild" }] },
-      { id: "o", given_name: "Oz", family_name: "Moderate", prescriptions: [], allergies: [{ severity: "moderate" }] },
-      { id: "v", given_name: "Vi", family_name: "Severe", prescriptions: [], allergies: [{ severity: "severe" }] },
+      row("m", "Mo", "Mild", { allergies: [{ severity: "mild" }] }),
+      row("o", "Oz", "Moderate", { allergies: [{ severity: "moderate" }] }),
+      row("v", "Vi", "Severe", { allergies: [{ severity: "severe" }] }),
     ]);
     expect(queue.map((p) => [p.id, p.status])).toEqual([
       ["v", "critical"],
@@ -181,9 +193,9 @@ describe("queueAvatarTones", () => {
 
   it("is stable when the queue is reordered by status", () => {
     const patients: QueuePatient[] = [
-      { id: "id-3", givenName: "A", familyName: "Alpha", status: "stable" },
-      { id: "id-1", givenName: "B", familyName: "Bravo", status: "warning" },
-      { id: "id-2", givenName: "C", familyName: "Charlie", status: "critical" },
+      { id: "id-3", ref: "r3", givenName: "A", familyName: "Alpha", status: "stable" },
+      { id: "id-1", ref: "r1", givenName: "B", familyName: "Bravo", status: "warning" },
+      { id: "id-2", ref: "r2", givenName: "C", familyName: "Charlie", status: "critical" },
     ];
     const before = queueAvatarTones(orderQueue(patients));
     const rotated = patients.map((p, i) => ({ ...p, status: patients[(i + 1) % patients.length]!.status }));

@@ -25,7 +25,7 @@ async function logAccess(supabase: ServerSupabaseClient, patientId: string): Pro
 async function loadPatient(supabase: ServerSupabaseClient, patientId: string): Promise<PatientSummary | null> {
   const { data, error } = await supabase
     .from("patients")
-    .select("id, mrn, given_name, family_name, date_of_birth, sex, care_team:care_teams(name)")
+    .select("id, public_ref, mrn, given_name, family_name, date_of_birth, sex, care_team:care_teams(name)")
     .eq("id", patientId)
     .maybeSingle();
   if (error) throw new Error("Could not load the patient.");

@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/components/ui";
 import { usePrivacy } from "@/features/privacy/components/privacy-provider";
 import { QUEUE_LIMIT, QUEUE_STATUS_LABEL, queueAvatarTones, type QueuePatient } from "../queue";
+import { patientPath } from "../refs";
 import { PatientQueueItem, queueChipClass } from "./patient-queue-item";
 
 /** "page" on the chart itself, true on the patient's deeper pages, so the chip shows where you are. */
-function currentFor(pathname: string, patientId: string): "page" | true | undefined {
-  const chart = `/patients/${patientId}`;
+function currentFor(pathname: string, patientRef: string): "page" | true | undefined {
+  const chart = patientPath(patientRef);
   if (pathname === chart) return "page";
   return pathname.startsWith(`${chart}/`) ? true : undefined;
 }
@@ -59,7 +60,7 @@ export function PatientQueue({
               <PatientQueueItem
                 patient={patient}
                 avatarTone={tones.get(patient.id)}
-                current={currentFor(current, patient.id)}
+                current={currentFor(current, patient.ref)}
                 maskedLabel={
                   masked
                     ? `Patient ${index + 1} of ${shown.length}, name hidden, ${QUEUE_STATUS_LABEL[patient.status]}`

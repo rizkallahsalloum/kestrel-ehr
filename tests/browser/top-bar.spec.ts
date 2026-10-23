@@ -8,6 +8,8 @@ import { hideDevOverlay, reviewPath } from "./support";
 
 const CHART = "/dev/chart?view=blocking";
 const ROWAN = "00000000-0000-4000-8000-000000000101";
+/** Rowan's specimen URL reference (src/app/dev/demo-queue.ts); URLs use refs, `data-queue-item` the id. */
+const ROWAN_REF = "syn0000101";
 const trigger = (page: Page) => page.getByRole("button", { name: /account menu/i });
 const menu = (page: Page) => page.getByRole("menu", { name: "Account" });
 const queueBar = (page: Page) => page.locator("nav[data-queue]").filter({ visible: true });
@@ -124,7 +126,7 @@ test("Today's queue: chips link to charts, the current patient is marked, View a
   await expect(chips.nth(1)).toHaveAccessibleName("Mira Demoson, Warning");
   await expect(chips.nth(2)).toHaveAccessibleName("Jun Fixture, Warning");
   await expect(chips.nth(3)).toHaveAccessibleName("Ada Mockridge, No alerts");
-  await expect(chips.nth(0)).toHaveAttribute("href", `/patients/${ROWAN}`);
+  await expect(chips.nth(0)).toHaveAttribute("href", `/patients/${ROWAN_REF}`);
   await expect(chips.nth(0)).toHaveAttribute("aria-current", "page");
   await expect(queue.locator("[aria-current]")).toHaveCount(1);
   expect(await chips.nth(0).locator("[data-status]").getAttribute("data-status")).toBe("critical");
@@ -318,9 +320,9 @@ test("rail: Chart, Schedule, E-Rx, Labs and Billing; targets follow the current 
   const rail = page.getByRole("navigation", { name: "Main" });
   const items = rail.getByRole("link");
   await expect(items).toHaveText(["Chart", "Schedule", "E-Rx", "Labs", "Billing"]);
-  await expect(rail.getByRole("link", { name: "Chart" })).toHaveAttribute("href", `/patients/${ROWAN}`);
+  await expect(rail.getByRole("link", { name: "Chart" })).toHaveAttribute("href", `/patients/${ROWAN_REF}`);
   await expect(rail.getByRole("link", { name: "Chart" })).toHaveAttribute("aria-current", "page");
-  await expect(rail.getByRole("link", { name: "E-Rx" })).toHaveAttribute("href", `/patients/${ROWAN}/prescriptions/new`);
+  await expect(rail.getByRole("link", { name: "E-Rx" })).toHaveAttribute("href", `/patients/${ROWAN_REF}/prescriptions/new`);
   await expect(rail.getByRole("link", { name: "Schedule" })).toHaveAttribute("href", "/schedule");
   await expect(rail.getByRole("link", { name: "Labs" })).toHaveAttribute("href", "/labs");
   await expect(rail.getByRole("link", { name: "Billing" })).toHaveAttribute("href", "/billing");
@@ -341,7 +343,7 @@ test("rail: Chart, Schedule, E-Rx, Labs and Billing; targets follow the current 
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
   await expect(rail.getByRole("link", { name: "Schedule" })).toHaveAttribute("aria-current", "page");
   // The last chart viewed in this tab (Rowan, from the chart specimen) is where Chart goes.
-  await expect(rail.getByRole("link", { name: "Chart" })).toHaveAttribute("href", `/patients/${ROWAN}`);
+  await expect(rail.getByRole("link", { name: "Chart" })).toHaveAttribute("href", `/patients/${ROWAN_REF}`);
   await expect(page.getByRole("main").getByRole("link", { name: "Go to patients" })).toHaveAttribute("href", "/patients");
 
   await open(page, "/dev/shell?view=admin");

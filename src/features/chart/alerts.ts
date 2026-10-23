@@ -6,6 +6,7 @@ export type DraftSafetyState =
 
 export type DraftAlertSummary = {
   prescriptionId: string;
+  prescriptionRef: string;
   medicationLabel: string;
   /** The draft's `created_at`: the day the order was placed. Edits do not move it. */
   createdAt: string;
@@ -50,6 +51,7 @@ export function summarizeDraftAlerts(prescriptions: PrescriptionListItem[], aler
     if (state?.kind !== "checked" || state.blocking + state.advisoryPending === 0) continue;
     summaries.push({
       prescriptionId: rx.id,
+      prescriptionRef: rx.public_ref,
       medicationLabel: medicationLabel(rx),
       createdAt: rx.created_at,
       blocking: state.blocking,

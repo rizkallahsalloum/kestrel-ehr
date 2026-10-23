@@ -4,18 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { AuditIcon, Avatar, BillingIcon, CalendarIcon, ChartIcon, cn, FlaskIcon, RxIcon } from "@/components/ui";
+import { newPrescriptionPath, patientPath } from "@/features/patients/refs";
 import type { AppRole } from "@/types/domain";
 import { KestrelMark } from "./kestrel-mark";
-import { lastPatientStore, patientIdFromPath } from "./last-patient";
+import { lastPatientStore, patientRefFromPath } from "./last-patient";
 
 type NavItem = { key: string; href: string; label: string; Icon: typeof ChartIcon; active: boolean };
 
-function clinicianItems(current: string, patientId: string | null): NavItem[] {
+function clinicianItems(current: string, patientRef: string | null): NavItem[] {
   const onPrescriptions = /^\/patients\/[^/]+\/prescriptions(?:\/|$)/.test(current);
   return [
     {
       key: "chart",
-      href: patientId ? `/patients/${patientId}` : "/patients",
+      href: patientRef ? patientPath(patientRef) : "/patients",
       label: "Chart",
       Icon: ChartIcon,
       active: current === "/patients" || (current.startsWith("/patients/") && !onPrescriptions),
@@ -23,7 +24,7 @@ function clinicianItems(current: string, patientId: string | null): NavItem[] {
     { key: "schedule", href: "/schedule", label: "Schedule", Icon: CalendarIcon, active: current === "/schedule" },
     {
       key: "erx",
-      href: patientId ? `/patients/${patientId}/prescriptions/new` : "/patients",
+      href: patientRef ? newPrescriptionPath(patientRef) : "/patients",
       label: "E-Rx",
       Icon: RxIcon,
       active: onPrescriptions,
@@ -56,16 +57,16 @@ export function Rail({
   role,
   initials,
   activePath,
-  fallbackPatientId,
+  fallbackPatientRef,
 }: {
   role: AppRole;
   initials: string;
   activePath?: string;
-  fallbackPatientId?: string;
+  fallbackPatientRef?: string;
 }) {
   const pathname = usePathname();
   const current = activePath ?? pathname;
-  const pathPatient = patientIdFromPath(current);
+  const pathPatient = patientRefFromPath(current);
   const lastPatient = useSyncExternalStore(lastPatientStore.subscribe, lastPatientStore.get, () => null);
 
   useEffect(() => {
@@ -73,7 +74,7 @@ export function Rail({
   }, [pathPatient]);
 
   const items =
-    role === "clinician" ? clinicianItems(current, pathPatient ?? lastPatient ?? fallbackPatientId ?? null) : adminItems(current);
+    role === "clinician" ? clinicianItems(current, pathPatient ?? lastPatient ?? fallbackPatientRef ?? null) : adminItems(current);
 
   return (
     <aside className="sticky top-0 flex h-dvh flex-col items-center bg-inverse pt-4.5 pb-4 text-on-inverse">

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { PATIENTS } from "../../scripts/fixtures.ts";
 import { QUEUE_STATUS_LABEL, queueStatus, type QueueStatus } from "../../src/features/patients/queue.ts";
+import { patientRef } from "../helpers/refs";
 import { clientFor } from "../helpers/supabase";
 import { signIn, signOut } from "./helpers";
 
@@ -43,21 +44,23 @@ test("Today's queue lists only care-team patients and switches charts; the curre
     expect(name).toMatch(/Critical alert|Warning|No alerts/);
   }
 
+  const elliot = await patientRef(PATIENTS.northTwo);
+  const rowan = await patientRef(PATIENTS.northOne);
   await queue.locator(`[data-queue-item="${PATIENTS.northTwo}"]`).click();
-  await expect(page).toHaveURL(new RegExp(`/patients/${PATIENTS.northTwo}$`));
+  await expect(page).toHaveURL(new RegExp(`/patients/${elliot}$`));
   await expect(queue.locator(`[data-queue-item="${PATIENTS.northTwo}"]`)).toHaveAttribute("aria-current", "page");
   await expect(queue.locator("[aria-current]")).toHaveCount(1);
   await expect(page.getByRole("link", { name: "Back to patients" })).toHaveCount(0);
 
   await queue.locator(`[data-queue-item="${PATIENTS.northOne}"]`).click();
-  await expect(page).toHaveURL(new RegExp(`/patients/${PATIENTS.northOne}$`));
+  await expect(page).toHaveURL(new RegExp(`/patients/${rowan}$`));
   await expect(queue.locator(`[data-queue-item="${PATIENTS.northOne}"]`)).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toContainText("Testcase");
 
   // The rail follows the current patient.
   const rail = page.getByRole("navigation", { name: "Main" });
-  await expect(rail.getByRole("link", { name: "Chart" })).toHaveAttribute("href", `/patients/${PATIENTS.northOne}`);
-  await expect(rail.getByRole("link", { name: "E-Rx" })).toHaveAttribute("href", `/patients/${PATIENTS.northOne}/prescriptions/new`);
+  await expect(rail.getByRole("link", { name: "Chart" })).toHaveAttribute("href", `/patients/${rowan}`);
+  await expect(rail.getByRole("link", { name: "E-Rx" })).toHaveAttribute("href", `/patients/${rowan}/prescriptions/new`);
 });
 
 /**

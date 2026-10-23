@@ -15,6 +15,7 @@ import {
 import { medicationLabel } from "@/features/chart/alerts";
 import { allergyTone, bySeverity, highestSeverity } from "@/features/chart/allergies";
 import { prescriptionStatusTone } from "@/features/chart/components/clinical-lists";
+import { patientPath } from "@/features/patients/refs";
 import { formatAgeSex, formatDate } from "@/lib/format";
 import { getInitials } from "@/lib/initials";
 import type { Allergy, PatientMedication, PatientSummary, PrescriptionStatus } from "@/types/domain";
@@ -38,11 +39,11 @@ export function ErxGrid({ context, main, review }: { context: ReactNode; main: R
 }
 
 export function ErxPageHeading({
-  patientId,
+  patientRef,
   title,
   status,
 }: {
-  patientId: string;
+  patientRef: string;
   title: ReactNode;
   status?: PrescriptionStatus;
 }) {
@@ -50,7 +51,7 @@ export function ErxPageHeading({
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
         <Link
-          href={`/patients/${patientId}`}
+          href={patientPath(patientRef)}
           className="text-label text-ink-secondary underline underline-offset-2"
         >
           Back to chart

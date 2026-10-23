@@ -22,10 +22,10 @@ const ADMIN: ShellUser = { fullName: "Demo Administrator", role: "admin" };
 
 const team = { name: "North team (synthetic)" };
 const DEMO_PATIENTS: PatientSummary[] = [
-  { id: "00000000-0000-4000-8000-000000000101", mrn: "SYN-000101", given_name: "Rowan", family_name: "Testcase", date_of_birth: "1959-03-14", sex: "female", care_team: team },
-  { id: "00000000-0000-4000-8000-000000000102", mrn: "SYN-000102", given_name: "Mira", family_name: "Demoson", date_of_birth: "1984-11-02", sex: "female", care_team: team },
-  { id: "00000000-0000-4000-8000-000000000103", mrn: "SYN-000103", given_name: "Ellis", family_name: "Placeholder", date_of_birth: "1971-06-27", sex: "male", care_team: team },
-  { id: "00000000-0000-4000-8000-000000000104", mrn: "SYN-000104", given_name: "Zoë", family_name: "Sampleton", date_of_birth: "2001-01-09", sex: "female", care_team: team },
+  { id: "00000000-0000-4000-8000-000000000101", public_ref: "syn0000101", mrn: "SYN-000101", given_name: "Rowan", family_name: "Testcase", date_of_birth: "1959-03-14", sex: "female", care_team: team },
+  { id: "00000000-0000-4000-8000-000000000102", public_ref: "syn0000102", mrn: "SYN-000102", given_name: "Mira", family_name: "Demoson", date_of_birth: "1984-11-02", sex: "female", care_team: team },
+  { id: "00000000-0000-4000-8000-000000000103", public_ref: "syn0000103", mrn: "SYN-000103", given_name: "Ellis", family_name: "Placeholder", date_of_birth: "1971-06-27", sex: "male", care_team: team },
+  { id: "00000000-0000-4000-8000-000000000104", public_ref: "syn0000104", mrn: "SYN-000104", given_name: "Zoë", family_name: "Sampleton", date_of_birth: "2001-01-09", sex: "female", care_team: team },
 ];
 
 const VIEWS = ["clinician", "admin", "login", "not-found", "error", "placeholder"] as const;

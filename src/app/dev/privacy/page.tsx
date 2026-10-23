@@ -20,8 +20,8 @@ export const metadata: Metadata = { title: "Privacy mode specimen (development o
 const CLINICIAN: ShellUser = { fullName: "Dr. Demo Clinician", role: "clinician" };
 const team = { name: "North team (synthetic)" };
 const PATIENTS: PatientSummary[] = [
-  { id: "00000000-0000-4000-8000-000000000101", mrn: "SYN-000101", given_name: "Rowan", family_name: "Testcase", date_of_birth: "1959-03-14", sex: "female", care_team: team },
-  { id: "00000000-0000-4000-8000-000000000102", mrn: "SYN-000102", given_name: "Mira", family_name: "Demoson", date_of_birth: "1984-11-02", sex: "female", care_team: team },
+  { id: "00000000-0000-4000-8000-000000000101", public_ref: "syn0000101", mrn: "SYN-000101", given_name: "Rowan", family_name: "Testcase", date_of_birth: "1959-03-14", sex: "female", care_team: team },
+  { id: "00000000-0000-4000-8000-000000000102", public_ref: "syn0000102", mrn: "SYN-000102", given_name: "Mira", family_name: "Demoson", date_of_birth: "1984-11-02", sex: "female", care_team: team },
 ];
 const ALLERGIES: Allergy[] = [
   {

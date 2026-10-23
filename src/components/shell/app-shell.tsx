@@ -65,7 +65,7 @@ export function AppShell({
       >
         Skip to main content
       </a>
-      <Rail role={user.role} initials={initials} activePath={activePath} fallbackPatientId={queue?.[0]?.id} />
+      <Rail role={user.role} initials={initials} activePath={activePath} fallbackPatientRef={queue?.[0]?.ref} />
       <PrivacyProvider>
         <div className="flex min-w-0 flex-col">
           {/* `contents`: the banner sits in the header landmark, and the top bar stays sticky against the column, not the header. */}

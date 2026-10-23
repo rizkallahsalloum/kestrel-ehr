@@ -52,7 +52,7 @@ export function NewPrescriptionView({
 }) {
   return (
     <div data-layout="wide" className="flex flex-col gap-4">
-      <ErxPageHeading patientId={patient.id} title="New prescription" />
+      <ErxPageHeading patientRef={patient.public_ref} title="New prescription" />
       <RxPatientHeader patient={patient} allergies={allergies} medications={patientMedications} />
       <DraftWorkspace
         mode="create"
@@ -78,7 +78,7 @@ export function PrescriptionView({ workspace }: { workspace: PrescriptionWorkspa
   return (
     <div data-layout="wide" className="flex flex-col gap-4">
       <ErxPageHeading
-        patientId={patient.id}
+        patientRef={patient.public_ref}
         title={<PrivateText label="Medication">{medicationLabel(rx)}</PrivateText>}
         status={rx.status}
       />

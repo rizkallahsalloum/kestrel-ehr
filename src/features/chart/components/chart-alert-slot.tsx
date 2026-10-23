@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertBanner, buttonStyles, InfoIcon, NoAlert } from "@/components/ui";
 import { blockingBannerTitle, type DraftAlertSummary } from "@/features/chart/alerts";
+import { prescriptionPath } from "@/features/patients/refs";
 
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -24,11 +25,11 @@ function bannerCounts(summary: DraftAlertSummary): string {
  * time, so the banner only links there.
  */
 export function ChartAlertSlot({
-  patientId,
+  patientRef,
   summaries,
   uncheckedDrafts,
 }: {
-  patientId: string;
+  patientRef: string;
   summaries: DraftAlertSummary[];
   uncheckedDrafts: number;
 }) {
@@ -46,7 +47,7 @@ export function ChartAlertSlot({
           title={bannerTitle(summary, now)}
           actions={
             <Link
-              href={`/patients/${patientId}/prescriptions/${summary.prescriptionId}`}
+              href={prescriptionPath(patientRef, summary.prescriptionRef)}
               className={buttonStyles({ size: "sm" })}
             >
               Review draft<span className="sr-only"> for {summary.medicationLabel}</span>

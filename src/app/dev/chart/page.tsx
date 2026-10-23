@@ -8,6 +8,7 @@ import { PatientChartView } from "@/features/chart/components/patient-chart-view
 import { Delayed, delayParam } from "../delayed";
 import { demoQueue } from "../demo-queue";
 import type { PatientChart } from "@/features/chart/queries";
+import { patientPath } from "@/features/patients/refs";
 import type { DraftAlertRow, PatientSummary, PrescriptionListItem } from "@/types/domain";
 
 export const metadata: Metadata = { title: "Chart specimen (development only) | Kestrel EHR" };
@@ -27,12 +28,22 @@ const MEDS = {
 };
 
 function patient(n: number, given_name: string, family_name: string, date_of_birth: string, sex: string): PatientSummary {
-  return { id: `00000000-0000-4000-8000-00000000010${n}`, mrn: `SYN-00010${n}`, given_name, family_name, date_of_birth, sex, care_team: team };
+  return {
+    id: `00000000-0000-4000-8000-00000000010${n}`,
+    public_ref: `syn000010${n}`,
+    mrn: `SYN-00010${n}`,
+    given_name,
+    family_name,
+    date_of_birth,
+    sex,
+    care_team: team,
+  };
 }
 
 function rx(id: string, medication: PrescriptionListItem["medication"], overrides: Partial<PrescriptionListItem> = {}): PrescriptionListItem {
   return {
     id: `00000000-0000-4000-8000-0000000002${id}`,
+    public_ref: `synrx002${id}`,
     status: "draft",
     version: 1,
     last_evaluated_version: 1,
@@ -176,7 +187,7 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
   return (
     <AppShell
       user={CLINICIAN}
-      activePath={`/patients/${CHARTS[view].patient.id}`}
+      activePath={patientPath(CHARTS[view].patient.public_ref)}
       queue={demoQueue(params.queue, params.queueOrder)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>

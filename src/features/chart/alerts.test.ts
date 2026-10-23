@@ -12,6 +12,7 @@ import {
 function rx(id: string, overrides: Partial<PrescriptionListItem> = {}): PrescriptionListItem {
   return {
     id,
+    public_ref: `ref${id}`,
     status: "draft",
     version: 2,
     last_evaluated_version: 2,

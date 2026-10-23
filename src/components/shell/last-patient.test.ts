@@ -1,18 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { patientIdFromPath } from "./last-patient";
+import { patientRefFromPath } from "./last-patient";
 
+const REF = "k7m2p9q4rx";
 const ID = "00000000-0000-4000-8000-000000000101";
 
-describe("patientIdFromPath", () => {
+describe("patientRefFromPath", () => {
   it.each([
-    [`/patients/${ID}`, ID],
-    [`/patients/${ID}/`, ID],
-    [`/patients/${ID}/prescriptions/new`, ID],
+    [`/patients/${REF}`, REF],
+    [`/patients/${REF}/`, REF],
+    [`/patients/${REF}/prescriptions/new`, REF],
     ["/patients", null],
-    ["/patients/not-an-id", null],
+    ["/patients/not-a-ref", null],
+    [`/patients/${ID}`, null],
+    ["/patients/K7M2P9Q4RX", null],
     ["/schedule", null],
-    [`/dev/chart?id=${ID}`, null],
-  ])("%s -> %s", (path, id) => {
-    expect(patientIdFromPath(path)).toBe(id);
+    [`/dev/chart?id=${REF}`, null],
+  ])("%s -> %s", (path, ref) => {
+    expect(patientRefFromPath(path)).toBe(ref);
   });
 });

@@ -71,6 +71,10 @@ describe("building a browser error report", () => {
     expect(routePattern("/patients/00000000-0000-4000-8000-000000000101/prescriptions/new?q=Testcase#x")).toBe(
       "/patients/[id]/prescriptions/new",
     );
+    expect(routePattern("/patients/k7m2p9q4rx/prescriptions/new")).toBe("/patients/[ref]/prescriptions/new");
+    expect(routePattern("/patients/k7m2p9q4rx/prescriptions/b3c4d5e6f7")).toBe("/patients/[ref]/prescriptions/[ref]");
+    expect(routePattern("/patients/Rowan%20Testcase")).toBe("/patients/[ref]");
+    expect(routePattern("/patients")).toBe("/patients");
     expect(routePattern("/")).toBe("/");
     expect(routePattern(`/${"a".repeat(1000)}`)).toHaveLength(CLIENT_REPORT_LIMITS.route);
   });

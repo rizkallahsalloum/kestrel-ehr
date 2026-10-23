@@ -11,6 +11,7 @@ import {
   validationFailure,
   type ActionResult,
 } from "@/lib/actions/result";
+import { prescriptionPath } from "@/features/patients/refs";
 import { authorizeAction } from "@/lib/auth/guards";
 import { createClient, type ServerSupabaseClient } from "@/lib/supabase/server";
 import {
@@ -35,10 +36,12 @@ function formToObject(formData: FormData): Record<string, FormDataEntryValue> {
   return Object.fromEntries(formData.entries());
 }
 
-function revalidatePrescription(patientId: string, prescriptionId?: string): void {
-  revalidatePath(`/patients/${patientId}`);
-  if (prescriptionId) revalidatePath(`/patients/${patientId}/prescriptions/${prescriptionId}`);
-  // The (app) layout renders Today's queue, whose status dots come from draft alerts.
+/**
+ * Refreshes every page under the root layout: the chart and prescription pages (addressed by
+ * opaque refs, so by route pattern) and Today's queue in the (app) layout, whose status dots
+ * come from draft alerts.
+ */
+function revalidatePrescription(): void {
   revalidatePath("/", "layout");
 }
 
@@ -56,7 +59,9 @@ async function prescriptionBelongsToPatient(
   return Boolean(data);
 }
 
-export async function createPrescriptionDraft(input: unknown): Promise<ActionResult<{ prescriptionId: string; duplicate: boolean }>> {
+type CreatedDraft = { prescriptionId: string; prescriptionRef: string; patientRef: string; duplicate: boolean };
+
+export async function createPrescriptionDraft(input: unknown): Promise<ActionResult<CreatedDraft>> {
   const auth = await authorizeAction("clinician");
   if (!auth.ok) return auth.result;
 
@@ -65,7 +70,7 @@ export async function createPrescriptionDraft(input: unknown): Promise<ActionRes
   const { patientId, idempotencyKey, ...content } = parsed.data;
 
   const supabase = await createClient();
-  const patient = await supabase.from("patients").select("id").eq("id", patientId).maybeSingle();
+  const patient = await supabase.from("patients").select("id, public_ref").eq("id", patientId).maybeSingle();
   if (patient.error) return mapDbError(patient.error);
   if (!patient.data) return fail("NOT_FOUND", "Patient not found.");
 
@@ -77,27 +82,28 @@ export async function createPrescriptionDraft(input: unknown): Promise<ActionRes
       idempotency_key: idempotencyKey,
       ...toPrescriptionColumns(content),
     })
-    .select("id")
+    .select("id, public_ref")
     .single();
+  const patientRef = patient.data.public_ref;
 
   if (inserted.error) {
     if (isDbError(inserted.error, "23505")) {
       // Same form submitted twice: return the draft created by the first submission.
       const existing = await supabase
         .from("prescriptions")
-        .select("id, patient_id")
+        .select("id, public_ref, patient_id")
         .eq("prescriber_id", auth.user.id)
         .eq("idempotency_key", idempotencyKey)
         .maybeSingle();
       if (existing.data?.patient_id === patientId) {
-        return ok({ prescriptionId: existing.data.id, duplicate: true });
+        return ok({ prescriptionId: existing.data.id, prescriptionRef: existing.data.public_ref, patientRef, duplicate: true });
       }
     }
     return mapDbError(inserted.error);
   }
 
-  revalidatePrescription(patientId);
-  return ok({ prescriptionId: inserted.data.id, duplicate: false });
+  revalidatePrescription();
+  return ok({ prescriptionId: inserted.data.id, prescriptionRef: inserted.data.public_ref, patientRef, duplicate: false });
 }
 
 export async function updatePrescriptionDraft(input: unknown): Promise<ActionResult<{ version: number }>> {
@@ -135,7 +141,7 @@ export async function updatePrescriptionDraft(input: unknown): Promise<ActionRes
     return mapDbError({ code: DB_ERROR.VERSION_CONFLICT });
   }
 
-  revalidatePrescription(patientId, prescriptionId);
+  revalidatePrescription();
   return ok({ version: updated.data.version });
 }
 
@@ -157,7 +163,7 @@ export async function evaluatePrescription(input: unknown): Promise<ActionResult
   const result = evaluationResultSchema.safeParse(data);
   if (!result.success) return fail("INTERNAL", "Unexpected response from the safety check.");
 
-  revalidatePrescription(patientId, prescriptionId);
+  revalidatePrescription();
   return ok(result.data);
 }
 
@@ -180,7 +186,7 @@ export async function acknowledgeAlert(input: unknown): Promise<ActionResult<{ d
   });
   if (error) return mapDbError(error);
 
-  revalidatePrescription(patientId, prescriptionId);
+  revalidatePrescription();
   return ok({ decisionId: data });
 }
 
@@ -205,12 +211,12 @@ export async function signPrescription(input: unknown): Promise<ActionResult<{ p
     if (isDbError(error, DB_ERROR.BLOCKING_ALERT) || isDbError(error, DB_ERROR.UNACKNOWLEDGED_ADVISORY)) {
       // The failed sign rolled back its own evaluation; persist the current alerts so the user can see them.
       await supabase.rpc("evaluate_prescription_safety", { p_prescription_id: prescriptionId });
-      revalidatePrescription(patientId, prescriptionId);
+      revalidatePrescription();
     }
     return mapDbError(error);
   }
 
-  revalidatePrescription(patientId, prescriptionId);
+  revalidatePrescription();
   return ok({ prescriptionId });
 }
 
@@ -234,19 +240,18 @@ export async function cancelPrescription(input: unknown): Promise<ActionResult<{
   });
   if (error) return mapDbError(error);
 
-  revalidatePrescription(patientId, prescriptionId);
+  revalidatePrescription();
   return ok({ prescriptionId });
 }
 
 // Form adapters for useActionState.
 
 export async function createDraftFormAction(
-  _previous: FormState<{ prescriptionId: string; duplicate: boolean }>,
+  _previous: FormState<CreatedDraft>,
   formData: FormData,
-): Promise<FormState<{ prescriptionId: string; duplicate: boolean }>> {
-  const input = formToObject(formData);
-  const result = await createPrescriptionDraft(input);
-  if (result.ok) redirect(`/patients/${String(input.patientId)}/prescriptions/${result.data.prescriptionId}`);
+): Promise<FormState<CreatedDraft>> {
+  const result = await createPrescriptionDraft(formToObject(formData));
+  if (result.ok) redirect(prescriptionPath(result.data.patientRef, result.data.prescriptionRef));
   return result;
 }
 

@@ -16,14 +16,14 @@ export function PatientChartView({ chart }: { chart: PatientChart }) {
           </div>
           <div className="animate-fade-up-2">
             <ChartAlertSlot
-              patientId={patient.id}
+              patientRef={patient.public_ref}
               summaries={summarizeDraftAlerts(chart.prescriptions, chart.draftAlerts)}
               uncheckedDrafts={countUncheckedDrafts(chart.prescriptions)}
             />
           </div>
           <div className="animate-fade-up-3">
             <PrescriptionsCard
-              patientId={patient.id}
+              patientRef={patient.public_ref}
               prescriptions={chart.prescriptions}
               draftAlerts={chart.draftAlerts}
             />

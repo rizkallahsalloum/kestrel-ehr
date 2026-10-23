@@ -43,7 +43,7 @@ export async function loadPatientChart(
   const [patient, allergies, medications, prescriptions] = await Promise.all([
     supabase
       .from("patients")
-      .select("id, mrn, given_name, family_name, date_of_birth, sex, care_team:care_teams(name)")
+      .select("id, public_ref, mrn, given_name, family_name, date_of_birth, sex, care_team:care_teams(name)")
       .eq("id", patientId)
       .maybeSingle(),
     supabase
@@ -61,7 +61,7 @@ export async function loadPatientChart(
     supabase
       .from("prescriptions")
       .select(
-        "id, status, version, last_evaluated_version, quantity, start_date, created_at, signed_at, prescriber_id, medication:medications(name, strength, form)",
+        "id, public_ref, status, version, last_evaluated_version, quantity, start_date, created_at, signed_at, prescriber_id, medication:medications(name, strength, form)",
       )
       .eq("patient_id", patientId)
       .order("created_at", { ascending: false }),

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui";
 import { allergyTone, bySeverity, highestSeverity } from "@/features/chart/allergies";
 import { draftSafetyState, medicationLabel } from "@/features/chart/alerts";
+import { newPrescriptionPath, prescriptionPath } from "@/features/patients/refs";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Allergy, DraftAlertRow, PatientMedication, PrescriptionListItem, PrescriptionStatus } from "@/types/domain";
 
@@ -150,11 +151,11 @@ function statusNote(rx: PrescriptionListItem, alerts: DraftAlertRow[]): string |
 }
 
 export function PrescriptionsCard({
-  patientId,
+  patientRef,
   prescriptions,
   draftAlerts,
 }: {
-  patientId: string;
+  patientRef: string;
   prescriptions: PrescriptionListItem[];
   draftAlerts: DraftAlertRow[];
 }) {
@@ -164,7 +165,7 @@ export function PrescriptionsCard({
       title="Prescriptions"
       description="Demo prescriptions for this patient. Signing is simulated and nothing is transmitted."
       actions={
-        <Link href={`/patients/${patientId}/prescriptions/new`} className={buttonStyles({ size: "sm" })}>
+        <Link href={newPrescriptionPath(patientRef)} className={buttonStyles({ size: "sm" })}>
           New prescription draft
         </Link>
       }
@@ -188,7 +189,7 @@ export function PrescriptionsCard({
                 <tr key={rx.id} className="border-t border-line-subtle align-top">
                   <td className="py-3 pr-4">
                     <Link
-                      href={`/patients/${patientId}/prescriptions/${rx.id}`}
+                      href={prescriptionPath(patientRef, rx.public_ref)}
                       className="font-medium text-accent underline-offset-2 hover:underline"
                     >
                       <PrivateText label="Medication" revealable={false}>
