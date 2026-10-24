@@ -244,12 +244,9 @@
   --width-context: 340px;
   --width-dialog: min(420px, calc(100vw - 2rem));
   --max-width-footer: 760px; /* dashboard .footer-note */
-  /* Toast (Phase 9c, no Figma frame): centred over the content column on top of the sticky top bar,
-     so one toast never covers page content; it clears the rail and stays inside the bar's height */
-  --spacing-toast-inset: var(--spacing-sm);
-  --spacing-toast-gap: var(--spacing-xs);
-  --spacing-toast-left: calc(var(--spacing-rail) + var(--spacing-toast-inset));
-  --spacing-toast-left-wide: calc(var(--spacing-rail-wide) + var(--spacing-toast-inset));
+  /* Toast (Phase 9c, no Figma frame; anchored in the sticky top bar since 9d): the inset from the bar's
+     top and sides. One toast (48px) plus the two-step deck (8px) stays inside the shortest bar (65px) */
+  --spacing-toast-inset: var(--spacing-xs);
   --max-width-toast: 360px;
   /* sticky offset for the context and review columns: the sticky top bar's height, which grows with
      Today's queue (see --topbar-height below) */

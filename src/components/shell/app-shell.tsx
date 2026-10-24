@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn, SyntheticBanner } from "@/components/ui";
+import { cn, SyntheticBanner, ToastViewport } from "@/components/ui";
 import { PatientQueue } from "@/features/patients/components/patient-queue";
 import { queueItemCount, type QueuePatient } from "@/features/patients/queue";
 import { PrivacyButton } from "@/features/privacy/components/privacy-controls";
@@ -97,6 +97,7 @@ export function AppShell({
                 />
               </div>
               {clinician && <PatientQueue queue={queue ?? null} activePath={activePath} />}
+              <ToastViewport />
             </div>
           </header>
           {/* Same edges as the top bar: full width of the content column, same horizontal padding, no max width. */}

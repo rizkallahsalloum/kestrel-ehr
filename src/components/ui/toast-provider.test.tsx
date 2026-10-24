@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ToastProvider, useToast } from "./toast-provider";
+import { ToastProvider, ToastViewport, useToast } from "./toast-provider";
 import { TOAST_DURATION_MS } from "./toast-queue";
 
 function Trigger({ message = "Draft saved." }: { message?: string }) {
@@ -16,9 +16,11 @@ function setup() {
   render(
     <ToastProvider>
       <Trigger />
+      <Trigger message="Draft cancelled." />
+      <ToastViewport />
     </ToastProvider>,
   );
-  const trigger = screen.getByRole("button", { name: "Run action" });
+  const trigger = screen.getAllByRole("button", { name: "Run action" })[0]!;
   trigger.focus();
   fireEvent.click(trigger);
   return { trigger, region: document.querySelector<HTMLElement>("[data-toast-region]")! };
@@ -76,5 +78,31 @@ describe("ToastProvider", () => {
     setup();
     fireEvent.click(dismissButton());
     expect(toasts()).toHaveLength(0);
+  });
+
+  it("stacks as a deck: only the newest toast is interactive; Escape on it focuses the next", () => {
+    setup();
+    fireEvent.click(screen.getAllByRole("button", { name: "Run action" })[1]!);
+    const [older, newer] = [...toasts()] as HTMLElement[];
+    expect(newer!.textContent).toContain("Draft cancelled.");
+    expect(newer!.hasAttribute("inert")).toBe(false);
+    expect(older!.hasAttribute("inert")).toBe(true);
+    const front = screen.getByRole("button", { name: "Dismiss: Draft cancelled" });
+    act(() => front.focus());
+    fireEvent.keyDown(front, { key: "Escape" });
+    expect(toasts()).toHaveLength(1);
+    expect(document.activeElement).toBe(dismissButton());
+  });
+
+  it("draws nothing without a viewport, and nothing outside a provider", () => {
+    render(
+      <ToastProvider>
+        <Trigger />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Run action" }));
+    expect(toasts()).toHaveLength(0);
+    render(<ToastViewport />);
+    expect(document.querySelectorAll("[data-toast-region]")).toHaveLength(0);
   });
 });

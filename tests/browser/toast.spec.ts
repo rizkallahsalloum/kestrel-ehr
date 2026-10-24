@@ -94,14 +94,15 @@ test("token colours: inverse surface, on-inverse text and icons, never the succe
   expect(colours.icons).not.toContain(await tokenColor(page, "ok"));
 });
 
-test("keyboard: Tab reaches the dismiss button, focus pauses the timer, Escape dismisses and returns focus", async ({ page }) => {
+test("keyboard: Shift+Tab from the content reaches the dismiss button, focus pauses the timer, Escape dismisses and returns focus", async ({ page }) => {
   await open(page);
   await trigger(page, "Draft saved.");
-  const before = page.getByRole("button", { name: "Save draft", exact: true });
+  // The toast lives in the top bar, so it comes just before the main content in tab order.
+  const before = show(page, "Draft saved.");
   await before.focus();
   const dismiss = toasts(page).getByRole("button", { name: "Dismiss: Draft saved" });
   for (let i = 0; i < 10 && !(await dismiss.evaluate((el) => el === document.activeElement)); i++) {
-    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
   }
   await expect(dismiss).toBeFocused();
   const outline = await dismiss.evaluate((el) => ({ colour: getComputedStyle(el).outlineColor, style: getComputedStyle(el).outlineStyle }));
@@ -129,14 +130,19 @@ test("auto-dismisses after six seconds, and hovering pauses it", async ({ page }
   await expect(toasts(page)).toHaveCount(0, { timeout: 8000 });
 });
 
-test("three at most; the fourth waits; duplicates are dropped", async ({ page }) => {
+test("three at most as a deck: the newest in front, the others inert behind; the fourth waits; duplicates are dropped", async ({ page }) => {
   await open(page, "?show=four");
   await expect(toasts(page)).toHaveCount(3);
   await expect(toasts(page)).toHaveText(["Draft saved.", "Advisory alert acknowledged.", "Prescription signed (simulated)."]);
+  expect(await toasts(page).evaluateAll((els) => els.map((el) => [el.getAttribute("data-toast-depth"), el.hasAttribute("inert")]))).toEqual([
+    ["2", true],
+    ["1", true],
+    ["0", false],
+  ]);
   await show(page, "Draft saved.").click();
   await expect(toasts(page)).toHaveCount(3);
-  await toasts(page).first().getByRole("button", { name: "Dismiss: Draft saved" }).click();
-  await expect(toasts(page)).toHaveText(["Advisory alert acknowledged.", "Prescription signed (simulated).", "Draft cancelled."]);
+  await toasts(page).last().getByRole("button", { name: "Dismiss: Prescription signed (simulated)" }).click();
+  await expect(toasts(page)).toHaveText(["Draft saved.", "Advisory alert acknowledged.", "Draft cancelled."]);
 });
 
 test("waits while a native dialog is open, then shows", async ({ page }) => {
@@ -159,8 +165,21 @@ test("motion: a short entrance with motion allowed, none under reduced motion", 
   expect(await toasts(page).first().evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
 });
 
+/** The whole deck, including the offset of the cards behind the front one. */
+async function deckBox(page: Page): Promise<Box> {
+  const boxes = await toasts(page).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON() as DOMRect));
+  const top = Math.min(...boxes.map((b) => b.y));
+  const left = Math.min(...boxes.map((b) => b.x));
+  return {
+    x: left,
+    y: top,
+    width: Math.max(...boxes.map((b) => b.x + b.width)) - left,
+    height: Math.max(...boxes.map((b) => b.y + b.height)) - top,
+  };
+}
+
 for (const width of [1440, 1024, 390]) {
-  test(`stays over the top bar at ${width}px: no layout shift, no overflow, never over Sign or Save`, async ({ page }) => {
+  test(`anchored in the top bar at ${width}px: below the synthetic banner, no layout shift, never over Sign or Save`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await open(page);
     const heading = page.getByRole("heading", { level: 1 });
@@ -168,11 +187,20 @@ for (const width of [1440, 1024, 390]) {
     const before = [await box(heading), await box(actions)];
     await trigger(page, "Prescription signed (simulated).");
     expect([await box(heading), await box(actions)]).toEqual(before);
+    await expect(page.locator("[data-topbar] [data-toast-region]")).toHaveCount(1);
+
+    // Top of the page: the bar sits below the synthetic-data banner, and so does the toast.
+    const banner = await box(page.getByRole("note"));
+    expect(overlaps(await box(toasts(page).first()), banner)).toBe(false);
+    expect((await box(toasts(page).first())).y).toBeGreaterThanOrEqual(banner.y + banner.height);
 
     // Scroll the actions to just under the top bar, the closest they can get to the toast.
+    await page.addStyleTag({ content: "main { min-height: 300vh; }" });
     await actions.evaluate((el) => el.scrollIntoView({ block: "start" }));
     const toast = await box(toasts(page).first());
     const bar = await box(page.locator("[data-topbar]"));
+    expect(bar.y).toBe(0);
+    expect(toast.y).toBeGreaterThanOrEqual(bar.y);
     expect(toast.y + toast.height).toBeLessThanOrEqual(bar.y + bar.height);
     expect(toast.x + toast.width).toBeLessThanOrEqual(width);
     const rail = await box(page.getByRole("navigation", { name: "Main" }));
@@ -181,6 +209,28 @@ for (const width of [1440, 1024, 390]) {
       expect(overlaps(toast, await box(page.getByRole("button", { name, exact: true })))).toBe(false);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+
+  test(`a deck of three stays inside the top bar at ${width}px, with and without Today's queue`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    for (const query of ["?show=four", "?show=four&queue=0"]) {
+      await open(page, query);
+      await expect(toasts(page)).toHaveCount(3);
+      await page.addStyleTag({ content: "main { min-height: 300vh; }" });
+      await page.evaluate(() => window.scrollTo(0, 400));
+      await expect.poll(async () => (await box(page.locator("[data-topbar]"))).y).toBe(0);
+      const bar = await box(page.locator("[data-topbar]"));
+      const deck = await deckBox(page);
+      expect(deck.y + deck.height, query).toBeLessThanOrEqual(bar.y + bar.height);
+      // The newest toast is the one painted on top, so its text is the one that can be read.
+      const onTop = await toasts(page)
+        .last()
+        .evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+        });
+      expect(onTop, query).toBe(true);
+    }
   });
 }
 
