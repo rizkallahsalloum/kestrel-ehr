@@ -31,6 +31,7 @@ export function PatientChartView({ chart, notesEditor }: { chart: PatientChart; 
               patientRef={patient.public_ref}
               summaries={summarizeDraftAlerts(chart.prescriptions, chart.draftAlerts)}
               uncheckedDrafts={countUncheckedDrafts(chart.prescriptions)}
+              latestVitals={chart.vitals.at(-1)}
             />
           </div>
           <div className="flex animate-fade-up-3 flex-col gap-4.5">

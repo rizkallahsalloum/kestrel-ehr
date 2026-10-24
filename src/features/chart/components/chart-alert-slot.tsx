@@ -2,6 +2,9 @@ import Link from "next/link";
 import { AlertBanner, buttonStyles, InfoIcon, NoAlert } from "@/components/ui";
 import { blockingBannerTitle, type DraftAlertSummary } from "@/features/chart/alerts";
 import { prescriptionPath } from "@/features/patients/refs";
+import { abnormalVitals } from "@/features/vitals/abnormal";
+import { AbnormalVitalsBanner } from "@/features/vitals/components/abnormal-vitals-banner";
+import type { VitalReading } from "@/features/vitals/thresholds";
 
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -19,52 +22,65 @@ function bannerCounts(summary: DraftAlertSummary): string {
   return `${parts.join(" and ")}.`;
 }
 
+function DraftBanner({ patientRef, summary, now }: { patientRef: string; summary: DraftAlertSummary; now: Date }) {
+  return (
+    <AlertBanner
+      tone={summary.blocking > 0 ? "critical" : "warning"}
+      title={bannerTitle(summary, now)}
+      actions={
+        <Link href={prescriptionPath(patientRef, summary.prescriptionRef)} className={buttonStyles({ size: "sm" })}>
+          Review draft<span className="sr-only"> for {summary.medicationLabel}</span>
+        </Link>
+      }
+    >
+      <p>
+        {summary.blocking > 0 && `Draft: ${summary.medicationLabel}. `}
+        {bannerCounts(summary)}
+      </p>
+      <ul className="mt-1 list-disc pl-5">
+        {summary.messages.map((message, i) => (
+          <li key={i}>{message}</li>
+        ))}
+      </ul>
+    </AlertBanner>
+  );
+}
+
 /**
- * Dashboard alert slot. Shows drafts whose current, evaluated version still has blocking alerts or
- * unacknowledged advisories. Acknowledging happens in the prescribing workspace, one alert at a
- * time, so the banner only links there.
+ * Dashboard alert slot. Shows the latest vitals reading when it is outside the demo stable band,
+ * and drafts whose current, evaluated version still has blocking alerts or unacknowledged
+ * advisories. Critical banners come before warning ones; within a tone, vitals come first.
+ * Acknowledging happens in the prescribing workspace, one alert at a time, so draft banners only
+ * link there.
  */
 export function ChartAlertSlot({
   patientRef,
   summaries,
   uncheckedDrafts,
+  latestVitals,
 }: {
   patientRef: string;
   summaries: DraftAlertSummary[];
   uncheckedDrafts: number;
+  latestVitals?: VitalReading;
 }) {
   // Server-rendered only, so "today" is decided once per request and never re-evaluated in the browser.
   const now = new Date();
+  const vitalsTone = latestVitals ? abnormalVitals(latestVitals)[0]?.status : undefined;
+  const vitalsBanner = <AbnormalVitalsBanner reading={latestVitals} />;
+  const draftBanners = (blocking: boolean) =>
+    summaries
+      .filter((summary) => summary.blocking > 0 === blocking)
+      .map((summary) => <DraftBanner key={summary.prescriptionId} patientRef={patientRef} summary={summary} now={now} />);
   return (
     <section aria-labelledby="chart-alerts-heading" className="flex flex-col gap-3">
       <h2 id="chart-alerts-heading" className="sr-only">
         Demo safety alerts
       </h2>
-      {summaries.map((summary) => (
-        <AlertBanner
-          key={summary.prescriptionId}
-          tone={summary.blocking > 0 ? "critical" : "warning"}
-          title={bannerTitle(summary, now)}
-          actions={
-            <Link
-              href={prescriptionPath(patientRef, summary.prescriptionRef)}
-              className={buttonStyles({ size: "sm" })}
-            >
-              Review draft<span className="sr-only"> for {summary.medicationLabel}</span>
-            </Link>
-          }
-        >
-          <p>
-            {summary.blocking > 0 && `Draft: ${summary.medicationLabel}. `}
-            {bannerCounts(summary)}
-          </p>
-          <ul className="mt-1 list-disc pl-5">
-            {summary.messages.map((message, i) => (
-              <li key={i}>{message}</li>
-            ))}
-          </ul>
-        </AlertBanner>
-      ))}
+      {vitalsTone === "critical" && vitalsBanner}
+      {draftBanners(true)}
+      {vitalsTone === "warning" && vitalsBanner}
+      {draftBanners(false)}
       {summaries.length === 0 && <NoAlert>No unresolved demo safety alerts on this patient&apos;s drafts.</NoAlert>}
       {uncheckedDrafts > 0 && (
         <NoAlert icon={<InfoIcon className="text-ink-muted" />}>

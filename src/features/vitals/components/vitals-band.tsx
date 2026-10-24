@@ -14,7 +14,7 @@ import { formatDateTime } from "@/lib/format";
 import { sparkline, SPARKLINE_HEIGHT, SPARKLINE_WIDTH } from "../sparkline";
 import { highestStatus, vitalStatus, type VitalKind, type VitalReading, type VitalStatus } from "../thresholds";
 
-type VitalTile = {
+export type VitalTile = {
   kind: VitalKind;
   label: string;
   unit: string;
@@ -40,6 +40,9 @@ const TILES: readonly VitalTile[] = [
     trend: (r) => Number(r.temperature_f),
   },
 ];
+
+/** Label, unit and value formatting per vital, shared with the abnormal-vitals banner. */
+export const VITAL_TILE = Object.fromEntries(TILES.map((tile) => [tile.kind, tile])) as Record<VitalKind, VitalTile>;
 
 export const VITAL_STATUS_LABEL: Record<VitalStatus, string> = {
   critical: "Critical",

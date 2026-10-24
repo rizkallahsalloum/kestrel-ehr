@@ -260,6 +260,59 @@ test("vitals: status by text and icon or dot, red only for critical, every tile 
   expect(new Set(sizes).size).toBe(1);
 });
 
+const vitalsBanner = (page: Page) => alertSlot(page).locator("[data-abnormal-vitals]");
+
+test("abnormal vitals: a critical banner leads the slot and lists every abnormal vital with its demo rule", async ({ page }) => {
+  await open(page, "advisory");
+  const banners = alertSlot(page).locator(":scope > [data-severity]");
+  await expect(banners).toHaveCount(2);
+  const banner = banners.nth(0);
+  await expect(banner.locator("[data-abnormal-vitals]")).toHaveCount(1);
+  await expect(banner).toHaveAttribute("data-severity", "critical");
+  await expect(banner.getByText("Critical vital sign on the latest reading: SpO₂", { exact: true })).toBeVisible();
+  await expect(banner).toContainText("illustrative demo rules, not clinical guidance");
+  const items = await banner.locator("li").allTextContents();
+  expect(items).toEqual(["SpO₂ 91 %: Critical (DEMO-V005)", "Heart rate 108 bpm: Warning (DEMO-V002)"]);
+  expect(await borderWidth(banner)).toBe("2px");
+  expect(await borderColor(banner)).toBe(await tokenColor(page, "danger"));
+  expect(await style(banner, "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
+  await expect(banner.locator("svg").first()).toHaveAttribute("data-icon", "alert-triangle");
+  await expect(banners.nth(1)).toContainText("Advisory demo alert to acknowledge on draft");
+  // Not dismissable: the only control is the link to the vitals band.
+  await expect(banner.getByRole("button")).toHaveCount(0);
+
+  const review = banner.getByRole("link", { name: "Review vitals" });
+  await expect(review).toHaveAttribute("href", "#vitals-heading");
+  await page.setViewportSize({ width: 1440, height: 500 });
+  await review.click();
+  await expect(page).toHaveURL(/#vitals-heading$/);
+  await expect(page.getByRole("heading", { name: "Vitals", level: 2 })).toBeInViewport({ ratio: 1 });
+});
+
+test("abnormal vitals: a warning banner comes after blocking drafts, orange with a hairline", async ({ page }) => {
+  await open(page, "blocking");
+  const banners = alertSlot(page).locator(":scope > [data-severity]");
+  await expect(banners).toHaveCount(2);
+  await expect(banners.nth(0)).toContainText("Allergy conflict on today's order");
+  const banner = banners.nth(1);
+  await expect(banner.locator("[data-abnormal-vitals]")).toHaveCount(1);
+  await expect(banner).toHaveAttribute("data-severity", "warning");
+  await expect(
+    banner.getByText("Vital sign in the warning range on the latest reading: Blood pressure", { exact: true }),
+  ).toBeVisible();
+  expect(await banner.locator("li").allTextContents()).toEqual(["Blood pressure 148/92 mmHg: Warning (DEMO-V004)"]);
+  expect(await borderWidth(banner)).toBe("1px");
+  expect(await borderColor(banner)).toBe(await tokenColor(page, "warning-line"));
+  expect(await style(banner, "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
+});
+
+test("abnormal vitals: no banner when the latest reading is stable or there are no readings", async ({ page }) => {
+  for (const view of ["no-drafts", "mixed", "no-allergies"] as const) {
+    await open(page, view);
+    await expect(vitalsBanner(page), view).toHaveCount(0);
+  }
+});
+
 for (const [width, columns] of [
   [1440, 4],
   [1181, 4],
@@ -289,8 +342,9 @@ test("HbA1c chart: labelled axes, keyboard-reachable points with tooltips, and a
   await expect(points.first()).toHaveAccessibleName("Mar 2026: HbA1c 7.8%, eAG 177 mg/dL");
   await expect(points.last()).toHaveAccessibleName("Aug 2026: HbA1c 6.8%, eAG 148 mg/dL");
 
-  // Tab reaches every point in order, and focus shows its tooltip.
-  await page.getByRole("link", { name: "Review draft for Zentoril 10 mg tablet" }).focus();
+  // Tab reaches every point in order, and focus shows its tooltip. The vitals banner's link is the
+  // last control before the chart.
+  await page.getByRole("link", { name: "Review vitals" }).focus();
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press("Tab");
     await expect(points.nth(i)).toBeFocused();
