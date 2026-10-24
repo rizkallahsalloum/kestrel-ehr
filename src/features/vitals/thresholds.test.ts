@@ -60,7 +60,13 @@ describe("DEMO vitals rules", () => {
     expect([91, 92, 94, 95, 100].map(spo2Status)).toEqual(["critical", "warning", "warning", "stable", "stable"]);
   });
 
-  it("temperature: stable 97.0–99.4 °F, warning to 95.0 and 102.9, critical beyond", () => {
+  it("writes units like units.ts: a space before word units, none before symbols", () => {
+    expect(VITAL_RULES.find((rule) => rule.code === "DEMO-V007")?.text).toContain("below 95.0°F or 103.0°F and above");
+    expect(VITAL_RULES.find((rule) => rule.code === "DEMO-V008")?.text).toContain("95.0–96.9°F or 99.5–102.9°F");
+    for (const rule of VITAL_RULES) expect(rule.text).not.toMatch(/\s(°F|%)/);
+  });
+
+  it("temperature: stable 97.0–99.4°F, warning to 95.0 and 102.9, critical beyond", () => {
     expect([94.9, 95, 96.9, 97, 99.4, 99.5, 102.9, 103].map(temperatureStatus)).toEqual([
       "critical",
       "warning",

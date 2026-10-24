@@ -59,13 +59,13 @@ export const VITAL_RULES: readonly VitalRule[] = [
     code: "DEMO-V007",
     vital: "temperature",
     status: "critical",
-    text: "DEMO RULE: temperature below 95.0 °F or 103.0 °F and above shows Critical. Illustrative only, not clinical guidance.",
+    text: "DEMO RULE: temperature below 95.0°F or 103.0°F and above shows Critical. Illustrative only, not clinical guidance.",
   },
   {
     code: "DEMO-V008",
     vital: "temperature",
     status: "warning",
-    text: "DEMO RULE: temperature 95.0–96.9 °F or 99.5–102.9 °F shows Warning. Illustrative only, not clinical guidance.",
+    text: "DEMO RULE: temperature 95.0–96.9°F or 99.5–102.9°F shows Warning. Illustrative only, not clinical guidance.",
   },
 ];
 

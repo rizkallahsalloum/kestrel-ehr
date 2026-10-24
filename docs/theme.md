@@ -349,6 +349,13 @@ Each starts one pixel above the reference's `max-width` value, so the switch hap
 - **Now (Phase 9c, user decision):** a minimal success-only toast built from tokens, with no third-party library and no Figma frame. It is used for those four actions only, on top of the persistent fixes from C3 (page-level status and focus on the review heading), which remain the primary confirmation. Clinical alerts, errors and anything needing action never use it. Details: "Toast" under "Component behaviour".
 - **Phase 9d (user decision, 24 Oct):** one announcer. Screen readers heard Save, Sign and Cancel twice (the hidden `ActionOutcome` status and the toast's polite region). The toast is now visual only (no `role`, no `aria-live`); `ActionOutcome` is the only announcer for the four actions, and the dismiss button's name carries the message.
 
+### Decision: Save, Sign, Cancel and Acknowledge require JavaScript (2026-10-24, accepted)
+
+- **Status: accepted (Phase 9d, user decision).** Creating a draft works without JavaScript; the other four prescribing actions do not.
+- **Why.** Create passes the Server Action straight to `useActionState`, so React renders a real form action and the browser can post it before hydration (the action redirects to the new draft). Save, Sign, Cancel and Acknowledge pass `withOutcomeToast(action, notify)`, a client function that shows the success toast; a client function cannot be posted without JavaScript. Sign also depends on client state anyway: the button is server-rendered disabled until the attestation box is ticked. Cancel lives in a dialog that client state opens.
+- **What does not change.** Authorization, validation and concurrency are the same on every path: the Server Actions re-check the session and role, validate with the shared Zod schemas and pass `expectedVersion` to the database functions, and RLS remains the authority. Without JavaScript, these actions are simply unavailable, never weaker.
+- **Not chosen.** Progressive enhancement for all four would need the toast to come from the server result instead of the client wrapper (for example, reading the `ActionOutcome` after a full-page post) and a no-JS path for the attestation and the cancel dialog. Not worth it for this prototype: the actions are reached from a hydrated page in practice, and the e2e tests run them with JavaScript.
+
 ## Known issues
 
 - **Dates follow UTC, not clinic time.**
