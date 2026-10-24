@@ -207,6 +207,25 @@ Kestrel-Dev was not written to. Migrations 0011–0015 were already on kestrel-t
 - **Checked in the browser on `/dev/chart`:** warning and critical tiles with their words, the six chart points and the hidden table, Privacy masking the values while Warning stayed visible, "Unsaved changes" on a diagnosis edit (cancelled, not saved), a note going from "Unsaved changes" to "Saved" only after the specimen save returned, an empty HbA1c chart, and the Renew link. The dev overlay's hydration warning was `data-cursor-ref` injected by the browser tool, not a mismatch in the app.
 - **Unverified, not passed:** a real screen reader on the chart table and the point tooltips; colour-vision review of the accent chart line; the vitals band at a real hosted chart wider than the specimen; Windows forced-colours mode.
 
+## Phase 9 follow-up note: abnormal-vitals banner and diagnosis row tests (24 Oct 2026)
+
+The chart alert slot now shows a banner when the latest vitals reading has a warning or critical vital (red with the emphasis border when critical, orange hairline otherwise), listing each abnormal vital with its DEMO-V rule. Critical banners come before warning ones. The diagnosis row actions gained a component test (pending, success, conflict, permission and validation errors, Unsaved changes, focus return). Details in [theme.md](theme.md#phase-9-vitals-hba1c-diagnoses-encounter-notes).
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 43 files, 398 passed |
+| `pnpm test:db` (kestrel-test) | 6 files, 62 passed |
+| `pnpm test:int` (kestrel-test) | 4 files, 24 passed |
+| `pnpm test:browser` (all specs) | 301 passed. The HbA1c keyboard test now starts tabbing from "Review vitals", the new last control before the chart on the blocking specimen. |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (38 files scanned) |
+| `pnpm test:e2e` (kestrel-test) | 26 passed, including Elliot critical, Rowan warning and a stable patient with no banner |
+
+Kestrel-Dev was not written to. No migrations, seeds or resets were run; prescriptions and patient medications were not touched.
+
+- **Checked in review screenshots:** the advisory specimen at 1440px and 390px (critical vitals banner first, advisory draft banner second, no horizontal overflow).
+- **Unverified, not passed:** a real screen reader reading the banner; Windows forced-colours mode; the banner with hosted data at widths other than the e2e default.
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.
