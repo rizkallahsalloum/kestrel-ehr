@@ -22,6 +22,8 @@ const DEV_URLS = [
   "/dev/privacy",
   "/dev/privacy?skeleton=1",
   "/dev/privacy?delay=2000",
+  "/dev/toast",
+  "/dev/toast?show=four",
 ];
 
 async function expectAllNotFound(page: Page): Promise<void> {

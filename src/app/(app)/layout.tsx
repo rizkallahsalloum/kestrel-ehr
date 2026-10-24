@@ -1,5 +1,6 @@
 import { unstable_rethrow } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
+import { ToastProvider } from "@/components/ui";
 import { listMyQueue } from "@/features/patients/queries";
 import type { QueuePatient } from "@/features/patients/queue";
 import { requireUser } from "@/lib/auth/guards";
@@ -20,14 +21,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const user = await requireUser();
   const queue = user.role === "clinician" ? await loadQueue() : undefined;
 
+  // The toast provider sits above the pages, so a toast survives the refresh after a Server Action.
   return (
-    <AppShell
-      user={{ fullName: user.fullName, role: user.role }}
-      signOutAction={signOut}
-      queue={queue}
-      renderedAt={new Date().toISOString()}
-    >
-      {children}
-    </AppShell>
+    <ToastProvider>
+      <AppShell
+        user={{ fullName: user.fullName, role: user.role }}
+        signOutAction={signOut}
+        queue={queue}
+        renderedAt={new Date().toISOString()}
+      >
+        {children}
+      </AppShell>
+    </ToastProvider>
   );
 }

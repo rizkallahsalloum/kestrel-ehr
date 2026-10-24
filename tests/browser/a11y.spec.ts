@@ -35,12 +35,13 @@ const PAGES: [string, string][] = [
   ["audit", "/dev/audit"],
   ["audit empty", "/dev/audit?view=empty"],
   ["audit skeleton", "/dev/audit?skeleton=1"],
+  ["toast four", "/dev/toast?show=four"],
   ["server error screen", "/dev/error"],
   ["browser error screen", "/dev/error?kind=client"],
 ];
 
 /** Pages that are layout-sensitive enough to scan at the narrow width as well. */
-const NARROW = new Set(["shell clinician", "shell admin", "shell placeholder", "chart blocking", "prescribing blocking", "prescribing new", "audit"]);
+const NARROW = new Set(["shell clinician", "shell admin", "shell placeholder", "chart blocking", "prescribing blocking", "prescribing new", "audit", "toast four"]);
 
 async function scan(page: Page, state: string): Promise<void> {
   const width = page.viewportSize()?.width ?? 0;

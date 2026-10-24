@@ -1,14 +1,16 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { AttestationCheck, Button, Dialog, FormField, PrivateField, TextInput } from "@/components/ui";
+import { AttestationCheck, Button, Dialog, FormField, PrivateField, TextInput, useToast } from "@/components/ui";
 import {
   acknowledgeFormAction,
   cancelFormAction,
   evaluateFormAction,
   signFormAction,
   type FormState,
+  type WithOutcome,
 } from "../actions";
+import { withOutcomeToast } from "../outcome-text";
 import type { EvaluationResult } from "../schemas";
 import { ActionFeedback } from "./action-feedback";
 
@@ -59,8 +61,9 @@ export function EvaluateButton({ disabledReason, ...ids }: Ids & { disabledReaso
 }
 
 export function AlertAcknowledgeForm({ disabledReason, ...props }: Ids & { alertId: string; disabledReason?: string }) {
-  const [state, formAction, pending] = useActionState<FormState<{ decisionId: string }>, FormData>(
-    acknowledgeFormAction,
+  const notify = useToast();
+  const [state, formAction, pending] = useActionState<FormState<WithOutcome<{ decisionId: string }>>, FormData>(
+    withOutcomeToast(acknowledgeFormAction, notify),
     null,
   );
   const [reason, setReason] = useState("");
@@ -110,8 +113,9 @@ export function SignConfirmation({
   reasons: string[];
   label: (attested: boolean) => string;
 }) {
-  const [state, formAction, pending] = useActionState<FormState<{ prescriptionId: string }>, FormData>(
-    signFormAction,
+  const notify = useToast();
+  const [state, formAction, pending] = useActionState<FormState<WithOutcome<{ prescriptionId: string }>>, FormData>(
+    withOutcomeToast(signFormAction, notify),
     null,
   );
   const [attested, setAttested] = useState(false);
@@ -155,8 +159,9 @@ export function SignConfirmation({
 }
 
 export function CancelDraftDialog(props: Ids & { expectedVersion: number }) {
-  const [state, formAction, pending] = useActionState<FormState<{ prescriptionId: string }>, FormData>(
-    cancelFormAction,
+  const notify = useToast();
+  const [state, formAction, pending] = useActionState<FormState<WithOutcome<{ prescriptionId: string }>>, FormData>(
+    withOutcomeToast(cancelFormAction, notify),
     null,
   );
   const [open, setOpen] = useState(false);

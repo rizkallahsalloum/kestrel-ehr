@@ -246,6 +246,14 @@ export async function cancelPrescription(input: unknown): Promise<ActionResult<{
 
 // Form adapters for useActionState.
 
+/** Result codes for successful actions; the client maps each to fixed text (`outcome-text.ts`). */
+export type PrescriptionOutcome = "draft-saved" | "alert-acknowledged" | "prescription-signed" | "draft-cancelled";
+export type WithOutcome<T> = T & { outcome: PrescriptionOutcome };
+
+function withOutcome<T>(result: ActionResult<T>, outcome: PrescriptionOutcome): ActionResult<WithOutcome<T>> {
+  return result.ok ? ok({ ...result.data, outcome }) : result;
+}
+
 export async function createDraftFormAction(
   _previous: FormState<CreatedDraft>,
   formData: FormData,
@@ -256,10 +264,10 @@ export async function createDraftFormAction(
 }
 
 export async function updateDraftFormAction(
-  _previous: FormState<{ version: number }>,
+  _previous: FormState<WithOutcome<{ version: number }>>,
   formData: FormData,
-): Promise<FormState<{ version: number }>> {
-  return updatePrescriptionDraft(formToObject(formData));
+): Promise<FormState<WithOutcome<{ version: number }>>> {
+  return withOutcome(await updatePrescriptionDraft(formToObject(formData)), "draft-saved");
 }
 
 export async function evaluateFormAction(
@@ -270,22 +278,22 @@ export async function evaluateFormAction(
 }
 
 export async function acknowledgeFormAction(
-  _previous: FormState<{ decisionId: string }>,
+  _previous: FormState<WithOutcome<{ decisionId: string }>>,
   formData: FormData,
-): Promise<FormState<{ decisionId: string }>> {
-  return acknowledgeAlert(formToObject(formData));
+): Promise<FormState<WithOutcome<{ decisionId: string }>>> {
+  return withOutcome(await acknowledgeAlert(formToObject(formData)), "alert-acknowledged");
 }
 
 export async function signFormAction(
-  _previous: FormState<{ prescriptionId: string }>,
+  _previous: FormState<WithOutcome<{ prescriptionId: string }>>,
   formData: FormData,
-): Promise<FormState<{ prescriptionId: string }>> {
-  return signPrescription(formToObject(formData));
+): Promise<FormState<WithOutcome<{ prescriptionId: string }>>> {
+  return withOutcome(await signPrescription(formToObject(formData)), "prescription-signed");
 }
 
 export async function cancelFormAction(
-  _previous: FormState<{ prescriptionId: string }>,
+  _previous: FormState<WithOutcome<{ prescriptionId: string }>>,
   formData: FormData,
-): Promise<FormState<{ prescriptionId: string }>> {
-  return cancelPrescription(formToObject(formData));
+): Promise<FormState<WithOutcome<{ prescriptionId: string }>>> {
+  return withOutcome(await cancelPrescription(formToObject(formData)), "draft-cancelled");
 }

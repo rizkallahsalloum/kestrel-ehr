@@ -1,11 +1,12 @@
 "use client";
 
 import { useActionState, useState, type ReactNode } from "react";
-import { AlertTriangleIcon, Button, NoAlert } from "@/components/ui";
+import { AlertTriangleIcon, Button, NoAlert, useToast } from "@/components/ui";
 import { medicationLabel } from "@/features/chart/alerts";
 import type { MedicationOption, Prescription, PrescriptionAlert } from "@/types/domain";
 import { createDraftFormAction, updateDraftFormAction, type FormState } from "../actions";
 import type { PrescriptionFormValues } from "../form-values";
+import { withOutcomeToast } from "../outcome-text";
 import { labelLines } from "../sig";
 import { getSignReadiness } from "../transitions";
 import { acknowledgementSummary, countAlerts, isDirty, safetyState, signButtonLabel, trackerSteps } from "../workspace";
@@ -49,7 +50,9 @@ type Props = {
  */
 export function DraftWorkspace(props: Props) {
   const [values, setValues] = useState(props.initialValues);
-  const action = props.mode === "create" ? createDraftFormAction : updateDraftFormAction;
+  const notify = useToast();
+  // Create redirects to the new draft; only a save of an existing draft confirms with a toast.
+  const action = props.mode === "create" ? createDraftFormAction : withOutcomeToast(updateDraftFormAction, notify);
   const [state, formAction, pending] = useActionState<FormState<unknown>, FormData>(
     action as (state: FormState<unknown>, formData: FormData) => Promise<FormState<unknown>>,
     null,

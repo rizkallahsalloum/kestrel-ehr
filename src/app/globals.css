@@ -232,8 +232,10 @@
 
   /* ---- Layout dimensions from the HTML references (no Figma token). Components use these names,
      never raw pixel values; everything else snaps to the 4px spacing scale. ---- */
-  --grid-template-columns-shell: 60px minmax(0, 1fr); /* narrow icon rail + content */
-  --grid-template-columns-shell-wide: 76px minmax(0, 1fr); /* labelled rail + content */
+  --spacing-rail: 60px; /* narrow icon rail */
+  --spacing-rail-wide: 76px; /* labelled rail */
+  --grid-template-columns-shell: var(--spacing-rail) minmax(0, 1fr); /* narrow icon rail + content */
+  --grid-template-columns-shell-wide: var(--spacing-rail-wide) minmax(0, 1fr); /* labelled rail + content */
   --grid-template-columns-workspace: minmax(0, 1fr) var(--width-context); /* fluid chart + fixed context column */
   --grid-template-columns-erx: 280px minmax(0, 1fr); /* E-Rx context + form; review spans below */
   --grid-template-columns-erx-wide: 300px minmax(0, 1fr) 380px; /* E-Rx context + form + review */
@@ -242,6 +244,13 @@
   --width-context: 340px;
   --width-dialog: min(420px, calc(100vw - 2rem));
   --max-width-footer: 760px; /* dashboard .footer-note */
+  /* Toast (Phase 9c, no Figma frame): centred over the content column on top of the sticky top bar,
+     so one toast never covers page content; it clears the rail and stays inside the bar's height */
+  --spacing-toast-inset: var(--spacing-sm);
+  --spacing-toast-gap: var(--spacing-xs);
+  --spacing-toast-left: calc(var(--spacing-rail) + var(--spacing-toast-inset));
+  --spacing-toast-left-wide: calc(var(--spacing-rail-wide) + var(--spacing-toast-inset));
+  --max-width-toast: 360px;
   /* sticky offset for the context and review columns: the sticky top bar's height, which grows with
      Today's queue (see --topbar-height below) */
   --spacing-below-topbar: var(--topbar-height);
@@ -301,6 +310,15 @@
   /* Critical alert dot: a ring in the icon's colour grows and fades. Three runs, 4.5s in all, so it
      stops within the 5s limit for motion that starts by itself (WCAG 2.2.2). */
   --animate-alert-pulse: alert-pulse 1.5s ease-out 3;
+  /* Toast entrance: a short fade and drop from the top bar; components use it under motion-safe only. */
+  --animate-toast-in: toast-in 0.2s ease-out both;
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(calc(var(--spacing-xs) * -1));
+    }
+  }
 
   @keyframes alert-pulse {
     from {

@@ -32,6 +32,8 @@ async function expectAnnounced(page: Page, text: RegExp, step: string): Promise<
   await expect(live, `${step}: a live region announces the result`).not.toHaveCount(0, { timeout: 5_000 });
 }
 
+const toasts = (page: Page) => page.locator("[data-toast]");
+
 /** Focus lands on the named heading in the main region, never on document.body. */
 async function expectFocusOnHeading(page: Page, name: string, step: string): Promise<void> {
   const heading = page.getByRole("main").getByRole("heading", { name, exact: true });
@@ -59,6 +61,7 @@ test("clinician drafts, acknowledges an advisory alert, and signs", async ({ pag
   await expect(alerts.getByText("Acknowledged", { exact: true })).toBeVisible();
   await expectAnnounced(page, /\b1 acknowledged/, "Acknowledge");
   await expectFocusOnHeading(page, "Safety decisions", "Acknowledge");
+  await expect(toasts(page).filter({ hasText: "Advisory alert acknowledged." })).toHaveCount(1);
 
   await page.getByRole("checkbox").check();
   await expect(sign).toBeEnabled();
@@ -67,6 +70,7 @@ test("clinician drafts, acknowledges an advisory alert, and signs", async ({ pag
   await expect(page.getByText("Signed (simulated). Not transmitted anywhere.")).toBeVisible();
   await expectAnnounced(page, /Prescription signed/, "Sign");
   await expectFocusOnHeading(page, "Signed (simulated)", "Sign");
+  await expect(toasts(page).filter({ hasText: "Prescription signed (simulated)." })).toHaveCount(1);
   await expect(page.getByText("signed", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Run safety check" })).toHaveCount(0);
 
@@ -146,11 +150,27 @@ test("clinician keeps a draft, then cancels it with feedback", async ({ page }) 
   await expect(page.getByLabel("Dose amount")).toHaveValue("10");
   await expect(page.getByLabel("Quantity")).toHaveValue("30");
 
+  // At 390px the toast sits over the top bar and never covers the review panel's actions.
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByLabel("Quantity").fill("40");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Saved version 2")).toBeVisible();
   await expectAnnounced(page, /Draft saved as version 2\./, "Save draft");
   await expectFocusOnHeading(page, "Review prescription", "Save draft");
+  await expect(toasts(page)).toHaveText(["Draft saved."]);
+  await expect(page.locator("[data-toast-region]")).toHaveAttribute("aria-live", "polite");
+  const toastBox = (await toasts(page).first().boundingBox())!;
+  for (const [label, button] of [
+    ["Save draft", page.getByRole("button", { name: "Save draft" })],
+    ["Sign", page.getByTestId("sign-button")],
+  ] as const) {
+    await button.scrollIntoViewIfNeeded();
+    const b = (await button.boundingBox())!;
+    const now = (await toasts(page).first().boundingBox()) ?? toastBox;
+    const overlap = now.x < b.x + b.width && b.x < now.x + now.width && now.y < b.y + b.height && b.y < now.y + now.height;
+    expect(overlap, `toast covers ${label}`).toBe(false);
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   await trigger.click();
   await dialog.getByLabel("Reason (optional)").fill("Entered in error (synthetic)");
@@ -158,7 +178,8 @@ test("clinician keeps a draft, then cancels it with feedback", async ({ page }) 
   await expect(page.getByText("cancelled", { exact: true })).toBeVisible();
   await expectAnnounced(page, /cancelled/i, "Cancel");
   await expectFocusOnHeading(page, "Cancelled", "Cancel");
-  await expect(page.getByRole("status").filter({ hasText: "Draft cancelled." })).toHaveCount(1);
+  await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Draft cancelled." })).toHaveCount(1);
+  await expect(toasts(page).filter({ hasText: "Draft cancelled." })).toHaveCount(1);
   await expect(page.getByText("This draft was cancelled.")).toBeVisible();
   await expect(trigger).toHaveCount(0);
   await expect(page.getByTestId("sign-button")).toHaveCount(0);
