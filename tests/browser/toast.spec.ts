@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-// Toast specimen (/dev/toast): one polite live region over the top bar, success text only.
+// Toast specimen (/dev/toast): visual-only success text over the top bar; callers announce outcomes.
 
 const region = (page: Page) => page.locator("[data-toast-region]");
 const toasts = (page: Page) => page.locator("[data-toast]");
@@ -36,16 +36,45 @@ const overlaps = (a: Box, b: Box) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 const box = async (locator: Locator) => (await locator.boundingBox())!;
 
-test("one polite status region, never an alert, and the trigger keeps focus", async ({ page }) => {
+test("visual only: not a live region, the dismiss name carries the message, and the trigger keeps focus", async ({ page }) => {
   await open(page);
   await trigger(page, "Draft saved.");
   await expect(region(page)).toHaveCount(1);
-  await expect(region(page)).toHaveAttribute("role", "status");
-  await expect(region(page)).toHaveAttribute("aria-live", "polite");
-  await expect(page.getByRole("status").filter({ hasText: "Draft saved." })).toHaveCount(1);
-  await expect(region(page).getByRole("alert")).toHaveCount(0);
+  const live = "[aria-live], [role=status], [role=alert], [role=log]";
+  expect(await region(page).evaluate((el, sel) => el.closest(sel) === null && el.querySelector(sel) === null, live)).toBe(true);
+  await expect(page.getByRole("status").filter({ hasText: "Draft saved." })).toHaveCount(0);
   await expect(show(page, "Draft saved.")).toBeFocused();
-  await expect(toasts(page).getByRole("button", { name: "Dismiss notification" })).toBeVisible();
+  await expect(toasts(page).getByRole("button", { name: "Dismiss: Draft saved", exact: true })).toBeVisible();
+});
+
+const OUTCOMES = [
+  { action: "Save draft", toast: "Draft saved.", announced: /Draft saved/ },
+  { action: "Acknowledge", toast: "Advisory alert acknowledged.", announced: /acknowledged/i },
+  { action: "Sign", toast: "Prescription signed (simulated).", announced: /Prescription signed/ },
+  { action: "Cancel", toast: "Draft cancelled.", announced: /Draft cancelled/ },
+];
+
+test("one announcer: for each of the four actions exactly one live region carries the outcome", async ({ page }) => {
+  await open(page);
+  for (const { action, toast, announced } of OUTCOMES) {
+    await expect(async () => {
+      await page.getByRole("button", { name: `Simulate ${action}`, exact: true }).click();
+      await expect(toasts(page).filter({ hasText: toast })).toHaveCount(1, { timeout: 1_000 });
+    }).toPass({ timeout: 30_000 });
+    const carriers = await page.evaluate(
+      ({ source, flags }) => {
+        const pattern = new RegExp(source, flags);
+        const live = "[role=status], [role=alert], [role=log], [aria-live]:not([aria-live=off])";
+        return [...document.querySelectorAll(live)]
+          .filter((el) => pattern.test(el.textContent ?? "") && !el.parentElement?.closest(live))
+          .map((el) => el.hasAttribute("data-toast-region") || el.closest("[data-toast-region]") !== null);
+      },
+      { source: announced.source, flags: announced.flags },
+    );
+    expect(carriers, `${action}: one live region, and it is not the toast`).toEqual([false]);
+    await expect(toasts(page).getByRole("button", { name: `Dismiss: ${toast.replace(/\.$/, "")}`, exact: true })).toBeVisible();
+    await toasts(page).getByRole("button", { name: `Dismiss: ${toast.replace(/\.$/, "")}`, exact: true }).click();
+  }
 });
 
 test("token colours: inverse surface, on-inverse text and icons, never the success green", async ({ page }) => {
@@ -68,9 +97,9 @@ test("token colours: inverse surface, on-inverse text and icons, never the succe
 test("keyboard: Tab reaches the dismiss button, focus pauses the timer, Escape dismisses and returns focus", async ({ page }) => {
   await open(page);
   await trigger(page, "Draft saved.");
-  const before = page.getByRole("button", { name: "Save draft" });
+  const before = page.getByRole("button", { name: "Save draft", exact: true });
   await before.focus();
-  const dismiss = toasts(page).getByRole("button", { name: "Dismiss notification" });
+  const dismiss = toasts(page).getByRole("button", { name: "Dismiss: Draft saved" });
   for (let i = 0; i < 10 && !(await dismiss.evaluate((el) => el === document.activeElement)); i++) {
     await page.keyboard.press("Tab");
   }
@@ -106,7 +135,7 @@ test("three at most; the fourth waits; duplicates are dropped", async ({ page })
   await expect(toasts(page)).toHaveText(["Draft saved.", "Advisory alert acknowledged.", "Prescription signed (simulated)."]);
   await show(page, "Draft saved.").click();
   await expect(toasts(page)).toHaveCount(3);
-  await toasts(page).first().getByRole("button", { name: "Dismiss notification" }).click();
+  await toasts(page).first().getByRole("button", { name: "Dismiss: Draft saved" }).click();
   await expect(toasts(page)).toHaveText(["Advisory alert acknowledged.", "Prescription signed (simulated).", "Draft cancelled."]);
 });
 
@@ -149,7 +178,7 @@ for (const width of [1440, 1024, 390]) {
     const rail = await box(page.getByRole("navigation", { name: "Main" }));
     expect(toast.x).toBeGreaterThanOrEqual(rail.x + rail.width);
     for (const name of ["Sign prescription (simulated)", "Save draft"]) {
-      expect(overlaps(toast, await box(page.getByRole("button", { name })))).toBe(false);
+      expect(overlaps(toast, await box(page.getByRole("button", { name, exact: true })))).toBe(false);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });

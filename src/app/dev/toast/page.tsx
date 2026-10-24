@@ -21,7 +21,9 @@ export default async function ToastSpecimenPage({ searchParams }: PageProps<"/de
     <ToastProvider>
       <AppShell user={CLINICIAN} activePath="/patients" queue={demoQueue(params.queue)} renderedAt={new Date().toISOString()}>
         <div className="flex flex-col gap-6">
-          <h1 className="font-display text-heading-xl font-medium tracking-tight">Toast specimen</h1>
+          <h1 id="toast-specimen-title" tabIndex={-1} className="font-display text-heading-xl font-medium tracking-tight">
+            Toast specimen
+          </h1>
           <p className="text-body-sm text-ink-secondary">
             Development specimen. States: <code>?show=one</code>, <code>?show=four</code> (three on screen, one
             waiting), <code>?show=dialog</code> (waits for the dialog). Synthetic patient for Privacy mode:{" "}

@@ -32,6 +32,22 @@ async function expectAnnounced(page: Page, text: RegExp, step: string): Promise<
   await expect(live, `${step}: a live region announces the result`).not.toHaveCount(0, { timeout: 5_000 });
 }
 
+/** Exactly one live region anywhere on the page carries the outcome: the toast must not repeat it. */
+async function expectSingleAnnouncer(page: Page, text: RegExp, step: string): Promise<void> {
+  const count = () =>
+    page.evaluate(
+      ({ source, flags }) => {
+        const pattern = new RegExp(source, flags);
+        const live = "[role=status], [role=alert], [role=log], [aria-live]:not([aria-live=off])";
+        return [...document.querySelectorAll(live)].filter(
+          (el) => pattern.test(el.textContent ?? "") && !el.parentElement?.closest(live),
+        ).length;
+      },
+      { source: text.source, flags: text.flags },
+    );
+  await expect.poll(count, { message: `${step}: one live region carries the outcome`, timeout: 5_000 }).toBe(1);
+}
+
 const toasts = (page: Page) => page.locator("[data-toast]");
 
 /** Focus lands on the named heading in the main region, never on document.body. */
@@ -62,6 +78,7 @@ test("clinician drafts, acknowledges an advisory alert, and signs", async ({ pag
   await expectAnnounced(page, /\b1 acknowledged/, "Acknowledge");
   await expectFocusOnHeading(page, "Safety decisions", "Acknowledge");
   await expect(toasts(page).filter({ hasText: "Advisory alert acknowledged." })).toHaveCount(1);
+  await expectSingleAnnouncer(page, /acknowledged/i, "Acknowledge");
 
   await page.getByRole("checkbox").check();
   await expect(sign).toBeEnabled();
@@ -71,6 +88,7 @@ test("clinician drafts, acknowledges an advisory alert, and signs", async ({ pag
   await expectAnnounced(page, /Prescription signed/, "Sign");
   await expectFocusOnHeading(page, "Signed (simulated)", "Sign");
   await expect(toasts(page).filter({ hasText: "Prescription signed (simulated)." })).toHaveCount(1);
+  await expectSingleAnnouncer(page, /Prescription signed/, "Sign");
   await expect(page.getByText("signed", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Run safety check" })).toHaveCount(0);
 
@@ -158,7 +176,8 @@ test("clinician keeps a draft, then cancels it with feedback", async ({ page }) 
   await expectAnnounced(page, /Draft saved as version 2\./, "Save draft");
   await expectFocusOnHeading(page, "Review prescription", "Save draft");
   await expect(toasts(page)).toHaveText(["Draft saved."]);
-  await expect(page.locator("[data-toast-region]")).toHaveAttribute("aria-live", "polite");
+  await expectSingleAnnouncer(page, /Draft saved/, "Save draft");
+  await expect(toasts(page).getByRole("button", { name: "Dismiss: Draft saved", exact: true })).toBeVisible();
   const toastBox = (await toasts(page).first().boundingBox())!;
   for (const [label, button] of [
     ["Save draft", page.getByRole("button", { name: "Save draft" })],
@@ -180,6 +199,7 @@ test("clinician keeps a draft, then cancels it with feedback", async ({ page }) 
   await expectFocusOnHeading(page, "Cancelled", "Cancel");
   await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Draft cancelled." })).toHaveCount(1);
   await expect(toasts(page).filter({ hasText: "Draft cancelled." })).toHaveCount(1);
+  await expectSingleAnnouncer(page, /Draft cancelled/, "Cancel");
   await expect(page.getByText("This draft was cancelled.")).toBeVisible();
   await expect(trigger).toHaveCount(0);
   await expect(page.getByTestId("sign-button")).toHaveCount(0);

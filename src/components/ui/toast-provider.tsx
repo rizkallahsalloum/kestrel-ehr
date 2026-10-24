@@ -41,6 +41,11 @@ function useDialogOpen(): boolean {
   );
 }
 
+/** The toast is not a live region, so its button name is the only way a screen reader meets the text. */
+function dismissLabel(message: string): string {
+  return `Dismiss: ${message.replace(/\.$/, "")}`;
+}
+
 function Toast({
   toast,
   paused,
@@ -79,7 +84,7 @@ function Toast({
       <button
         type="button"
         onClick={(event) => onDismiss(toast.id, event.detail === 0)}
-        aria-label="Dismiss notification"
+        aria-label={dismissLabel(toast.message)}
         className="grid size-control-sm shrink-0 place-items-center rounded-control text-on-inverse hover:bg-inverse-raised focus-visible:outline-on-inverse"
       >
         <CloseIcon />
@@ -89,9 +94,11 @@ function Toast({
 }
 
 /**
- * One polite live region, fixed over the top bar. Toasts auto-dismiss after six seconds, pause while
- * hovered or focused, close with their button or Escape, never take focus, and wait while a dialog
- * is open. Lives in the app layout so it survives the refresh after a Server Action.
+ * Visual-only confirmations, fixed over the top bar. Not a live region: each caller already announces
+ * its outcome once (the E-Rx ActionOutcome), and a second announcer would repeat it. Toasts
+ * auto-dismiss after six seconds, pause while hovered or focused, close with their button or Escape,
+ * never take focus, and wait while a dialog is open. Lives in the app layout so it survives the
+ * refresh after a Server Action.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState(EMPTY_TOAST_QUEUE);
@@ -125,9 +132,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         ref={region}
-        role="status"
-        aria-live="polite"
-        aria-atomic="false"
         data-toast-region=""
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}

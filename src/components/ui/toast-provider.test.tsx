@@ -21,21 +21,23 @@ function setup() {
   const trigger = screen.getByRole("button", { name: "Run action" });
   trigger.focus();
   fireEvent.click(trigger);
-  return { trigger, region: screen.getByRole("status") };
+  return { trigger, region: document.querySelector<HTMLElement>("[data-toast-region]")! };
 }
 
 const toasts = () => document.querySelectorAll("[data-toast]");
+const dismissButton = () => screen.getByRole("button", { name: "Dismiss: Draft saved" });
 
 describe("ToastProvider", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it("announces in one polite status region and does not take focus", () => {
+  it("is visual only: no live region, the message is in the dismiss name, and focus stays put", () => {
     const { trigger, region } = setup();
-    expect(region.getAttribute("aria-live")).toBe("polite");
     expect(region.textContent).toContain("Draft saved.");
+    expect(region.closest("[aria-live], [role=status], [role=alert], [role=log]")).toBeNull();
+    expect(region.querySelector("[aria-live], [role=status], [role=alert], [role=log]")).toBeNull();
+    expect(dismissButton()).toBeTruthy();
     expect(document.activeElement).toBe(trigger);
-    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("dismisses itself after six seconds, not before", () => {
@@ -61,7 +63,7 @@ describe("ToastProvider", () => {
 
   it("pauses while focused; Escape dismisses and returns focus to where it was", () => {
     const { trigger } = setup();
-    const dismiss = screen.getByRole("button", { name: "Dismiss notification" });
+    const dismiss = dismissButton();
     act(() => dismiss.focus());
     act(() => vi.advanceTimersByTime(TOAST_DURATION_MS * 2));
     expect(toasts()).toHaveLength(1);
@@ -72,7 +74,7 @@ describe("ToastProvider", () => {
 
   it("the dismiss button closes the toast", () => {
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss notification" }));
+    fireEvent.click(dismissButton());
     expect(toasts()).toHaveLength(0);
   });
 });
