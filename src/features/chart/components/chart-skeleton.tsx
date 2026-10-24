@@ -1,21 +1,12 @@
-import { cn, LoadingRegion, NoAlert, SkeletonBlock, SkeletonLine } from "@/components/ui";
+import { cn, LoadingRegion, SkeletonBlock, SkeletonLine } from "@/components/ui";
 import { DiagnosisTableSkeleton } from "@/features/diagnoses/components/diagnosis-table";
 import { EncounterNotesSkeleton } from "@/features/encounter-notes/components/encounter-notes-panel";
 import { Hba1cChartSkeleton } from "@/features/labs/components/hba1c-chart";
 import { VitalsBandSkeleton } from "@/features/vitals/components/vitals-band";
-import { NO_DRAFT_ALERTS } from "./chart-alert-slot";
-import { CHART_FOOTER } from "./patient-chart-view";
 
-// Mirrors PatientChartView: same grid, card boxes and line heights, so the swap to the real chart
-// keeps the columns and the hero in place. Rows stand in for typical content.
-
-function TagSkeleton({ width }: { width: string }) {
-  return (
-    <span className="inline-flex rounded-pill border border-line-subtle bg-surface-warm px-2.5 py-0.5 text-label-sm">
-      <SkeletonLine width={width} />
-    </span>
-  );
-}
+// The chart page renders the real hero, alert slot and allergy panel first (ChartLayout), so these
+// stand in only for what streams after them: same card boxes and line heights as ChartMain and the
+// medication panel. Rows stand in for typical content.
 
 /** Age and DOB, then MRN: two unbreakable runs that wrap onto separate lines on narrow screens. */
 export function DemographicsSkeleton({ className }: { className?: string }) {
@@ -24,34 +15,6 @@ export function DemographicsSkeleton({ className }: { className?: string }) {
       <SkeletonLine width="w-38" />
       <SkeletonLine width="w-25" />
     </p>
-  );
-}
-
-export function HeroSkeleton() {
-  return (
-    <div
-      data-skeleton="hero"
-      className="flex flex-wrap items-start justify-between gap-5 rounded-card border border-line-subtle bg-surface px-5 py-5 shadow-level-1 md:px-6.5 md:py-5.5"
-    >
-      <div className="flex min-w-0 items-center gap-4">
-        <SkeletonBlock className="size-14 shrink-0 rounded-full" />
-        <div className="min-w-0">
-          <SkeletonLine className="mb-1 text-heading-xl" width="w-52" />
-          <DemographicsSkeleton className="gap-y-1" />
-          <p className="mt-3 flex gap-2 overflow-hidden contain-inline-size">
-            <TagSkeleton width="w-36" />
-            <TagSkeleton width="w-28" />
-          </p>
-          <p className="mt-2 flex flex-wrap gap-2">
-            <TagSkeleton width="w-32" />
-            <TagSkeleton width="w-24" />
-          </p>
-        </div>
-      </div>
-      <span className="inline-flex min-h-7 shrink-0 items-center rounded-pill px-3 py-1 text-label-sm">
-        <SkeletonLine width="w-40" />
-      </span>
-    </div>
   );
 }
 
@@ -71,24 +34,6 @@ export function PanelSkeleton({ rows, className }: { rows: number; className?: s
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-/**
- * The alert slot's smallest state: the dashed no-alert box every chart without draft banners shows,
- * with the same text hidden underneath so it wraps the same way. Banners, when present, are taller
- * and push the content below by their own height minus this box.
- */
-function AlertSlotSkeleton() {
-  return (
-    <div data-skeleton="alerts">
-      <NoAlert icon={<SkeletonBlock className="size-4 shrink-0 rounded-full" />}>
-        <span className="relative">
-          <span className="invisible">{NO_DRAFT_ALERTS}</span>
-          <SkeletonBlock className="absolute inset-x-0 inset-y-0.5" />
-        </span>
-      </NoAlert>
     </div>
   );
 }
@@ -118,27 +63,32 @@ function PrescriptionsCardSkeleton() {
   );
 }
 
-export function ChartSkeleton() {
+/** Fallback for `ChartLayout`'s `main`: everything below the alert slot. The one loading status. */
+export function ChartMainSkeleton() {
   return (
-    <LoadingRegion label="Loading patient chart" className="flex flex-col gap-4">
-      <div className="grid items-start gap-lg workspace:grid-cols-workspace">
-        <div data-skeleton="main-column" className="flex min-w-0 flex-col gap-4.5">
-          <HeroSkeleton />
-          <AlertSlotSkeleton />
-          <div className="flex flex-col gap-4.5">
-            <VitalsBandSkeleton />
-            <Hba1cChartSkeleton />
-            <DiagnosisTableSkeleton />
-            <PrescriptionsCardSkeleton />
-            <EncounterNotesSkeleton />
-          </div>
-        </div>
-        <div data-skeleton="aside" className="flex flex-col gap-4 workspace:sticky workspace:top-below-topbar">
-          <PanelSkeleton rows={2} />
-          <PanelSkeleton rows={1} />
-        </div>
-      </div>
-      <p className="max-w-footer text-label-sm text-ink-muted">{CHART_FOOTER}</p>
+    <LoadingRegion label="Loading patient chart" className="flex flex-col gap-4.5">
+      <VitalsBandSkeleton />
+      <Hba1cChartSkeleton />
+      <DiagnosisTableSkeleton />
+      <PrescriptionsCardSkeleton />
+      <EncounterNotesSkeleton />
     </LoadingRegion>
   );
+}
+
+/** Fallback for `ChartLayout`'s `medications`, under the real allergy panel. */
+export function MedicationPanelSkeleton() {
+  return (
+    <div aria-hidden="true" data-skeleton="medications">
+      <PanelSkeleton rows={1} />
+    </div>
+  );
+}
+
+/**
+ * Route `loading.tsx`: shown only until the hero and the alert slot are ready, then the page itself
+ * draws them with `ChartMainSkeleton` below. Nothing visible, so nothing jumps when it is replaced.
+ */
+export function ChartRouteLoading() {
+  return <LoadingRegion label="Loading patient chart">{null}</LoadingRegion>;
 }

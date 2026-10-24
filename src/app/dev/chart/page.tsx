@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { AppShell, type ShellUser } from "@/components/shell/app-shell";
-import { ChartSkeleton } from "@/features/chart/components/chart-skeleton";
-import { PatientChartView } from "@/features/chart/components/patient-chart-view";
+import { ChartMainSkeleton, MedicationPanelSkeleton } from "@/features/chart/components/chart-skeleton";
+import { AllergyPanel } from "@/features/chart/components/clinical-lists";
+import {
+  ChartAlerts,
+  ChartHero,
+  ChartLayout,
+  ChartMain,
+  ChartMedications,
+} from "@/features/chart/components/patient-chart-view";
 import { Delayed, delayParam } from "../delayed";
 import { demoQueue } from "../demo-queue";
 import type { PatientChart } from "@/features/chart/queries";
@@ -139,6 +146,15 @@ const CHARTS = {
     draftAlerts: [alert("31", "31", "advisory", RULE_BETA_GAMMA), alert("32", "32", "blocking", RULE_ALPHA)],
     ...WELL_CASE,
   },
+  // Critical vitals banner alone: no drafts, SpO₂ in the demo critical band.
+  "critical-vitals": {
+    patient: patient(6, "Jun", "Fixture", "1990-04-18", "male"),
+    allergies: [],
+    medications: [],
+    prescriptions: [],
+    draftAlerts: [],
+    ...ASTHMA_CASE,
+  },
   "no-allergies": {
     patient: patient(4, "Zoë", "Sampleton", "2001-01-09", "female"),
     allergies: [],
@@ -148,6 +164,12 @@ const CHARTS = {
     ...EMPTY_CASE,
   },
 } satisfies Record<string, PatientChart>;
+
+/** `?alertError=1`: the alert slot fails while rendering, to show its own error boundary. */
+async function FailingAlerts(): Promise<ReactNode> {
+  await Promise.resolve();
+  throw new Error("Specimen alert slot failure (synthetic).");
+}
 
 type View = keyof typeof CHARTS;
 const VIEWS = Object.keys(CHARTS) as View[];
@@ -174,17 +196,25 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
   const chart = chartFor(view);
   const own = chart.notes.ownToday;
   const saveMode: StubSaveMode = params.noteSave === "fail" || params.noteSave === "conflict" ? params.noteSave : "ok";
+  const notesEditor = (
+    <StubNotesEditor
+      key={view}
+      mode={saveMode}
+      initial={own ? { noteId: own.id, version: own.version, body: own.body, savedAt: own.saved_at } : null}
+    />
+  );
+  const ref = chart.patient.public_ref;
+  // Same split as the chart page: hero, alerts and allergies first; the rest behind the skeleton.
+  const later = (node: ReactNode, fallback: ReactNode) =>
+    params.skeleton ? fallback : delay ? <Suspense fallback={fallback}><Delayed ms={delay}>{node}</Delayed></Suspense> : node;
   const content = (
     <>
-      <PatientChartView
-        chart={chart}
-        notesEditor={
-          <StubNotesEditor
-            key={view}
-            mode={saveMode}
-            initial={own ? { noteId: own.id, version: own.version, body: own.body, savedAt: own.saved_at } : null}
-          />
-        }
+      <ChartLayout
+        hero={<ChartHero header={chart} />}
+        alerts={params.alertError ? <FailingAlerts /> : <ChartAlerts patientRef={ref} data={chart} />}
+        main={later(<ChartMain header={chart} data={chart} rest={chart} notesEditor={notesEditor} />, <ChartMainSkeleton />)}
+        allergies={<AllergyPanel allergies={chart.allergies} />}
+        medications={later(<ChartMedications patientRef={ref} rest={chart} />, <MedicationPanelSkeleton />)}
       />
       <p className="mt-6 text-label-sm text-ink-muted">
         Development specimen. Views:{" "}
@@ -211,15 +241,7 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
       queue={demoQueue(params.queue, params.queueOrder)}
       renderedAt={new Date().toISOString()}
       searchAction="/dev/shell" searchHiddenFields={{ view: "clinician" }}>
-      {params.skeleton ? (
-        <ChartSkeleton />
-      ) : delay ? (
-        <Suspense fallback={<ChartSkeleton />}>
-          <Delayed ms={delay}>{content}</Delayed>
-        </Suspense>
-      ) : (
-        content
-      )}
+      {content}
     </AppShell>
   );
 }

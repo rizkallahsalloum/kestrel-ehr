@@ -65,12 +65,9 @@ for (const width of CHART_WIDTHS) {
     if (width > 1180) expect(aside!.x).toBeGreaterThan(main!.x + main!.width);
     else expect(aside!.y).toBeGreaterThan(main!.y + main!.height);
 
-    // On narrow screens a long patient name wraps onto a second line, which the skeleton cannot
-    // predict; allow one heading line there.
-    const nameLine = await page
-      .getByRole("heading", { level: 1 })
-      .evaluate((h1) => parseFloat(getComputedStyle(h1).lineHeight));
-    expectSameBox(skeleton.header, chart.header, "hero", { heightTolerance: width <= 760 ? nameLine : 0 });
+    // The hero is the real one in both (it renders before anything streams), so it matches exactly,
+    // including a name that wraps at narrow widths.
+    expectSameBox(skeleton.header, chart.header, "hero");
     // Stacked, the side column sits below chart content of varying length; only side by side
     // does its position belong to the layout.
     chart.columns.forEach((column, i) =>
@@ -124,47 +121,70 @@ for (const width of RX_WIDTHS) {
   });
 }
 
-// The CLS metric only counts elements present before and after; the skeleton is replaced as a whole,
-// so the jump a reader sees is measured directly: where the vitals band starts in each.
-const vitalsTop = (page: Page, selector: string) =>
+// The layout-shift score cannot prove this: it only scores elements that exist in both frames and
+// move. A skeleton that is replaced as a whole scores 0 however far the content below it lands from
+// where the skeleton drew it. So the jump a reader sees is measured directly, in one streaming load:
+// the hero and the vitals band while the skeleton shows, then again once the chart has replaced it.
+const CHART_CASES = [
+  ["critical vitals banner", "critical-vitals"],
+  ["draft banner", "blocking"],
+  ["no banners", "no-drafts"],
+  ["critical vitals and advisory draft banners", "advisory"],
+] as const;
+
+const top = (page: Page, selector: string) =>
   page.locator(selector).evaluate((el) => el.getBoundingClientRect().y + window.scrollY);
 
 for (const width of [1440, 1024, 390]) {
-  test(`chart skeleton reserves the no-alert box: content below the alerts moves only by banner height at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    const offsets: Record<string, number> = {};
-    const alertBox: Record<string, { top: number; height: number }> = {};
-    const box = (selector: string) =>
-      page.locator(selector).evaluate((el) => {
-        const r = el.getBoundingClientRect();
-        return { top: r.y + window.scrollY, height: r.height };
-      });
-    for (const view of ["no-drafts", "blocking", "advisory"] as const) {
-      await page.goto(`/dev/chart?view=${view}&skeleton=1`);
+  for (const [name, view] of CHART_CASES) {
+    test(`chart, ${name}: the hero and the vitals band do not move when the chart streams in at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto(`/dev/chart?view=${view}&delay=2500`, { waitUntil: "commit" });
+      await expect(page.locator("[data-skeleton=vitals]")).toBeVisible({ timeout: 10_000 });
       await hideDevOverlay(page);
-      const skeletonTop = await vitalsTop(page, "[data-skeleton=vitals]");
-      if (view === "no-drafts") alertBox.skeleton = await box("[data-skeleton=alerts] > div");
-      await page.goto(`/dev/chart?view=${view}`);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await hideDevOverlay(page);
-      offsets[view] = (await vitalsTop(page, "section[aria-labelledby=vitals-heading]")) - skeletonTop;
-      if (view === "no-drafts") alertBox.chart = await box("section[aria-labelledby=chart-alerts-heading] > div");
-    }
-    console.log(`Vitals band offset after load at ${width}px: ${JSON.stringify(offsets)}; no-alert box ${JSON.stringify(alertBox)}`);
-    // The reserved box is the real one: same height whatever the width (the text wraps the same way).
-    expect(Math.abs(alertBox.skeleton!.height - alertBox.chart!.height)).toBeLessThanOrEqual(0.5);
-    // Anything left over comes from above the alerts (the hero), not from the reserved box.
-    expect(offsets["no-drafts"]! - (alertBox.chart!.top - alertBox.skeleton!.top)).toBeCloseTo(0, 0);
-    // No banners: the skeleton's no-alert box is the real one, so nothing below it moves. On narrow
-    // screens the patient name can wrap to a second line, which the skeleton cannot predict.
-    const nameLine = await page.getByRole("heading", { level: 1 }).evaluate((h1) => parseFloat(getComputedStyle(h1).lineHeight));
-    expect(Math.abs(offsets["no-drafts"]!)).toBeLessThanOrEqual(width <= 760 ? nameLine + 0.5 : 0.5);
-    // With banners, content moves down by the banners' extra height, never up.
-    expect(offsets.blocking).toBeGreaterThan(0);
-    expect(offsets.advisory).toBeGreaterThan(0);
-  });
+      const hero = "main header:has(h1)";
+      const skeleton = { hero: await top(page, hero), vitals: await top(page, "[data-skeleton=vitals]") };
+      await expect(page.locator("[data-skeleton=page]")).toHaveCount(0, { timeout: 10_000 });
+      const final = { hero: await top(page, hero), vitals: await top(page, "section[aria-labelledby=vitals-heading]") };
+      console.log(`Chart ${view} at ${width}px: skeleton ${JSON.stringify(skeleton)}, final ${JSON.stringify(final)}`);
+      expect(Math.abs(final.hero - skeleton.hero), "hero jump").toBeLessThanOrEqual(0.5);
+      expect(Math.abs(final.vitals - skeleton.vitals), "vitals band jump").toBeLessThanOrEqual(0.5);
+    });
+  }
 }
+
+test("chart at 390px: the long specimen name wraps, and the skeleton time already has the wrapped hero", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto("/dev/chart?view=no-drafts&skeleton=1");
+  await hideDevOverlay(page);
+  const lines = await page
+    .getByRole("heading", { level: 1 })
+    .evaluate((h1) => Math.round(h1.getBoundingClientRect().height / parseFloat(getComputedStyle(h1).lineHeight)));
+  expect(lines).toBeGreaterThan(1);
+  await expect(page.locator("[data-skeleton=vitals]")).toBeVisible();
+});
+
+test("chart skeleton has no alert placeholder: the real alert slot and allergy panel are there", async ({ page }) => {
+  await page.goto("/dev/chart?view=blocking&skeleton=1");
+  await hideDevOverlay(page);
+  await expect(page.locator("[data-skeleton=alerts]")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Demo safety alerts" })).toContainText("Allergy conflict");
+  await expect(page.getByRole("complementary", { name: "Allergies and medications" }).locator("[data-skeleton=medications]")).toHaveCount(1);
+  await expect(page.locator("[data-skeleton=page]")).toHaveCount(1);
+});
+
+test("an alert slot failure stays in the alert area: an inline alert, the hero and the chart remain", async ({ page }) => {
+  await page.goto("/dev/chart?view=blocking&alertError=1");
+  await hideDevOverlay(page);
+  const slot = page.locator("[data-alert-slot-error]");
+  await expect(slot).toBeVisible({ timeout: 15_000 });
+  await expect(slot.getByRole("alert")).toContainText("Demo safety alerts could not be loaded");
+  await expect(slot).not.toContainText("Specimen alert slot failure");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.locator("section[aria-labelledby=vitals-heading]")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+});
 
 type AuditLayout = { heading: Box; intro: Box; card: Box; firstRow: Box; headers: Box[] };
 
