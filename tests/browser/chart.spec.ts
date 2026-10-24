@@ -242,6 +242,20 @@ const tile = (page: Page, kind: string) => vitalsBand(page).locator(`[data-vital
 test("vitals: status by text and icon or dot, red only for critical, every tile the same size", async ({ page }) => {
   await open(page, "advisory");
   await expect(tile(page, "spo2")).toContainText("91");
+  // Shared unit formatter: no space before symbols, a space before words; the symbol sits on the number.
+  await expect(tile(page, "spo2").locator("p").nth(1)).toHaveText("91%");
+  await expect(tile(page, "temperature").locator("p").nth(1)).toHaveText("99.1°F");
+  await expect(tile(page, "heart_rate").locator("p").nth(1)).toHaveText("108 bpm");
+  await expect(tile(page, "blood_pressure").locator("p").nth(1)).toHaveText("124/80 mmHg");
+  const gap = await tile(page, "spo2")
+    .locator("p")
+    .nth(1)
+    .evaluate((p) => {
+      const value = p.querySelector("[data-private-value]")!.getBoundingClientRect();
+      const unit = [...p.querySelectorAll("span")].find((s) => s.textContent === "%")!.getBoundingClientRect();
+      return unit.left - value.right;
+    });
+  expect(Math.abs(gap)).toBeLessThanOrEqual(1);
   await expect(tile(page, "spo2").locator("[data-vital-status]")).toHaveText("Critical");
   await expect(tile(page, "spo2").locator("[data-vital-status] svg")).toHaveAttribute("data-icon", "alert-triangle");
   expect(await borderColor(tile(page, "spo2"))).toBe(await tokenColor(page, "danger"));
@@ -272,7 +286,7 @@ test("abnormal vitals: a critical banner leads the slot and lists every abnormal
   await expect(banner.getByText("Critical vital sign on the latest reading: SpO₂", { exact: true })).toBeVisible();
   await expect(banner).toContainText("illustrative demo rules, not clinical guidance");
   const items = await banner.locator("li").allTextContents();
-  expect(items).toEqual(["SpO₂ 91 %: Critical (DEMO-V005)", "Heart rate 108 bpm: Warning (DEMO-V002)"]);
+  expect(items).toEqual(["SpO₂ 91%: Critical (DEMO-V005)", "Heart rate 108 bpm: Warning (DEMO-V002)"]);
   expect(await borderWidth(banner)).toBe("2px");
   expect(await borderColor(banner)).toBe(await tokenColor(page, "danger"));
   expect(await style(banner, "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));

@@ -2,6 +2,7 @@ import { AlertBanner, buttonStyles, PrivateText } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 import { abnormalVitals, type AbnormalVital } from "../abnormal";
 import type { VitalReading } from "../thresholds";
+import { unitSeparator, VITAL_UNIT } from "../units";
 import { VITAL_STATUS_LABEL, VITAL_TILE } from "./vitals-band";
 
 function title(critical: AbnormalVital[]): string {
@@ -46,7 +47,9 @@ export function AbnormalVitalsBanner({ reading }: { reading: VitalReading | unde
             const tile = VITAL_TILE[vital.kind];
             return (
               <li key={vital.kind} data-vital={vital.kind}>
-                {tile.label} <PrivateText label={tile.label}>{tile.value(reading)}</PrivateText> {tile.unit}:{" "}
+                {tile.label} <PrivateText label={tile.label}>{tile.value(reading)}</PrivateText>
+                {unitSeparator(vital.kind)}
+                {VITAL_UNIT[vital.kind].unit}:{" "}
                 <span className="font-semibold">{VITAL_STATUS_LABEL[vital.status]}</span> ({vital.rule.code})
               </li>
             );

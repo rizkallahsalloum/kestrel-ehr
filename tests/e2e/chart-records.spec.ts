@@ -70,7 +70,7 @@ test("a critical latest vital raises a chart banner for Elliot; Rowan's warning 
   await page.goto(`/patients/${await patientRef(PATIENTS.northTwo)}`);
   await expect(banner).toHaveAttribute("data-severity", "critical");
   await expect(banner).toContainText("Critical vital sign on the latest reading: SpO₂");
-  await expect(banner.locator("[data-vital=spo2]")).toContainText("SpO₂ 91 %: Critical (DEMO-V005)");
+  await expect(banner.locator("[data-vital=spo2]")).toContainText("SpO₂ 91%: Critical (DEMO-V005)");
   await expect(banner.locator("[data-vital=heart_rate]")).toContainText("Heart rate 108 bpm: Warning (DEMO-V002)");
   await expect(slot.locator("[data-severity]").first()).toContainText("Critical vital sign");
 

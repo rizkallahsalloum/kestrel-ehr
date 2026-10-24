@@ -31,15 +31,15 @@ describe("AbnormalVitalsBanner", () => {
     render(<AbnormalVitalsBanner reading={{ ...STABLE, heart_rate: 108, spo2: 91 }} />);
     expect(screen.getByText("Critical vital sign on the latest reading: SpO₂")).toBeTruthy();
     expect(document.querySelector("[data-severity]")!.getAttribute("data-severity")).toBe("critical");
-    expect(items()).toEqual(["SpO₂ 91 %: Critical (DEMO-V005)", "Heart rate 108 bpm: Warning (DEMO-V002)"]);
+    expect(items()).toEqual(["SpO₂ 91%: Critical (DEMO-V005)", "Heart rate 108 bpm: Warning (DEMO-V002)"]);
   });
 
   it("names every critical vital in the title", () => {
     render(<AbnormalVitalsBanner reading={{ ...STABLE, spo2: 90, temperature_f: 103.4, systolic: 150 }} />);
     expect(screen.getByText("Critical vital signs on the latest reading: SpO₂, Temperature")).toBeTruthy();
     expect(items()).toEqual([
-      "SpO₂ 90 %: Critical (DEMO-V005)",
-      "Temperature 103.4 °F: Critical (DEMO-V007)",
+      "SpO₂ 90%: Critical (DEMO-V005)",
+      "Temperature 103.4°F: Critical (DEMO-V007)",
       "Blood pressure 150/76 mmHg: Warning (DEMO-V004)",
     ]);
   });

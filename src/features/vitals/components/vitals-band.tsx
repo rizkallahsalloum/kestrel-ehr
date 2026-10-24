@@ -13,35 +13,33 @@ import {
 import { formatDateTime } from "@/lib/format";
 import { sparkline, SPARKLINE_HEIGHT, SPARKLINE_WIDTH } from "../sparkline";
 import { highestStatus, vitalStatus, type VitalKind, type VitalReading, type VitalStatus } from "../thresholds";
+import { unitSeparator, VITAL_UNIT } from "../units";
 
 export type VitalTile = {
   kind: VitalKind;
   label: string;
-  unit: string;
   value: (reading: VitalReading) => string;
   trend: (reading: VitalReading) => number;
 };
 
 const TILES: readonly VitalTile[] = [
-  { kind: "heart_rate", label: "Heart rate", unit: "bpm", value: (r) => String(r.heart_rate), trend: (r) => r.heart_rate },
+  { kind: "heart_rate", label: "Heart rate", value: (r) => String(r.heart_rate), trend: (r) => r.heart_rate },
   {
     kind: "blood_pressure",
     label: "Blood pressure",
-    unit: "mmHg",
     value: (r) => `${r.systolic}/${r.diastolic}`,
     trend: (r) => r.systolic,
   },
-  { kind: "spo2", label: "SpO₂", unit: "%", value: (r) => String(r.spo2), trend: (r) => r.spo2 },
+  { kind: "spo2", label: "SpO₂", value: (r) => String(r.spo2), trend: (r) => r.spo2 },
   {
     kind: "temperature",
     label: "Temperature",
-    unit: "°F",
     value: (r) => Number(r.temperature_f).toFixed(1),
     trend: (r) => Number(r.temperature_f),
   },
 ];
 
-/** Label, unit and value formatting per vital, shared with the abnormal-vitals banner. */
+/** Label and value formatting per vital, shared with the abnormal-vitals banner (units: `../units`). */
 export const VITAL_TILE = Object.fromEntries(TILES.map((tile) => [tile.kind, tile])) as Record<VitalKind, VitalTile>;
 
 export const VITAL_STATUS_LABEL: Record<VitalStatus, string> = {
@@ -65,6 +63,30 @@ const valueText: Record<VitalStatus, string> = {
   warning: severityText.warning,
   stable: "text-ink",
 };
+
+/**
+ * The value in a fixed-width box (the Privacy mask's width, so masking moves nothing) and its unit,
+ * with the shared separator: "108 bpm" with a space, "91%" with the symbol inside the box against
+ * the number. The space before a word unit is in the text for screen readers; the flex gap draws it.
+ */
+function ValueWithUnit({ kind, className, children }: { kind: VitalKind; className?: string; children: ReactNode }) {
+  const { unit, spaced } = VITAL_UNIT[kind];
+  const unitText = <span className="font-sans text-label-sm font-normal text-ink-muted">{unit}</span>;
+  return (
+    <p className="flex items-baseline gap-1.5">
+      <span className={cn("inline-block min-w-vital-value font-mono text-heading-sm font-semibold", className)}>
+        {children}
+        {!spaced && unitText}
+      </span>
+      {spaced && (
+        <span className="text-label-sm text-ink-muted">
+          {unitSeparator(kind)}
+          {unit}
+        </span>
+      )}
+    </p>
+  );
+}
 
 function StatusLabel({ status }: { status: VitalStatus }) {
   return (
@@ -169,17 +191,9 @@ export function VitalsBand({ readings }: { readings: VitalReading[] }) {
               className={cn("flex min-w-0 flex-col gap-2 rounded-control bg-surface-pure", tileBox[status ?? "stable"])}
             >
               <p className="label-caps">{tile.label}</p>
-              <p className="flex items-baseline gap-1.5">
-                <span
-                  className={cn(
-                    "inline-block min-w-vital-value font-mono text-heading-sm font-semibold",
-                    valueText[status ?? "stable"],
-                  )}
-                >
-                  {latest ? <PrivateText label={tile.label}>{tile.value(latest)}</PrivateText> : "—"}
-                </span>
-                <span className="text-label-sm text-ink-muted">{tile.unit}</span>
-              </p>
+              <ValueWithUnit kind={tile.kind} className={valueText[status ?? "stable"]}>
+                {latest ? <PrivateText label={tile.label}>{tile.value(latest)}</PrivateText> : "—"}
+              </ValueWithUnit>
               <Sparkline values={readings.map(tile.trend)} status={status ?? "stable"} />
               {status ? (
                 <StatusLabel status={status} />
@@ -203,13 +217,10 @@ export function VitalsBandSkeleton() {
         {TILES.map((tile) => (
           <li key={tile.kind} className={cn("flex min-w-0 flex-col gap-2 rounded-control bg-surface-pure", tileBox.stable)}>
             <p className="label-caps">{tile.label}</p>
-            <p className="flex items-baseline gap-1.5">
-              <span className="relative inline-block min-w-vital-value font-mono text-heading-sm font-semibold">
-                <span className="invisible">000</span>
-                <SkeletonBlock className="absolute inset-x-0 inset-y-1.5" />
-              </span>
-              <span className="text-label-sm text-ink-muted">{tile.unit}</span>
-            </p>
+            <ValueWithUnit kind={tile.kind} className="relative">
+              <span className="invisible">000</span>
+              <SkeletonBlock className="absolute inset-x-0 inset-y-1.5" />
+            </ValueWithUnit>
             <SkeletonBlock className="h-6" />
             <SkeletonLine className="text-label-sm" width="w-16" />
           </li>
