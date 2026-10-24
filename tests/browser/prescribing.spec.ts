@@ -311,6 +311,25 @@ test("signed view is read only and says nothing was transmitted", async ({ page 
   await expect(page.getByRole("list", { name: "Safety alerts" }).getByText("Acknowledged")).toBeVisible();
 });
 
+test("the review heading takes focus with an on-inverse outline (focus target after an action)", async ({ page }) => {
+  await open(page, "ready");
+  await page.keyboard.press("Tab");
+  const heading = page.locator("#rx-review-title");
+  await heading.evaluate((el) => (el as HTMLElement).focus());
+  await expect(heading).toBeFocused();
+  const colours = await heading.evaluate((el) => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--color-on-inverse)";
+    document.body.append(probe);
+    const expected = getComputedStyle(probe).color;
+    probe.remove();
+    const s = getComputedStyle(el);
+    return { outline: s.outlineColor, style: s.outlineStyle, expected };
+  });
+  expect(colours.style).toBe("solid");
+  expect(colours.outline).toBe(colours.expected);
+});
+
 test("cancelled view announces the cancellation and offers no actions", async ({ page }) => {
   await open(page, "cancelled");
   await expect(workspace(page).getByText("cancelled", { exact: true })).toBeVisible();

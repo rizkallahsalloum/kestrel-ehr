@@ -182,6 +182,7 @@ const PAIRS: ContrastPair[] = [
   { label: "Chart footer note: ink-muted on page", fg: "var(--color-ink-muted)", bg: "var(--color-page)", kind: "text" },
   { label: "Draft status badge (neutral): ink-secondary on surface-warm", fg: "var(--color-ink-secondary)", bg: "var(--color-surface-warm)", kind: "text" },
   { label: "E-Rx review title: on-inverse on inverse", fg: "var(--color-on-inverse)", bg: "var(--color-inverse)", kind: "text" },
+  { label: "E-Rx review title focus outline (after an action): on-inverse on inverse", fg: "var(--color-on-inverse)", bg: "var(--color-inverse)", kind: "ui" },
   { label: "E-Rx review subtitle: on-inverse-muted on inverse", fg: "var(--color-on-inverse-muted)", bg: "var(--color-inverse)", kind: "text" },
   { label: "E-Rx review count (neutral): on-inverse on inverse + 12% white", fg: "var(--color-on-inverse)", bg: "color-mix(in srgb, var(--color-on-inverse) 12%, var(--color-inverse))", kind: "text" },
   { label: "E-Rx review count (all addressed): on-accent on ok", fg: "var(--color-on-accent)", bg: "var(--color-ok)", kind: "text" },

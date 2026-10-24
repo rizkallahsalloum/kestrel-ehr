@@ -248,7 +248,11 @@ export function ReviewShell({
     >
       <header className="flex flex-wrap items-center justify-between gap-3 bg-inverse px-5 py-4">
         <div className="min-w-0">
-          <h2 id="rx-review-title" tabIndex={-1} className="text-heading-sm font-semibold text-on-inverse">
+          <h2
+            id="rx-review-title"
+            tabIndex={-1}
+            className="text-heading-sm font-semibold text-on-inverse focus-visible:outline-on-inverse"
+          >
             {title}
           </h2>
           <p className="text-label-sm text-on-inverse-muted">{subtitle}</p>
