@@ -24,6 +24,8 @@ export function AbnormalVitalsBanner({ reading }: { reading: VitalReading | unde
   return (
     <AlertBanner
       tone="critical"
+      role="alert"
+      pulse
       title={title(critical)}
       actions={
         <a href="#vitals-heading" className={buttonStyles({ size: "sm" })}>

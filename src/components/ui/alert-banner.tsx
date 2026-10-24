@@ -10,14 +10,16 @@ const iconRings: Record<Severity, string> = {
 
 /**
  * Chart-level alert (dashboard `.alert-banner`). Critical (blocking, for example an allergy conflict)
- * is red with the emphasis border; warning (advisory) is orange with a hairline. Static by default;
- * pass `role="alert"` only when the banner appears in response to a user action.
+ * is red with the emphasis border; warning (advisory) is orange with a hairline. Static by default.
+ * `role="alert"` is for a critical alert (the critical vitals banner) or a banner shown in response
+ * to a user action. `pulse` animates the icon dot, never the block, and only without reduced motion.
  */
 export function AlertBanner({
   tone,
   title,
   actions,
   role,
+  pulse = false,
   className,
   children,
 }: {
@@ -25,6 +27,7 @@ export function AlertBanner({
   title: ReactNode;
   actions?: ReactNode;
   role?: "alert" | "region";
+  pulse?: boolean;
   className?: string;
   children?: ReactNode;
 }) {
@@ -36,11 +39,14 @@ export function AlertBanner({
     >
       <span
         className={cn(
-          "grid size-8.5 shrink-0 place-items-center rounded-full bg-surface-pure",
+          "relative grid size-8.5 shrink-0 place-items-center rounded-full bg-surface-pure",
           severityIconText[tone],
           iconRings[tone],
         )}
       >
+        {pulse && (
+          <span aria-hidden="true" data-alert-pulse="" className="absolute inset-0 rounded-full motion-safe:animate-alert-pulse" />
+        )}
         <AlertTriangleIcon />
       </span>
       <div className="min-w-0 flex-1">

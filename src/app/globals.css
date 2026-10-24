@@ -298,6 +298,18 @@
   --animate-fade-up-2: fade-up 0.5s ease 40ms both;
   --animate-fade-up-3: fade-up 0.5s ease 80ms both;
   --animate-fade-up-context: fade-up 0.5s ease 60ms both;
+  /* Critical alert dot: a ring in the icon's colour grows and fades. Three runs, 4.5s in all, so it
+     stops within the 5s limit for motion that starts by itself (WCAG 2.2.2). */
+  --animate-alert-pulse: alert-pulse 1.5s ease-out 3;
+
+  @keyframes alert-pulse {
+    from {
+      box-shadow: 0 0 0 0 currentColor;
+    }
+    to {
+      box-shadow: 0 0 0 var(--spacing-sm) transparent;
+    }
+  }
 
   @keyframes fade-up {
     from {

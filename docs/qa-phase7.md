@@ -30,7 +30,7 @@ Run on 21 Oct 2026 on Windows 10, Chromium from Playwright, against the developm
 - **Focus rings** (`keyboard.spec.ts`): Tab through the rail, top bar and patient list (1440 and 390px), the admin rail, the sign-in form, the new-prescription form (tracker, combobox, sentence controls, fields), the saved-draft review panel, the dialog and an invalid field. Every stop has an outline or field ring of at least 3:1 against the colours next to it (measured 4.95 to 16.01), and field rings must differ from the unfocused border. Colour transitions are switched off during measurement so the settled state is measured.
 - **Combobox in a real browser:** focus opens the list; ArrowDown and ArrowUp move `aria-activedescendant` and `aria-selected`, wrapping at both ends; focus stays in the input. Typing filters and announces "2 results available."; Enter picks; Escape restores the chosen label; no-match text; Tab closes. The listbox is named by the field label.
 - **Section tracker:** three links in order, each name says "(complete)" or "(not complete)". Enter on "Directions" moves focus to the Directions section (named by its heading), with its top below the sticky top bar at 1440 and 390px; the next Tab reaches the first field. Enter on "Review" focuses the review panel.
-- **Error announcements:** after a submit, each message appears once in its own `role="alert"` (one form-level, one field-level that is also the field's description). Submitting again adds no duplicates, and no live region is nested. Chart alert banners are static on load (no `role="alert"`, under the "Demo safety alerts" heading, blocking first). Error screens show one alert.
+- **Error announcements:** after a submit, each message appears once in its own `role="alert"` (one form-level, one field-level that is also the field's description). Submitting again adds no duplicates, and no live region is nested. Chart alert banners are static on load (no `role="alert"`, under the "Demo safety alerts" heading, blocking first); since Phase 9b the critical vitals banner is the exception and has `role="alert"`. Error screens show one alert.
 - **Reduced motion** (`motion.spec.ts`, `prefers-reduced-motion: reduce` emulated): skeleton bars on the chart, prescribing and audit skeletons have no animation; chart fade-ins have a duration under 0.01s. No animation is running on the chart, the theme motion row, an open dialog, or the combobox loading rows and spinner. A control run with motion allowed shows the skeleton pulse running, so the check can see animations.
 
 ## Fixed in this phase
@@ -229,6 +229,8 @@ Kestrel-Dev was not written to. No migrations, seeds or resets were run; prescri
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.
+
+**Phase 9b (24 Oct 2026, user decision):** the critical vitals banner's icon dot now pulses (`AlertBanner pulse`, `--animate-alert-pulse`): a ring in the icon's colour grows and fades, three runs of 1.5s, so it stops before 5s (WCAG 2.2.2). The block never moves. It runs only with `motion-safe`; under reduced motion it has no animation. `StatusDot` and the draft banners are unchanged. The motion spec covers both cases.
 
 ## Unverified, not passed
 

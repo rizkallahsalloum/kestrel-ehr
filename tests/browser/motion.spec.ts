@@ -28,6 +28,21 @@ test("with motion allowed, the skeleton pulse runs (control)", async ({ page }) 
   expect((await runningAnimations(page)).some((name) => name.startsWith("pulse"))).toBe(true);
 });
 
+test("with motion allowed, the critical vitals banner's dot pulses three times and stops", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await open(page, "/dev/chart?view=advisory");
+  const pulse = page.locator("main [role=alert] [data-alert-pulse]");
+  const style = await pulse.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { name: s.animationName, count: s.animationIterationCount, duration: s.animationDuration };
+  });
+  expect(style).toEqual({ name: "alert-pulse", count: "3", duration: "1.5s" });
+  // The dot animates, never the banner block.
+  expect(await page.locator("main [role=alert]").evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+  await page.waitForTimeout(5000);
+  expect((await runningAnimations(page)).filter((name) => name.startsWith("alert-pulse"))).toEqual([]);
+});
+
 test.describe("prefers-reduced-motion: reduce", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -74,6 +89,13 @@ test.describe("prefers-reduced-motion: reduce", () => {
     await open(page, "/dev/components");
     await page.getByRole("combobox", { name: "Loading state" }).focus();
     await page.waitForTimeout(50);
+    expect(await runningAnimations(page)).toEqual([]);
+  });
+
+  test("critical vitals banner: the dot does not pulse", async ({ page }) => {
+    await open(page, "/dev/chart?view=advisory");
+    await expect(page.locator("main [role=alert]")).toContainText("Critical vital sign");
+    expect(await page.locator("[data-alert-pulse]").evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
     expect(await runningAnimations(page)).toEqual([]);
   });
 

@@ -278,6 +278,11 @@ test("abnormal vitals: a critical banner leads the slot and lists every abnormal
   expect(await style(banner, "backgroundColor")).toBe(await tokenColor(page, "danger-subtle"));
   await expect(banner.locator("svg").first()).toHaveAttribute("data-icon", "alert-triangle");
   await expect(banners.nth(1)).toContainText("Advisory demo alert to acknowledge on draft");
+  // Critical: announced as an alert, and the icon dot pulses (not the block).
+  await expect(banner).toHaveAttribute("role", "alert");
+  await expect(alertSlot(page).getByRole("alert")).toHaveCount(1);
+  await expect(banner.locator("[data-alert-pulse]")).toHaveCount(1);
+  expect(await banner.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
   // Not dismissable: the only control is the link to the vitals band.
   await expect(banner.getByRole("button")).toHaveCount(0);
 
