@@ -1,4 +1,4 @@
-import type { PrescriptionAlert } from "@/types/domain";
+import type { PrescriptionAlert, PrescriptionStatus } from "@/types/domain";
 import type { PrescriptionFormValues } from "./form-values";
 import { prescriptionContentSchema } from "./schemas";
 import type { SignReadiness } from "./transitions";
@@ -36,6 +36,21 @@ export function safetyState(
   if (!rx) return { kind: "unsaved" };
   if (rx.last_evaluated_version !== rx.version) return { kind: "unchecked" };
   return { kind: "checked", ...countAlerts(alerts) };
+}
+
+/**
+ * Page-level outcome text. It changes exactly when a save, sign or cancel lands, so the live
+ * region announces it after the refresh. Fixed wording: no medication or patient details.
+ */
+export function outcomeMessage(rx: { status: PrescriptionStatus; version: number }): string {
+  if (rx.status === "signed") return "Prescription signed (simulated).";
+  if (rx.status === "cancelled") return "Draft cancelled.";
+  return `Draft saved as version ${rx.version}.`;
+}
+
+/** Advisory progress on the saved version; it changes when an alert is acknowledged. */
+export function acknowledgementSummary(counts: AlertCounts): string {
+  return `${counts.blocking + counts.advisoryPending} open, ${counts.acknowledged} acknowledged`;
 }
 
 export function isDirty(values: PrescriptionFormValues, saved: PrescriptionFormValues): boolean {

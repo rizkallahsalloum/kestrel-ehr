@@ -128,7 +128,7 @@ export function SignConfirmation({
         onChange={(e) => setAttested(e.target.checked)}
         label="I reviewed this draft, the patient's allergies and current medications, and every demo alert. I understand this is a simulated signature on synthetic data."
       />
-      <ActionFeedback state={state} success="Prescription signed." />
+      <ActionFeedback state={state} />
       <Button
         type="submit"
         size="cta"

@@ -22,6 +22,24 @@ async function createDraft(page: Page, patientId: string, medicationId: string):
   await expect(page).toHaveURL(new RegExp(`/patients/${ref}/prescriptions/${REF}$`));
 }
 
+/** After the post-action refresh: a polite live region in the main region carries the result. */
+async function expectAnnounced(page: Page, text: RegExp, step: string): Promise<void> {
+  const live = page
+    .getByRole("main")
+    .locator('[role="status"], [aria-live="polite"]')
+    .filter({ hasText: text })
+    .filter({ visible: true });
+  await expect(live, `${step}: a live region announces the result`).not.toHaveCount(0, { timeout: 5_000 });
+}
+
+/** Focus lands on the named heading in the main region, never on document.body. */
+async function expectFocusOnHeading(page: Page, name: string, step: string): Promise<void> {
+  const heading = page.getByRole("main").getByRole("heading", { name, exact: true });
+  await expect(heading, `${step}: focus moves to the "${name}" heading`).toBeFocused({ timeout: 5_000 });
+  const focused = await page.evaluate(() => (document.activeElement === document.body ? "body" : document.activeElement?.tagName));
+  expect(focused, `${step}: focus is not left on document.body`).not.toBe("body");
+}
+
 test("clinician drafts, acknowledges an advisory alert, and signs", async ({ page }) => {
   await signIn(page, "clinicianA");
   await createDraft(page, PATIENTS.northTwo, MEDICATIONS.calvexa);
@@ -32,19 +50,23 @@ test("clinician drafts, acknowledges an advisory alert, and signs", async ({ pag
   await expect(sign).toHaveText("Run the safety check to sign");
 
   await page.getByRole("button", { name: "Run safety check" }).click();
-  await expect(page.getByRole("status")).toContainText("0 blocking, 1 advisory");
+  await expect(page.getByRole("status").filter({ hasText: "Safety check complete" })).toContainText("0 blocking, 1 advisory");
   const alerts = page.getByRole("list", { name: "Safety alerts" });
   await expect(alerts.getByText("Advisory", { exact: true })).toBeVisible();
   await expect(sign).toHaveText("Acknowledge 1 advisory alert to sign");
 
   await page.getByRole("button", { name: "Acknowledge advisory alert" }).click();
   await expect(alerts.getByText("Acknowledged", { exact: true })).toBeVisible();
+  await expectAnnounced(page, /\b1 acknowledged/, "Acknowledge");
+  await expectFocusOnHeading(page, "Safety decisions", "Acknowledge");
 
   await page.getByRole("checkbox").check();
   await expect(sign).toBeEnabled();
   await expect(sign).toHaveText("Sign prescription (simulated)");
   await sign.click();
   await expect(page.getByText("Signed (simulated). Not transmitted anywhere.")).toBeVisible();
+  await expectAnnounced(page, /Prescription signed/, "Sign");
+  await expectFocusOnHeading(page, "Signed (simulated)", "Sign");
   await expect(page.getByText("signed", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Run safety check" })).toHaveCount(0);
 
@@ -73,7 +95,7 @@ test("a blocking demo alert cannot be acknowledged or signed; the chart banner s
   await createDraft(page, PATIENTS.northOne, MEDICATIONS.zentoril);
 
   await page.getByRole("button", { name: "Run safety check" }).click();
-  await expect(page.getByRole("status")).toContainText("1 blocking");
+  await expect(page.getByRole("status").filter({ hasText: "Safety check complete" })).toContainText("1 blocking");
   await expect(page.getByRole("list", { name: "Safety alerts" }).getByText("Blocking", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Acknowledge advisory alert" })).toHaveCount(0);
 
@@ -124,11 +146,20 @@ test("clinician keeps a draft, then cancels it with feedback", async ({ page }) 
   await expect(page.getByLabel("Dose amount")).toHaveValue("10");
   await expect(page.getByLabel("Quantity")).toHaveValue("30");
 
+  await page.getByLabel("Quantity").fill("40");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByText("Saved version 2")).toBeVisible();
+  await expectAnnounced(page, /Draft saved as version 2\./, "Save draft");
+  await expectFocusOnHeading(page, "Review prescription", "Save draft");
+
   await trigger.click();
   await dialog.getByLabel("Reason (optional)").fill("Entered in error (synthetic)");
   await dialog.getByRole("button", { name: "Cancel draft" }).click();
   await expect(page.getByText("cancelled", { exact: true })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("This draft was cancelled");
+  await expectAnnounced(page, /cancelled/i, "Cancel");
+  await expectFocusOnHeading(page, "Cancelled", "Cancel");
+  await expect(page.getByRole("status").filter({ hasText: "Draft cancelled." })).toHaveCount(1);
+  await expect(page.getByText("This draft was cancelled.")).toBeVisible();
   await expect(trigger).toHaveCount(0);
   await expect(page.getByTestId("sign-button")).toHaveCount(0);
   await expect(page).toHaveURL(draftUrl);

@@ -305,6 +305,7 @@ test("signed view is read only and says nothing was transmitted", async ({ page 
   await open(page, "signed");
   await expect(workspace(page).getByText("signed", { exact: true })).toBeVisible();
   await expect(page.getByText("Signed (simulated). Not transmitted anywhere.")).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("Prescription signed (simulated).");
   await expect(page.getByRole("button", { name: "Run safety check" })).toHaveCount(0);
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await expect(page.getByRole("list", { name: "Safety alerts" }).getByText("Acknowledged")).toBeVisible();
@@ -313,7 +314,8 @@ test("signed view is read only and says nothing was transmitted", async ({ page 
 test("cancelled view announces the cancellation and offers no actions", async ({ page }) => {
   await open(page, "cancelled");
   await expect(workspace(page).getByText("cancelled", { exact: true })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("This draft was cancelled");
+  await expect(page.getByRole("status")).toHaveText("Draft cancelled.");
+  await expect(page.getByText("This draft was cancelled.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Cancel this draft" })).toHaveCount(0);
   await expect(signButton(page)).toHaveCount(0);
 });

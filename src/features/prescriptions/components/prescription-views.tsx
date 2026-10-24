@@ -7,7 +7,8 @@ import { newDraftValues, renewalDraftValues, savedDraftValues } from "../form-va
 import type { PrescriptionWorkspace } from "../queries";
 import { labelLines } from "../sig";
 import { isEditable } from "../transitions";
-import { safetyState, type SafetyState } from "../workspace";
+import { outcomeMessage, safetyState, type SafetyState } from "../workspace";
+import { ActionOutcome } from "./action-outcome";
 import { DraftWorkspace } from "./draft-workspace";
 import { ErxGrid, ErxPageHeading, ReviewShell, reviewCount, RxPatientHeader, RxSafetySummary } from "./erx-layout";
 import { LabelPreviewButton } from "./label-preview";
@@ -101,6 +102,8 @@ export function PrescriptionView({ workspace }: { workspace: PrescriptionWorkspa
         status={rx.status}
       />
       <RxPatientHeader patient={patient} allergies={workspace.allergies} medications={workspace.patientMedications} />
+      {/* Outside the version-keyed workspace, so it survives the refresh after save, sign and cancel. */}
+      <ActionOutcome message={outcomeMessage(rx)} focusId="rx-review-title" className="sr-only" />
       {editable ? (
         <DraftWorkspace
           key={rx.version}
@@ -180,7 +183,7 @@ function ReadOnlyReview({ workspace }: { workspace: PrescriptionWorkspace }) {
   if (rx.status === "cancelled") {
     return (
       <ReviewShell title="Cancelled" subtitle={`Version ${rx.version}`} count={{ tone: "neutral", text: "Read only" }}>
-        <p role="status" className="text-body-sm text-ink-strong">
+        <p className="text-body-sm text-ink-strong">
           This draft was cancelled. It stays in the record and can no longer be edited or signed.
         </p>
       </ReviewShell>

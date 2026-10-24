@@ -2,7 +2,32 @@ import { describe, expect, it } from "vitest";
 import { newDraftValues } from "./form-values";
 import { todayUtc } from "./schemas";
 import { getSignReadiness } from "./transitions";
-import { countAlerts, isDirty, orderAlerts, safetyState, signButtonLabel, trackerSteps } from "./workspace";
+import {
+  acknowledgementSummary,
+  countAlerts,
+  isDirty,
+  orderAlerts,
+  outcomeMessage,
+  safetyState,
+  signButtonLabel,
+  trackerSteps,
+} from "./workspace";
+
+describe("outcomeMessage", () => {
+  it("changes with each save, sign and cancel, with fixed wording", () => {
+    expect(outcomeMessage({ status: "draft", version: 1 })).toBe("Draft saved as version 1.");
+    expect(outcomeMessage({ status: "draft", version: 2 })).toBe("Draft saved as version 2.");
+    expect(outcomeMessage({ status: "signed", version: 2 })).toBe("Prescription signed (simulated).");
+    expect(outcomeMessage({ status: "cancelled", version: 2 })).toBe("Draft cancelled.");
+  });
+});
+
+describe("acknowledgementSummary", () => {
+  it("counts blocking and pending advisories as open", () => {
+    expect(acknowledgementSummary({ blocking: 1, advisoryPending: 1, acknowledged: 0 })).toBe("2 open, 0 acknowledged");
+    expect(acknowledgementSummary({ blocking: 0, advisoryPending: 0, acknowledged: 1 })).toBe("0 open, 1 acknowledged");
+  });
+});
 
 const MED = "3e000000-0000-4000-8000-000000000002";
 const decision = { id: "d", reason: null, created_at: "2026-10-19T08:00:00Z" };

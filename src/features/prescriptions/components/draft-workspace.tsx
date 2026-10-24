@@ -8,8 +8,9 @@ import { createDraftFormAction, updateDraftFormAction, type FormState } from "..
 import type { PrescriptionFormValues } from "../form-values";
 import { labelLines } from "../sig";
 import { getSignReadiness } from "../transitions";
-import { countAlerts, isDirty, safetyState, signButtonLabel, trackerSteps } from "../workspace";
+import { acknowledgementSummary, countAlerts, isDirty, safetyState, signButtonLabel, trackerSteps } from "../workspace";
 import { ActionFeedback } from "./action-feedback";
+import { ActionOutcome } from "./action-outcome";
 import { DirectionsSection, InstructionsSection, MedicationSection, SectionTracker } from "./draft-sections";
 import { ErxGrid, ReviewShell, reviewCount } from "./erx-layout";
 import { LabelPreviewButton } from "./label-preview";
@@ -82,7 +83,7 @@ export function DraftWorkspace(props: Props) {
             <input type="hidden" name="expectedVersion" value={props.saved.prescription.version} />
           </>
         )}
-        <ActionFeedback state={state} success="Draft saved. Run the safety check again." visibleFields={FIELDS} />
+        <ActionFeedback state={state} visibleFields={FIELDS} />
         <MedicationSection
           medications={props.medications}
           value={values.medicationId}
@@ -153,11 +154,15 @@ function SavedReview({
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-label font-semibold text-ink">Safety decisions</h3>
+          <h3 id="rx-safety-title" tabIndex={-1} className="text-label font-semibold text-ink">
+            Safety decisions
+          </h3>
           {evaluated && (
-            <span className="text-label-sm text-ink-muted">
-              {counts.blocking + counts.advisoryPending} open, {counts.acknowledged} acknowledged
-            </span>
+            <ActionOutcome
+              message={acknowledgementSummary(counts)}
+              focusId="rx-safety-title"
+              className="text-label-sm text-ink-muted"
+            />
           )}
         </div>
         <p className="text-label-sm text-ink-secondary">
