@@ -62,7 +62,7 @@ test("Renew opens a new draft prefilled from the signed prescription", async ({ 
   await expect(page).toHaveURL(new RegExp(`/patients/${ref}/prescriptions/${REF}$`));
 });
 
-test("the latest vitals raise a chart banner: critical for Elliot, warning for Rowan, none when stable", async ({ page }) => {
+test("a critical latest vital raises a chart banner for Elliot; Rowan's warning and a stable patient get none", async ({ page }) => {
   await signIn(page, "clinicianA");
   const slot = page.getByRole("region", { name: "Demo safety alerts" });
   const banner = slot.locator("[data-severity]").filter({ has: page.locator("[data-abnormal-vitals]") });
@@ -75,9 +75,9 @@ test("the latest vitals raise a chart banner: critical for Elliot, warning for R
   await expect(slot.locator("[data-severity]").first()).toContainText("Critical vital sign");
 
   await page.goto(`/patients/${await patientRef(PATIENTS.northOne)}`);
-  await expect(banner).toHaveAttribute("data-severity", "warning");
-  await expect(banner).toContainText("Vital sign in the warning range on the latest reading: Blood pressure");
-  await expect(banner.locator("[data-vital=blood_pressure]")).toContainText("148/92 mmHg: Warning (DEMO-V004)");
+  const vitals = page.getByRole("region", { name: "Vitals" });
+  await expect(vitals.locator("[data-vital=blood_pressure] [data-vital-status]")).toHaveText("Warning");
+  await expect(page.locator("[data-abnormal-vitals]")).toHaveCount(0);
 
   await page.goto(`/patients/${await patientRef(PATIENTS.northThree)}`);
   await expect(page.getByRole("region", { name: "Vitals" }).locator("[data-vital]")).toHaveCount(4);

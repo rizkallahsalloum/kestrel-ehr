@@ -4,28 +4,27 @@ import { abnormalVitals, type AbnormalVital } from "../abnormal";
 import type { VitalReading } from "../thresholds";
 import { VITAL_STATUS_LABEL, VITAL_TILE } from "./vitals-band";
 
-function title(abnormal: AbnormalVital[]): string {
-  const critical = abnormal.filter((v) => v.status === "critical");
-  const named = critical.length > 0 ? critical : abnormal;
-  const names = named.map((v) => VITAL_TILE[v.kind].label).join(", ");
-  if (critical.length > 0) return `Critical vital sign${critical.length === 1 ? "" : "s"} on the latest reading: ${names}`;
-  return `Vital sign${abnormal.length === 1 ? "" : "s"} in the warning range on the latest reading: ${names}`;
+function title(critical: AbnormalVital[]): string {
+  const names = critical.map((v) => VITAL_TILE[v.kind].label).join(", ");
+  return `Critical vital sign${critical.length === 1 ? "" : "s"} on the latest reading: ${names}`;
 }
 
 /**
- * Chart banner for the latest vitals reading when any vital is outside the demo stable band. Its
- * tone is the highest status it lists. It cannot be dismissed: it goes away only when a newer
- * reading is back in the stable band. Values are masked under Privacy mode like the tiles; vital
- * names and status words stay visible.
+ * Chart banner for the latest vitals reading when any vital is critical under the demo rules.
+ * Warning-only readings get no banner: the tile carries the warning state. When there is a banner
+ * it also lists the warning vitals, below the critical ones. It cannot be dismissed: it goes away
+ * only when a newer reading has no critical vital. Values are masked under Privacy mode like the
+ * tiles; vital names and status words stay visible.
  */
 export function AbnormalVitalsBanner({ reading }: { reading: VitalReading | undefined }) {
   if (!reading) return null;
   const abnormal = abnormalVitals(reading);
-  if (abnormal.length === 0) return null;
+  const critical = abnormal.filter((v) => v.status === "critical");
+  if (critical.length === 0) return null;
   return (
     <AlertBanner
-      tone={abnormal[0]!.status}
-      title={title(abnormal)}
+      tone="critical"
+      title={title(critical)}
       actions={
         <a href="#vitals-heading" className={buttonStyles({ size: "sm" })}>
           Review vitals

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { AlertBanner, buttonStyles, InfoIcon, NoAlert } from "@/components/ui";
 import { blockingBannerTitle, type DraftAlertSummary } from "@/features/chart/alerts";
 import { prescriptionPath } from "@/features/patients/refs";
-import { abnormalVitals } from "@/features/vitals/abnormal";
 import { AbnormalVitalsBanner } from "@/features/vitals/components/abnormal-vitals-banner";
 import type { VitalReading } from "@/features/vitals/thresholds";
 
@@ -47,9 +46,8 @@ function DraftBanner({ patientRef, summary, now }: { patientRef: string; summary
 }
 
 /**
- * Dashboard alert slot. Shows the latest vitals reading when it is outside the demo stable band,
- * and drafts whose current, evaluated version still has blocking alerts or unacknowledged
- * advisories. Critical banners come before warning ones; within a tone, vitals come first.
+ * Dashboard alert slot. Shows the latest vitals reading when a vital is critical, then drafts whose
+ * current, evaluated version still has blocking alerts or unacknowledged advisories, blocking first.
  * Acknowledging happens in the prescribing workspace, one alert at a time, so draft banners only
  * link there.
  */
@@ -66,21 +64,15 @@ export function ChartAlertSlot({
 }) {
   // Server-rendered only, so "today" is decided once per request and never re-evaluated in the browser.
   const now = new Date();
-  const vitalsTone = latestVitals ? abnormalVitals(latestVitals)[0]?.status : undefined;
-  const vitalsBanner = <AbnormalVitalsBanner reading={latestVitals} />;
-  const draftBanners = (blocking: boolean) =>
-    summaries
-      .filter((summary) => summary.blocking > 0 === blocking)
-      .map((summary) => <DraftBanner key={summary.prescriptionId} patientRef={patientRef} summary={summary} now={now} />);
   return (
     <section aria-labelledby="chart-alerts-heading" className="flex flex-col gap-3">
       <h2 id="chart-alerts-heading" className="sr-only">
         Demo safety alerts
       </h2>
-      {vitalsTone === "critical" && vitalsBanner}
-      {draftBanners(true)}
-      {vitalsTone === "warning" && vitalsBanner}
-      {draftBanners(false)}
+      <AbnormalVitalsBanner reading={latestVitals} />
+      {summaries.map((summary) => (
+        <DraftBanner key={summary.prescriptionId} patientRef={patientRef} summary={summary} now={now} />
+      ))}
       {summaries.length === 0 && <NoAlert>No unresolved demo safety alerts on this patient&apos;s drafts.</NoAlert>}
       {uncheckedDrafts > 0 && (
         <NoAlert icon={<InfoIcon className="text-ink-muted" />}>

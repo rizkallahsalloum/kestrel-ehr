@@ -289,21 +289,13 @@ test("abnormal vitals: a critical banner leads the slot and lists every abnormal
   await expect(page.getByRole("heading", { name: "Vitals", level: 2 })).toBeInViewport({ ratio: 1 });
 });
 
-test("abnormal vitals: a warning banner comes after blocking drafts, orange with a hairline", async ({ page }) => {
+test("abnormal vitals: a warning-only reading raises no banner; the tile carries the warning", async ({ page }) => {
   await open(page, "blocking");
+  await expect(vitalsBanner(page)).toHaveCount(0);
   const banners = alertSlot(page).locator(":scope > [data-severity]");
-  await expect(banners).toHaveCount(2);
+  await expect(banners).toHaveCount(1);
   await expect(banners.nth(0)).toContainText("Allergy conflict on today's order");
-  const banner = banners.nth(1);
-  await expect(banner.locator("[data-abnormal-vitals]")).toHaveCount(1);
-  await expect(banner).toHaveAttribute("data-severity", "warning");
-  await expect(
-    banner.getByText("Vital sign in the warning range on the latest reading: Blood pressure", { exact: true }),
-  ).toBeVisible();
-  expect(await banner.locator("li").allTextContents()).toEqual(["Blood pressure 148/92 mmHg: Warning (DEMO-V004)"]);
-  expect(await borderWidth(banner)).toBe("1px");
-  expect(await borderColor(banner)).toBe(await tokenColor(page, "warning-line"));
-  expect(await style(banner, "backgroundColor")).toBe(await tokenColor(page, "warning-subtle"));
+  await expect(tile(page, "blood_pressure").locator("[data-vital-status]")).toHaveText("Warning");
 });
 
 test("abnormal vitals: no banner when the latest reading is stable or there are no readings", async ({ page }) => {
@@ -342,9 +334,8 @@ test("HbA1c chart: labelled axes, keyboard-reachable points with tooltips, and a
   await expect(points.first()).toHaveAccessibleName("Mar 2026: HbA1c 7.8%, eAG 177 mg/dL");
   await expect(points.last()).toHaveAccessibleName("Aug 2026: HbA1c 6.8%, eAG 148 mg/dL");
 
-  // Tab reaches every point in order, and focus shows its tooltip. The vitals banner's link is the
-  // last control before the chart.
-  await page.getByRole("link", { name: "Review vitals" }).focus();
+  // Tab reaches every point in order, and focus shows its tooltip.
+  await page.getByRole("link", { name: "Review draft for Zentoril 10 mg tablet" }).focus();
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press("Tab");
     await expect(points.nth(i)).toBeFocused();

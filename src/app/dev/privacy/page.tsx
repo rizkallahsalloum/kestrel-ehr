@@ -10,7 +10,7 @@ import { DiagnosisTable } from "@/features/diagnoses/components/diagnosis-table"
 import { Hba1cChart } from "@/features/labs/components/hba1c-chart";
 import { AbnormalVitalsBanner } from "@/features/vitals/components/abnormal-vitals-banner";
 import { VitalsBand } from "@/features/vitals/components/vitals-band";
-import { DIABETES_CASE } from "../chart/clinical";
+import { ASTHMA_CASE, DIABETES_CASE } from "../chart/clinical";
 import { PatientList } from "@/features/patients/components/patient-list";
 import { PatientListSkeleton } from "@/features/patients/components/patient-list-skeleton";
 import type { Allergy, PatientMedication, PatientSummary } from "@/types/domain";
@@ -103,7 +103,7 @@ export default async function PrivacySpecimenPage({ searchParams }: PageProps<"/
         <AllergyPanel allergies={ALLERGIES} />
         <MedicationPanel medications={MEDICATIONS} />
       </div>
-      <AbnormalVitalsBanner reading={DIABETES_CASE.vitals.at(-1)} />
+      <AbnormalVitalsBanner reading={ASTHMA_CASE.vitals.at(-1)} />
       <VitalsBand readings={DIABETES_CASE.vitals} />
       <Hba1cChart results={DIABETES_CASE.hba1c} />
       <DiagnosisTable diagnoses={DIABETES_CASE.diagnoses} />

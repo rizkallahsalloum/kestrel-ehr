@@ -175,10 +175,12 @@ test("clinical content: values, sparklines and the HbA1c chart are masked; vital
   await expect(band.locator("[data-vital=heart_rate]")).toContainText("Stable");
   // The abnormal-vitals banner keeps its title, vital names and status words; only values are masked.
   const vitalsBanner = page.locator("[data-abnormal-vitals]");
-  await expect(page.getByText("Vital sign in the warning range on the latest reading: Blood pressure")).toBeVisible();
-  await expect(vitalsBanner.locator("[data-vital=blood_pressure]")).toContainText("Blood pressure");
-  await expect(vitalsBanner.locator("[data-vital=blood_pressure]")).toContainText("mmHg: Warning (DEMO-V004)");
-  await expect(revealButton(page, "Blood pressure")).toHaveCount(2);
+  await expect(page.getByText("Critical vital sign on the latest reading: SpO₂")).toBeVisible();
+  await expect(vitalsBanner.locator("[data-vital=spo2]")).toContainText("Critical (DEMO-V005)");
+  await expect(vitalsBanner.locator("[data-vital=heart_rate]")).toContainText("bpm: Warning (DEMO-V002)");
+  await expect(vitalsBanner.locator("[data-vital=spo2]")).not.toContainText("91");
+  await expect(vitalsBanner.locator("[data-vital=heart_rate]")).not.toContainText("108");
+  await expect(vitalsBanner.getByRole("button", { name: "SpO₂ hidden, press to reveal" })).toHaveCount(1);
   for (const line of await band.locator("[data-sparkline]").all()) {
     expect(await line.evaluate((el) => getComputedStyle(el).visibility)).toBe("hidden");
   }
