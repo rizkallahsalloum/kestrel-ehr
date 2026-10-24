@@ -248,6 +248,28 @@ Kestrel-Dev was not written to. No migrations, seeds or resets were run; prescri
 
 - **Unverified, not passed:** a real screen reader announcing the `role="alert"` banner; the pulse on real devices and under OS reduced-motion settings outside Playwright emulation; forced-colours mode; the draft-banner skeleton case with hosted data (Rowan has no open draft on kestrel-test after the e2e reset).
 
+## Phase 9c note: unit-test flake, action outcomes, alert semantics, toast (24 Oct 2026)
+
+- **Unit-test flake (C1):** not reproduced. 19 runs passed: 5 alone, 6 in parallel with typecheck and lint, 8 as two concurrent unit runs alongside both. No run printed an error or warning. No change made.
+- **Feedback gaps (C2):** reproduced in e2e before the fix. Save draft, Sign and Acknowledge had no live region with the result after the refresh; Cancel had one. In all four, focus ended on `document.body`.
+- **Fix (C3):** `ActionOutcome`, a persistent polite status that moves focus to the review heading (Save, Sign, Cancel) or the "Safety decisions" heading (Acknowledge) when its message changes.
+- **Alerts (C4):** blocking draft banners have `role="alert"` and the pulse; advisory draft banners have `role="status"`.
+- **Toast (C5):** see theme.md "Toast". Known: on Save, Sign and Cancel a screen reader hears the outcome from both the page status and the toast.
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 49 files, 422 passed |
+| `pnpm test:db` (kestrel-test) | 6 files, 62 passed |
+| `pnpm test:int` (kestrel-test) | 4 files, 24 passed |
+| `pnpm test:e2e` (kestrel-test) | 27 passed |
+| `pnpm test:browser` (all specs) | 327 passed |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (38 files scanned, 7 needles) |
+
+Kestrel-Dev was not written to. No migrations, seeds or resets were run. The e2e suite created, saved, signed and cancelled its own drafts on kestrel-test as before (Elliot's existing signed Zentoril was not touched).
+
+- **Unverified, not passed:** real screen readers (the double announcement, focus moves, `role="alert"` on page load for blocking drafts); toasts in forced-colours mode; toasts on real touch devices; how the toast stack behaves with three toasts at 390px over Today's queue beyond the specimen.
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.
