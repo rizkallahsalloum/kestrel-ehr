@@ -1,8 +1,9 @@
-import { cn, LoadingRegion, SkeletonBlock, SkeletonLine } from "@/components/ui";
+import { cn, LoadingRegion, NoAlert, SkeletonBlock, SkeletonLine } from "@/components/ui";
 import { DiagnosisTableSkeleton } from "@/features/diagnoses/components/diagnosis-table";
 import { EncounterNotesSkeleton } from "@/features/encounter-notes/components/encounter-notes-panel";
 import { Hba1cChartSkeleton } from "@/features/labs/components/hba1c-chart";
 import { VitalsBandSkeleton } from "@/features/vitals/components/vitals-band";
+import { NO_DRAFT_ALERTS } from "./chart-alert-slot";
 import { CHART_FOOTER } from "./patient-chart-view";
 
 // Mirrors PatientChartView: same grid, card boxes and line heights, so the swap to the real chart
@@ -74,6 +75,24 @@ export function PanelSkeleton({ rows, className }: { rows: number; className?: s
   );
 }
 
+/**
+ * The alert slot's smallest state: the dashed no-alert box every chart without draft banners shows,
+ * with the same text hidden underneath so it wraps the same way. Banners, when present, are taller
+ * and push the content below by their own height minus this box.
+ */
+function AlertSlotSkeleton() {
+  return (
+    <div data-skeleton="alerts">
+      <NoAlert icon={<SkeletonBlock className="size-4 shrink-0 rounded-full" />}>
+        <span className="relative">
+          <span className="invisible">{NO_DRAFT_ALERTS}</span>
+          <SkeletonBlock className="absolute inset-x-0 inset-y-0.5" />
+        </span>
+      </NoAlert>
+    </div>
+  );
+}
+
 function PrescriptionsCardSkeleton() {
   return (
     <div className="rounded-card border border-line-subtle bg-surface p-5 shadow-level-1">
@@ -105,6 +124,7 @@ export function ChartSkeleton() {
       <div className="grid items-start gap-lg workspace:grid-cols-workspace">
         <div data-skeleton="main-column" className="flex min-w-0 flex-col gap-4.5">
           <HeroSkeleton />
+          <AlertSlotSkeleton />
           <div className="flex flex-col gap-4.5">
             <VitalsBandSkeleton />
             <Hba1cChartSkeleton />

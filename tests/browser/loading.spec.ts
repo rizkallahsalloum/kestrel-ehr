@@ -124,6 +124,48 @@ for (const width of RX_WIDTHS) {
   });
 }
 
+// The CLS metric only counts elements present before and after; the skeleton is replaced as a whole,
+// so the jump a reader sees is measured directly: where the vitals band starts in each.
+const vitalsTop = (page: Page, selector: string) =>
+  page.locator(selector).evaluate((el) => el.getBoundingClientRect().y + window.scrollY);
+
+for (const width of [1440, 1024, 390]) {
+  test(`chart skeleton reserves the no-alert box: content below the alerts moves only by banner height at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const offsets: Record<string, number> = {};
+    const alertBox: Record<string, { top: number; height: number }> = {};
+    const box = (selector: string) =>
+      page.locator(selector).evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.y + window.scrollY, height: r.height };
+      });
+    for (const view of ["no-drafts", "blocking", "advisory"] as const) {
+      await page.goto(`/dev/chart?view=${view}&skeleton=1`);
+      await hideDevOverlay(page);
+      const skeletonTop = await vitalsTop(page, "[data-skeleton=vitals]");
+      if (view === "no-drafts") alertBox.skeleton = await box("[data-skeleton=alerts] > div");
+      await page.goto(`/dev/chart?view=${view}`);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await hideDevOverlay(page);
+      offsets[view] = (await vitalsTop(page, "section[aria-labelledby=vitals-heading]")) - skeletonTop;
+      if (view === "no-drafts") alertBox.chart = await box("section[aria-labelledby=chart-alerts-heading] > div");
+    }
+    console.log(`Vitals band offset after load at ${width}px: ${JSON.stringify(offsets)}; no-alert box ${JSON.stringify(alertBox)}`);
+    // The reserved box is the real one: same height whatever the width (the text wraps the same way).
+    expect(Math.abs(alertBox.skeleton!.height - alertBox.chart!.height)).toBeLessThanOrEqual(0.5);
+    // Anything left over comes from above the alerts (the hero), not from the reserved box.
+    expect(offsets["no-drafts"]! - (alertBox.chart!.top - alertBox.skeleton!.top)).toBeCloseTo(0, 0);
+    // No banners: the skeleton's no-alert box is the real one, so nothing below it moves. On narrow
+    // screens the patient name can wrap to a second line, which the skeleton cannot predict.
+    const nameLine = await page.getByRole("heading", { level: 1 }).evaluate((h1) => parseFloat(getComputedStyle(h1).lineHeight));
+    expect(Math.abs(offsets["no-drafts"]!)).toBeLessThanOrEqual(width <= 760 ? nameLine + 0.5 : 0.5);
+    // With banners, content moves down by the banners' extra height, never up.
+    expect(offsets.blocking).toBeGreaterThan(0);
+    expect(offsets.advisory).toBeGreaterThan(0);
+  });
+}
+
 type AuditLayout = { heading: Box; intro: Box; card: Box; firstRow: Box; headers: Box[] };
 
 /** Boxes of the audit page body (real view or skeleton): heading, intro, card, first row, headers. */
@@ -194,7 +236,9 @@ const layoutShift = (page: Page) =>
   page.evaluate(() => (window as typeof window & { __layoutShift?: number }).__layoutShift ?? 0);
 
 for (const [name, url] of [
-  ["chart", "/dev/chart?view=blocking&delay=1500"],
+  ["chart, draft alert banner", "/dev/chart?view=blocking&delay=1500"],
+  ["chart, critical vitals banner", "/dev/chart?view=advisory&delay=1500"],
+  ["chart, no banners", "/dev/chart?view=no-drafts&delay=1500"],
   ["chart, one queue patient", "/dev/chart?view=blocking&delay=1500&queue=1"],
   ["chart, three queue patients", "/dev/chart?view=blocking&delay=1500&queue=3"],
   ["new prescription", "/dev/prescribing?view=new&delay=1500"],
@@ -211,7 +255,9 @@ for (const [name, url] of [
       await expect(page.locator("[data-skeleton=page]")).toHaveCount(0);
       // Let entrance animations and late font swaps settle before reading the total.
       await page.waitForTimeout(1000);
-      expect(await layoutShift(page)).toBeLessThan(0.05);
+      const cls = await layoutShift(page);
+      console.log(`CLS ${name} at ${width}px: ${cls.toFixed(4)}`);
+      expect(cls).toBeLessThan(0.05);
     });
   }
 }

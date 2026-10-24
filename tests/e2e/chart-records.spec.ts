@@ -84,6 +84,36 @@ test("a critical latest vital raises a chart banner for Elliot; Rowan's warning 
   await expect(page.locator("[data-abnormal-vitals]")).toHaveCount(0);
 });
 
+test("chart load keeps CLS below 0.05 with a vitals banner, a draft banner or none, at 1440, 1024 and 390px", async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as typeof window & { __cls?: number };
+    w.__cls = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) {
+        if (!entry.hadRecentInput) w.__cls! += entry.value;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+  await signIn(page, "clinicianA");
+  const cases = [
+    ["Elliot (critical vitals banner)", PATIENTS.northTwo],
+    ["Rowan (draft banner if one is open, no vitals banner)", PATIENTS.northOne],
+    ["northThree (no banners)", PATIENTS.northThree],
+  ] as const;
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const [name, id] of cases) {
+      await page.goto(`/patients/${await patientRef(id)}`);
+      await expect(page.getByRole("region", { name: "Vitals" })).toBeVisible();
+      await page.waitForTimeout(1000);
+      const cls = await page.evaluate(() => (window as typeof window & { __cls?: number }).__cls ?? 0);
+      const banners = await page.getByRole("region", { name: "Demo safety alerts" }).locator(":scope > [data-severity]").count();
+      console.log(`CLS ${name} at ${width}px: ${cls.toFixed(4)} (${banners} banner${banners === 1 ? "" : "s"})`);
+      expect.soft(cls, `${name} at ${width}px`).toBeLessThan(0.05);
+    }
+  }
+});
+
 test("Elliot's critical SpO2 makes his queue chip critical", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, "clinicianA");

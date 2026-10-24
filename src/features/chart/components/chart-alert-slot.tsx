@@ -5,6 +5,8 @@ import { prescriptionPath } from "@/features/patients/refs";
 import { AbnormalVitalsBanner } from "@/features/vitals/components/abnormal-vitals-banner";
 import type { VitalReading } from "@/features/vitals/thresholds";
 
+export const NO_DRAFT_ALERTS = "No unresolved demo safety alerts on this patient's drafts.";
+
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
@@ -73,7 +75,7 @@ export function ChartAlertSlot({
       {summaries.map((summary) => (
         <DraftBanner key={summary.prescriptionId} patientRef={patientRef} summary={summary} now={now} />
       ))}
-      {summaries.length === 0 && <NoAlert>No unresolved demo safety alerts on this patient&apos;s drafts.</NoAlert>}
+      {summaries.length === 0 && <NoAlert>{NO_DRAFT_ALERTS}</NoAlert>}
       {uncheckedDrafts > 0 && (
         <NoAlert icon={<InfoIcon className="text-ink-muted" />}>
           {uncheckedDrafts === 1 ? "1 draft has" : `${uncheckedDrafts} drafts have`} not had a safety check on the

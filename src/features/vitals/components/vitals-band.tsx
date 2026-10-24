@@ -198,7 +198,7 @@ export function VitalsBand({ readings }: { readings: VitalReading[] }) {
 /** The band with placeholder tiles, for the chart skeleton (rendered inside `aria-hidden`). */
 export function VitalsBandSkeleton() {
   return (
-    <div className="rounded-card border border-line-subtle bg-surface p-5 shadow-level-1">
+    <div data-skeleton="vitals" className="rounded-card border border-line-subtle bg-surface p-5 shadow-level-1">
       <BandFrame skeleton time={<SkeletonLine className="inline-flex align-middle" width="w-44" />}>
         {TILES.map((tile) => (
           <li key={tile.kind} className={cn("flex min-w-0 flex-col gap-2 rounded-control bg-surface-pure", tileBox.stable)}>
