@@ -1,5 +1,6 @@
 import { LoadingRegion, SkeletonBlock, SkeletonLine } from "@/components/ui";
 import { DemographicsSkeleton, PanelSkeleton } from "@/features/chart/components/chart-skeleton";
+import { PatientContextStripSkeleton } from "@/features/patients/components/patient-context";
 import { ErxGrid } from "./erx-layout";
 
 // Mirrors the prescribing views: the same ErxGrid, header and card boxes, so the columns stay put
@@ -113,41 +114,44 @@ function ReviewSkeleton() {
 
 export function PrescribingSkeleton({ withStatus = false }: { withStatus?: boolean }) {
   return (
-    <LoadingRegion label="Loading prescription workspace" wide className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <SkeletonLine className="text-label" width="w-24" />
-          <SkeletonLine className="mt-1 text-heading-xl" width="w-56" />
+    <>
+      <PatientContextStripSkeleton />
+      <LoadingRegion label="Loading prescription workspace" wide className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <SkeletonLine className="text-label" width="w-24" />
+            <SkeletonLine className="mt-1 text-heading-xl" width="w-56" />
+          </div>
+          {withStatus && (
+            <span className="inline-flex rounded-pill px-2.5 py-0.5 text-caption">
+              <SkeletonLine width="w-10" />
+            </span>
+          )}
         </div>
-        {withStatus && (
-          <span className="inline-flex rounded-pill px-2.5 py-0.5 text-caption">
-            <SkeletonLine width="w-10" />
-          </span>
-        )}
-      </div>
-      <PatientHeaderSkeleton />
-      <ErxGrid
-        context={
-          <div data-skeleton="context" className="flex flex-col gap-4">
-            <SafetySummarySkeleton />
-            <PanelSkeleton rows={2} />
-            <PanelSkeleton rows={1} />
-          </div>
-        }
-        main={
-          <div data-skeleton="form" className="flex flex-col gap-4">
-            <TrackerSkeleton />
-            <SectionSkeleton title="Medication" fields={1} />
-            <SectionSkeleton title="Directions and supply" fields={3} />
-            <SectionSkeleton title="Instructions" fields={1} />
-          </div>
-        }
-        review={
-          <div data-skeleton="review">
-            <ReviewSkeleton />
-          </div>
-        }
-      />
-    </LoadingRegion>
+        <PatientHeaderSkeleton />
+        <ErxGrid
+          context={
+            <div data-skeleton="context" className="flex flex-col gap-4">
+              <SafetySummarySkeleton />
+              <PanelSkeleton rows={2} />
+              <PanelSkeleton rows={1} />
+            </div>
+          }
+          main={
+            <div data-skeleton="form" className="flex flex-col gap-4">
+              <TrackerSkeleton />
+              <SectionSkeleton title="Medication" fields={1} />
+              <SectionSkeleton title="Directions and supply" fields={3} />
+              <SectionSkeleton title="Instructions" fields={1} />
+            </div>
+          }
+          review={
+            <div data-skeleton="review">
+              <ReviewSkeleton />
+            </div>
+          }
+        />
+      </LoadingRegion>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import { CheckCircleIcon, PrivateText } from "@/components/ui";
 import { medicationLabel } from "@/features/chart/alerts";
 import { AllergyPanel, MedicationPanel } from "@/features/chart/components/clinical-lists";
+import { PatientContextStrip, SigningFor } from "@/features/patients/components/patient-context";
 import { formatDateTime } from "@/lib/format";
 import type { Allergy, MedicationOption, PatientMedication, PatientSummary, Prescription } from "@/types/domain";
 import { newDraftValues, renewalDraftValues, savedDraftValues } from "../form-values";
@@ -25,9 +26,9 @@ function Context({
 }) {
   return (
     <>
-      <RxSafetySummary state={safety} />
-      <AllergyPanel allergies={allergies} />
-      <MedicationPanel medications={patientMedications} />
+        <RxSafetySummary state={safety} />
+        <AllergyPanel allergies={allergies} />
+        <MedicationPanel medications={patientMedications} />
     </>
   );
 }
@@ -58,31 +59,34 @@ export function NewPrescriptionView({
   renewUnavailable?: boolean;
 }) {
   return (
-    <div data-layout="wide" className="flex flex-col gap-4">
-      <ErxPageHeading patientRef={patient.public_ref} title={renewal ? "Renew prescription" : "New prescription"} />
-      <RxPatientHeader patient={patient} allergies={allergies} medications={patientMedications} />
-      {renewal && (
-        <p role="status" className="text-body-sm text-ink-strong">
-          Prefilled from the signed prescription for{" "}
-          <PrivateText label="Medication">{medicationLabel(renewal)}</PrivateText>, with today as the start date. Review
-          every field: nothing is saved until you create the draft, and the new draft gets its own safety check.
-        </p>
-      )}
-      {renewUnavailable && (
-        <p role="status" className="text-body-sm text-ink-strong">
-          That prescription cannot be renewed: only signed prescriptions for this patient can. Start a new draft below.
-        </p>
-      )}
-      <DraftWorkspace
-        mode="create"
-        idempotencyKey={idempotencyKey}
-        patientId={patient.id}
-        patientName={patientName(patient)}
-        medications={medications}
-        initialValues={renewal ? renewalDraftValues(renewal, startDate) : newDraftValues(startDate)}
-        context={<Context safety={{ kind: "unsaved" }} allergies={allergies} patientMedications={patientMedications} />}
-      />
-    </div>
+    <>
+      <PatientContextStrip patient={patient} />
+      <div data-layout="wide" className="flex flex-col gap-4">
+        <ErxPageHeading patientRef={patient.public_ref} title={renewal ? "Renew prescription" : "New prescription"} />
+        <RxPatientHeader patient={patient} allergies={allergies} medications={patientMedications} />
+        {renewal && (
+          <p role="status" className="text-body-sm text-ink-strong">
+            Prefilled from the signed prescription for{" "}
+            <PrivateText label="Medication">{medicationLabel(renewal)}</PrivateText>, with today as the start date. Review
+            every field: nothing is saved until you create the draft, and the new draft gets its own safety check.
+          </p>
+        )}
+        {renewUnavailable && (
+          <p role="status" className="text-body-sm text-ink-strong">
+            That prescription cannot be renewed: only signed prescriptions for this patient can. Start a new draft below.
+          </p>
+        )}
+        <DraftWorkspace
+          mode="create"
+          idempotencyKey={idempotencyKey}
+          patientId={patient.id}
+          patientName={patientName(patient)}
+          medications={medications}
+          initialValues={renewal ? renewalDraftValues(renewal, startDate) : newDraftValues(startDate)}
+          context={<Context safety={{ kind: "unsaved" }} allergies={allergies} patientMedications={patientMedications} />}
+        />
+      </div>
+    </>
   );
 }
 
@@ -95,30 +99,34 @@ export function PrescriptionView({ workspace }: { workspace: PrescriptionWorkspa
   const editable = isOwnPrescription && isEditable(rx.status);
 
   return (
-    <div data-layout="wide" className="flex flex-col gap-4">
-      <ErxPageHeading
-        patientRef={patient.public_ref}
-        title={<PrivateText label="Medication">{medicationLabel(rx)}</PrivateText>}
-        status={rx.status}
-      />
-      <RxPatientHeader patient={patient} allergies={workspace.allergies} medications={workspace.patientMedications} />
-      {/* Outside the version-keyed workspace, so it survives the refresh after save, sign and cancel. */}
-      <ActionOutcome message={outcomeMessage(rx)} focusId="rx-review-title" className="sr-only" />
-      {editable ? (
-        <DraftWorkspace
-          key={rx.version}
-          mode="edit"
-          saved={{ prescription: rx, alerts, prescriberName: workspace.prescriberName }}
-          patientId={patient.id}
-          patientName={patientName(patient)}
-          medications={workspace.medications}
-          initialValues={savedDraftValues(rx)}
-          context={context}
+    <>
+      <PatientContextStrip patient={patient} />
+      <div data-layout="wide" className="flex flex-col gap-4">
+        <ErxPageHeading
+          patientRef={patient.public_ref}
+          title={<PrivateText label="Medication">{medicationLabel(rx)}</PrivateText>}
+          status={rx.status}
         />
-      ) : (
-        <ErxGrid context={context} main={<ReadOnlyMain workspace={workspace} />} review={<ReadOnlyReview workspace={workspace} />} />
-      )}
-    </div>
+        <RxPatientHeader patient={patient} allergies={workspace.allergies} medications={workspace.patientMedications} />
+        {/* Outside the version-keyed workspace, so it survives the refresh after save, sign and cancel. */}
+        <ActionOutcome message={outcomeMessage(rx)} focusId="rx-review-title" className="sr-only" />
+        {editable ? (
+          <DraftWorkspace
+            key={rx.version}
+            mode="edit"
+            saved={{ prescription: rx, alerts, prescriberName: workspace.prescriberName }}
+            patientId={patient.id}
+            patientName={patientName(patient)}
+            medications={workspace.medications}
+            initialValues={savedDraftValues(rx)}
+            context={context}
+            signingFor={<SigningFor patient={patient} />}
+          />
+        ) : (
+          <ErxGrid context={context} main={<ReadOnlyMain workspace={workspace} />} review={<ReadOnlyReview workspace={workspace} />} />
+        )}
+      </div>
+    </>
   );
 }
 
@@ -126,20 +134,20 @@ function ReadOnlyMain({ workspace }: { workspace: PrescriptionWorkspace }) {
   const { prescription: rx, alerts } = workspace;
   return (
     <>
-      <section aria-labelledby="rx-details-title" className="rounded-card border border-line-subtle bg-surface px-5 py-4">
-        <h2 id="rx-details-title" className="mb-3 text-heading-sm font-semibold text-ink">
-          Prescription details
-        </h2>
-        <PrescriptionSummary prescription={rx} prescriberName={workspace.prescriberName} />
-      </section>
-      {alerts.length > 0 && (
-        <section aria-labelledby="rx-alerts-title" className="rounded-card border border-line-subtle bg-surface px-5 py-4">
-          <h2 id="rx-alerts-title" className="mb-3 text-heading-sm font-semibold text-ink">
-            Demo alerts for this version
+        <section aria-labelledby="rx-details-title" className="rounded-card border border-line-subtle bg-surface px-5 py-4">
+          <h2 id="rx-details-title" className="mb-3 text-heading-sm font-semibold text-ink">
+            Prescription details
           </h2>
-          <SafetyDecisionList alerts={alerts} />
+          <PrescriptionSummary prescription={rx} prescriberName={workspace.prescriberName} />
         </section>
-      )}
+        {alerts.length > 0 && (
+          <section aria-labelledby="rx-alerts-title" className="rounded-card border border-line-subtle bg-surface px-5 py-4">
+            <h2 id="rx-alerts-title" className="mb-3 text-heading-sm font-semibold text-ink">
+              Demo alerts for this version
+            </h2>
+            <SafetyDecisionList alerts={alerts} />
+          </section>
+        )}
     </>
   );
 }

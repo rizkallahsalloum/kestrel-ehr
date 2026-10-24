@@ -249,8 +249,15 @@
   --spacing-toast-inset: var(--spacing-xs);
   --max-width-toast: 360px;
   /* sticky offset for the context and review columns: the sticky top bar's height, which grows with
-     Today's queue (see --topbar-height below) */
-  --spacing-below-topbar: var(--topbar-height);
+     Today's queue (see --topbar-height below), plus the patient-context strip on patient pages */
+  --spacing-below-topbar: calc(var(--topbar-height) + var(--patient-strip));
+  /* Patient-context strip (Phase 9d): sticks to the bottom of the top bar. Name and demographics on
+     one line from 761px (the name's line box), on two lines below (name, then the mono demographics) */
+  --spacing-topbar-bottom: var(--topbar-height);
+  --spacing-patient-strip: calc(var(--text-label--line-height) + 2 * var(--spacing-xs) + var(--border-width-hairline));
+  --spacing-patient-strip-stacked: calc(
+    var(--text-label--line-height) + var(--text-code-sm--line-height) + 2 * var(--spacing-xs) + var(--border-width-hairline)
+  );
   /* sticky top bar without Today's queue: one row of control-md from 761px; search and controls on
      two rows below (one row when there is no search, for administrators); plus the bottom hairline */
   --spacing-topbar: calc(var(--spacing-control-md) + 2 * var(--spacing-md) + var(--border-width-hairline));
@@ -356,9 +363,13 @@
         min(var(--queue-lines), 1) * var(--spacing-sm)
     );
     --topbar-height: calc(var(--topbar-base) + var(--queue-row));
+    --patient-strip: 0px;
   }
   :root:has([data-topbar]:not([data-topbar-search])) {
     --topbar-base: var(--spacing-topbar-stacked-no-search);
+  }
+  :root:has([data-patient-strip]) {
+    --patient-strip: var(--spacing-patient-strip-stacked);
   }
   /* Separate rules: a selector list compiles to :is(), whose :has() specificity would beat xl below. */
   @variant md {
@@ -368,6 +379,9 @@
     }
     :root:has([data-topbar]:not([data-topbar-search])) {
       --topbar-base: var(--spacing-topbar);
+    }
+    :root:has([data-patient-strip]) {
+      --patient-strip: var(--spacing-patient-strip);
     }
   }
   @variant xl {
@@ -393,9 +407,9 @@
   html {
     scroll-padding-top: var(--spacing-md);
   }
-  /* Anchors, focus and tracker jumps stop below the sticky top bar, whatever its height. */
+  /* Anchors, focus and tracker jumps stop below the sticky top bar and the patient-context strip. */
   html:has([data-topbar]) {
-    scroll-padding-top: calc(var(--topbar-height) + var(--spacing-md));
+    scroll-padding-top: calc(var(--topbar-height) + var(--patient-strip) + var(--spacing-md));
   }
 
   body {

@@ -41,6 +41,8 @@ type Props = {
   patientName: string;
   medications: MedicationOption[];
   initialValues: PrescriptionFormValues;
+  /** Server-rendered patient identity, shown right above the Sign action. */
+  signingFor?: ReactNode;
 } & ({ mode: "create"; idempotencyKey: string } | { mode: "edit"; saved: SavedDraft });
 
 /**
@@ -100,7 +102,14 @@ export function DraftWorkspace(props: Props) {
   );
 
   const review = saved ? (
-    <SavedReview saved={saved} patientId={props.patientId} patientName={props.patientName} dirty={dirty} pending={pending} />
+    <SavedReview
+      saved={saved}
+      patientId={props.patientId}
+      patientName={props.patientName}
+      signingFor={props.signingFor}
+      dirty={dirty}
+      pending={pending}
+    />
   ) : (
     <ReviewShell title="Review prescription" subtitle="Nothing saved yet" count={reviewCount({ kind: "unsaved" })}>
       <p className="text-body-sm text-ink-strong">
@@ -120,12 +129,14 @@ function SavedReview({
   saved,
   patientId,
   patientName,
+  signingFor,
   dirty,
   pending,
 }: {
   saved: SavedDraft;
   patientId: string;
   patientName: string;
+  signingFor?: ReactNode;
   dirty: boolean;
   pending: boolean;
 }) {
@@ -196,6 +207,7 @@ function SavedReview({
         )}
       </div>
 
+      {signingFor}
       <SignConfirmation
         {...ids}
         expectedVersion={rx.version}

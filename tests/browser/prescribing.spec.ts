@@ -73,9 +73,9 @@ test("review panel is sticky only in the three-column layout", async ({ page }) 
   await open(page, "new");
   await page.evaluate(() => window.scrollTo(0, 300));
   const pinned = await review(page).boundingBox();
-  // Pinned right under the sticky top bar, whose height grows with Today's queue.
-  const bar = await page.locator("[data-topbar]").boundingBox();
-  expect(Math.abs(pinned!.y - (bar!.y + bar!.height))).toBeLessThanOrEqual(1);
+  // Pinned right under the sticky patient-context strip, which sits under the top bar (whose height grows with Today's queue).
+  const strip = await page.locator("[data-patient-strip]").boundingBox();
+  expect(Math.abs(pinned!.y - (strip!.y + strip!.height))).toBeLessThanOrEqual(1);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(review(page)).toHaveCSS("position", "static");

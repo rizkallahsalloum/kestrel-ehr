@@ -15,6 +15,7 @@ import {
 import { Delayed, delayParam } from "../delayed";
 import { demoQueue } from "../demo-queue";
 import type { PatientChart } from "@/features/chart/queries";
+import { PatientContextStrip } from "@/features/patients/components/patient-context";
 import { patientPath } from "@/features/patients/refs";
 import type { DraftAlertRow, PatientSummary, PrescriptionListItem } from "@/types/domain";
 import { ASTHMA_CASE, DIABETES_CASE, EMPTY_CASE, WELL_CASE } from "./clinical";
@@ -209,6 +210,7 @@ export default async function ChartSpecimenPage({ searchParams }: PageProps<"/de
     params.skeleton ? fallback : delay ? <Suspense fallback={fallback}><Delayed ms={delay}>{node}</Delayed></Suspense> : node;
   const content = (
     <>
+      <PatientContextStrip patient={chart.patient} />
       <ChartLayout
         hero={<ChartHero header={chart} />}
         alerts={params.alertError ? <FailingAlerts /> : <ChartAlerts patientRef={ref} data={chart} />}
