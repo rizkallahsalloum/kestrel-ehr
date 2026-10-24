@@ -226,6 +226,28 @@ Kestrel-Dev was not written to. No migrations, seeds or resets were run; prescri
 - **Checked in review screenshots:** the advisory specimen at 1440px and 390px (critical vitals banner first, advisory draft banner second, no horizontal overflow).
 - **Unverified, not passed:** a real screen reader reading the banner; Windows forced-colours mode; the banner with hosted data at widths other than the e2e default.
 
+## Phase 9b note: critical-only vitals banner, pulse, alert-slot skeleton, units (24 Oct 2026)
+
+- **Critical only:** the vitals banner shows only when a vital on the latest reading is critical; warnings stay on the tile and are listed below the critical vitals when both occur. Rowan (warning blood pressure) has no banner; Elliot (critical SpO₂) has one.
+- **Announcement and motion:** the vitals banner has `role="alert"` and a dot pulse (see "Critical-dot pulse"). The draft allergy-conflict banners have neither (found, not changed).
+- **Alert slot skeleton:** the chart skeleton reserves the no-alert box. CLS 0.0000 at 1440, 1024 and 390px for no banners, a draft banner, and critical vitals plus an advisory banner (specimens), and for Elliot, Rowan and a no-banner patient on kestrel-test. Visual offsets: theme.md "Alert slot in the skeleton".
+- **Units:** one formatter (`src/features/vitals/units.ts`): "91%", "98.4°F", "108 bpm", "124/80 mmHg".
+- **Known limitation:** no age cutoff on the latest reading (theme.md "Known issues").
+
+| Check | Result |
+| --- | --- |
+| `pnpm typecheck`, `pnpm lint` | clean |
+| `pnpm test:unit` | 45 files, 404 passed (twice, run alone). One earlier run, started in parallel with typecheck and lint, exited 1; its failure was not captured. |
+| `pnpm test:db` (kestrel-test) | 6 files, 62 passed |
+| `pnpm test:int` (kestrel-test) | 4 files, 24 passed |
+| `pnpm test:e2e` (kestrel-test) | 27 passed |
+| `pnpm test:browser` (all specs) | 312 passed |
+| `pnpm build`, then `pnpm check:bundle` | build passed; client bundle clean (38 files scanned, 7 needles) |
+
+Kestrel-Dev was not written to. No migrations, seeds or resets were run; prescriptions and patient medications were not touched by hand (the e2e suite creates and resets its own drafts on kestrel-test, as before).
+
+- **Unverified, not passed:** a real screen reader announcing the `role="alert"` banner; the pulse on real devices and under OS reduced-motion settings outside Playwright emulation; forced-colours mode; the draft-banner skeleton case with hosted data (Rowan has no open draft on kestrel-test after the e2e reset).
+
 ## Critical-dot pulse
 
 The task asked to assert that the critical-dot pulse stops. **No such animation exists:** `StatusDot` (critical) is static in the code, the plan and the design references. The motion spec asserts that it has no animation. If a pulse is wanted, it needs a design decision first.
