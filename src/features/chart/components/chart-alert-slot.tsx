@@ -24,9 +24,12 @@ function bannerCounts(summary: DraftAlertSummary): string {
 }
 
 function DraftBanner({ patientRef, summary, now }: { patientRef: string; summary: DraftAlertSummary; now: Date }) {
+  const critical = summary.blocking > 0;
   return (
     <AlertBanner
-      tone={summary.blocking > 0 ? "critical" : "warning"}
+      tone={critical ? "critical" : "warning"}
+      role={critical ? "alert" : "status"}
+      pulse={critical}
       title={bannerTitle(summary, now)}
       actions={
         <Link href={prescriptionPath(patientRef, summary.prescriptionRef)} className={buttonStyles({ size: "sm" })}>

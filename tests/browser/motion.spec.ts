@@ -43,6 +43,23 @@ test("with motion allowed, the critical vitals banner's dot pulses three times a
   expect((await runningAnimations(page)).filter((name) => name.startsWith("alert-pulse"))).toEqual([]);
 });
 
+test("with motion allowed, the blocking draft banner's dot pulses three times and stops; advisory banners do not pulse", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await open(page, "/dev/chart?view=blocking");
+  const banner = page.locator("main [role=alert]").filter({ hasText: "Allergy conflict" });
+  const style = await banner.locator("[data-alert-pulse]").evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { name: s.animationName, count: s.animationIterationCount, duration: s.animationDuration };
+  });
+  expect(style).toEqual({ name: "alert-pulse", count: "3", duration: "1.5s" });
+  expect(await banner.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+  await page.waitForTimeout(5000);
+  expect((await runningAnimations(page)).filter((name) => name.startsWith("alert-pulse"))).toEqual([]);
+
+  await open(page, "/dev/chart?view=advisory");
+  await expect(page.locator('main [role=status][data-severity="warning"] [data-alert-pulse]')).toHaveCount(0);
+});
+
 test.describe("prefers-reduced-motion: reduce", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -96,6 +113,14 @@ test.describe("prefers-reduced-motion: reduce", () => {
     await open(page, "/dev/chart?view=advisory");
     await expect(page.locator("main [role=alert]")).toContainText("Critical vital sign");
     expect(await page.locator("[data-alert-pulse]").evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+    expect(await runningAnimations(page)).toEqual([]);
+  });
+
+  test("blocking draft banner: the dot does not pulse", async ({ page }) => {
+    await open(page, "/dev/chart?view=blocking");
+    const pulse = page.locator("main [role=alert]").filter({ hasText: "Allergy conflict" }).locator("[data-alert-pulse]");
+    await expect(pulse).toHaveCount(1);
+    expect(await pulse.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
     expect(await runningAnimations(page)).toEqual([]);
   });
 

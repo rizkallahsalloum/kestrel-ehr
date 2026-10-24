@@ -332,11 +332,23 @@ test.describe("error announcements", () => {
     expect(nested).toBe(0);
   });
 
-  test("chart alert banners are static on load (not role=alert) and sit under a labelled heading", async ({ page }) => {
+  test("chart alert banners: critical are alerts with a pulse, advisory are polite statuses, under a labelled heading", async ({ page }) => {
     await ready(page, "/dev/chart?view=mixed");
     const region = page.getByRole("region", { name: "Demo safety alerts" });
     await expect(region).toBeVisible();
-    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+    const critical = region.locator(':scope > [data-severity="critical"]');
+    const warning = region.locator(':scope > [data-severity="warning"]');
+    await expect(critical).not.toHaveCount(0);
+    await expect(warning).not.toHaveCount(0);
+    for (const banner of await critical.all()) {
+      await expect(banner).toHaveAttribute("role", "alert");
+      await expect(banner.locator("[data-alert-pulse]")).toHaveCount(1);
+    }
+    for (const banner of await warning.all()) {
+      await expect(banner).toHaveAttribute("role", "status");
+      await expect(banner.locator("[data-alert-pulse]")).toHaveCount(0);
+    }
+    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(await critical.count());
     const titles = await region.locator("p.font-semibold").allTextContents();
     expect(titles.length).toBe(new Set(titles).size);
     expect(titles[0], "blocking first").toBe("Allergy conflict on pending order");

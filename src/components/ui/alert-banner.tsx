@@ -10,9 +10,9 @@ const iconRings: Record<Severity, string> = {
 
 /**
  * Chart-level alert (dashboard `.alert-banner`). Critical (blocking, for example an allergy conflict)
- * is red with the emphasis border; warning (advisory) is orange with a hairline. Static by default.
- * `role="alert"` is for a critical alert (the critical vitals banner) or a banner shown in response
- * to a user action. `pulse` animates the icon dot, never the block, and only without reduced motion.
+ * is red with the emphasis border; warning (advisory) is orange with a hairline. No role by default.
+ * Chart safety banners use `role="alert"` with `pulse` when critical and `role="status"` (polite)
+ * when warning. `pulse` animates the icon dot, never the block, and only without reduced motion.
  */
 export function AlertBanner({
   tone,
@@ -26,7 +26,7 @@ export function AlertBanner({
   tone: Severity;
   title: ReactNode;
   actions?: ReactNode;
-  role?: "alert" | "region";
+  role?: "alert" | "status" | "region";
   pulse?: boolean;
   className?: string;
   children?: ReactNode;

@@ -296,6 +296,9 @@ test("abnormal vitals: a critical banner leads the slot and lists every abnormal
   await expect(banner).toHaveAttribute("role", "alert");
   await expect(alertSlot(page).getByRole("alert")).toHaveCount(1);
   await expect(banner.locator("[data-alert-pulse]")).toHaveCount(1);
+  // The advisory draft banner is a polite status without a pulse.
+  await expect(banners.nth(1)).toHaveAttribute("role", "status");
+  await expect(banners.nth(1).locator("[data-alert-pulse]")).toHaveCount(0);
   expect(await banner.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
   // Not dismissable: the only control is the link to the vitals band.
   await expect(banner.getByRole("button")).toHaveCount(0);
@@ -314,6 +317,9 @@ test("abnormal vitals: a warning-only reading raises no banner; the tile carries
   const banners = alertSlot(page).locator(":scope > [data-severity]");
   await expect(banners).toHaveCount(1);
   await expect(banners.nth(0)).toContainText("Allergy conflict on today's order");
+  // The blocking draft banner is critical: an alert with the pulsing dot.
+  await expect(banners.nth(0)).toHaveAttribute("role", "alert");
+  await expect(banners.nth(0).locator("[data-alert-pulse]")).toHaveCount(1);
   await expect(tile(page, "blood_pressure").locator("[data-vital-status]")).toHaveText("Warning");
 });
 
